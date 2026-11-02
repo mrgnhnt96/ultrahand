@@ -5,8 +5,8 @@ The canvas is the resizable harness that every ultrahand design skill renders it
 The page gives the viewer:
 
 - **A device frame.** Phone, tablet (with split view), desktop window, or bare. Drag handles on the left, right, bottom and corner edges resize it live. The handles move by 1px with the arrow keys, or 10px with Shift + arrow.
-- **A readout.** It shows the width and height (both editable), the width and height size class, the active preset, and flags such as "at min width" or "3 targets under 44px".
-- **Preset buttons.** These come from the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. Rotate swaps the orientation, including safe areas.
+- **A readout.** It shows the width and height (both editable), the width and height size class, and flags such as "at min width" or "3 targets under 44px".
+- **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so. Rotate swaps the orientation, including safe areas.
 - **Review toggles:**
   - Light / Dark
   - Text 100% / 200%
@@ -52,7 +52,7 @@ All fields are optional except `presets`.
 | `platform` | The toolbar label. Defaults to `device`. |
 | `device` | `mobile`, `tablet`, `desktop` or `web`. Picks the default frame: phone, tablet, window or none. |
 | `frame` | Forces a default frame: `phone`, `tablet`, `window` or `none`. |
-| `presets` | The size buttons. See [Preset fields](#preset-fields) below. |
+| `presets` | The Size picker's options. See [Preset fields](#preset-fields) below. |
 | `extraChecks` | Presets for extra review passes, shown in a "Checks" group (for example `reflow` at 320×568). |
 | `initialPreset` | The id of the preset to open with. Defaults to the first preset. |
 | `limits` | `{ minWidth, minHeight, maxWidth, maxHeight }` for free resizing. The active preset's own size always fits. |
