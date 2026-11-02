@@ -5,3 +5,4 @@ node_modules/
 *.log
 graphify-out/
 .claude/settings.local.json
+.claude/worktrees/
