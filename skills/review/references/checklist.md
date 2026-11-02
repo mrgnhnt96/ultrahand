@@ -219,8 +219,8 @@ most often miss; the linked principles hold the rest.
 - [ ] Pointer and keyboard work as well as touch: hover states, context menus, visible
       focus, standard shortcuts [tablet:HIG-POINTER] [tablet:HIG-KEYBOARD].
 - [ ] Content clear of the iPad window controls and Android taskbar [tablet:HIG-WINDOWS]
-      [tablet:AND-MW]. The canvas doesn't draw the iPad window controls, so check the top
-      leading corner by measurement or list it under Not checked.
+      [tablet:AND-MW]. The canvas draws the iPad window controls on iPad split-view
+      presets; turn on Tap targets there and the result counts controls under them.
 - [ ] Each pane has its own loading, empty and error state, and actions that need content
       (Edit, Delete, Share) are disabled while a pane is empty or loading [tablet:AND-CANON].
 - [ ] On narrowing to one pane, the open item stays: at expanded, the item shown in the

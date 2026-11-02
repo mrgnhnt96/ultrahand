@@ -89,6 +89,11 @@ function validate(cfg) {
     if (!pos(p.width) || !pos(p.height)) errors.push(`${at} needs a positive width and height`);
     if (p.frame !== undefined && !FRAMES.includes(p.frame)) errors.push(`${at}: frame must be one of ${FRAMES.join(', ')}`);
     if (p.window !== undefined && !WINDOWS.includes(p.window)) errors.push(`${at}: window must be one of ${WINDOWS.join(', ')}`);
+    const wc = p.windowControls;
+    if (wc !== undefined && typeof wc !== 'boolean' && !(wc && typeof wc === 'object'
+      && (wc.width === undefined || pos(wc.width)) && (wc.height === undefined || pos(wc.height)))) {
+      errors.push(`${at}: windowControls must be true, false or { width, height } with positive numbers`);
+    }
     if (p.split) {
       if (!pos(p.split.width) || p.split.width <= p.width) errors.push(`${at}: split.width must be larger than width`);
       (p.split.snaps || []).forEach((s) => {
