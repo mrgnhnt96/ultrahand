@@ -38,7 +38,26 @@ Read `references/principles.md` and `references/presets.md` before you design. U
 platform's own patterns (sidebar or rail, split view, popovers, menu bar commands) rather
 than inventing new ones.
 
-## 3. Build the canvas artifact
+## 3. Compose the screen
+
+Components that each pass their checks can still add up to a messy screen. Before you
+build, plan how they form sections and how the sections form the screen, using the
+plugin's composition rules in
+[shared/composition/principles.md](../../shared/composition/principles.md):
+
+- **Write the section map.** For each screen list its sections (a sidebar, a list pane, a detail pane with its toolbar, and an inspector), each one's single
+  job, its members ordered by how often they're used, and its one emphasis. Say what is
+  primary content and what is chrome: the content dominates and the chrome recedes.
+- **Group with space.** Gaps inside a group are clearly smaller than gaps between groups;
+  add a container only when space can't show the group.
+- **One look per role, one emphasis per section.** Same role, same style; status and labels
+  never look like buttons; the strong accent goes to one thing per section, and selected
+  states use a quieter treatment.
+- **Keep it small.** About three type sizes, one fact in one place, frequent members in
+  view and rare ones behind a menu. When a change adds something, reorganise first and
+  add only what earns its place.
+
+## 4. Build the canvas artifact
 
 Build on the plugin's shared resizable canvas (`shared/canvas/`; its `README.md` has the full
 contract). Write the screen as `screen.html` and the design's own settings as `config.json`
@@ -88,7 +107,7 @@ large).
 - Make the main flow clickable: navigation switches, rows select or push, panes hide and
   show, and sheets and popovers open and close. Never use `alert`, `confirm` or `prompt`.
 
-## 4. Design every size class
+## 5. Design every size class
 
 Work from wide to narrow, and fix each problem at the size where it appears:
 
@@ -105,9 +124,27 @@ Work from wide to narrow, and fix each problem at the size where it appears:
 Then check the extra cases: 320-wide reflow, landscape with the keyboard up, and the
 `android-tablet` preset (if Android is in scope) in both orientations.
 
-## 5. Self-check before you present
+## 6. Self-check before you present
 
 Go through every item. Fix any failure, or name it and say why it's acceptable.
+
+**Composition** (run the composition audit,
+`node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs" do "${CLAUDE_PLUGIN_ROOT}/shared/composition/audit.mjs"`,
+at the largest and smallest size, or check by eye):
+
+- [ ] Blurred, the screen shows the intended sections, and the primary content draws the eye
+      first. No unintended bright spot.
+- [ ] Each section has one job, its members grouped by function and frequency, with gaps
+      between groups clearly larger than gaps within them.
+- [ ] Each section has at most one strongly emphasised element; selected states are quiet.
+- [ ] One style per role: count the control styles in each section and justify any extra.
+      No label or status looks like a button.
+- [ ] Rows and sections align to shared edges; about three type sizes on the screen.
+- [ ] No fact shown twice, and nothing on screen that doesn't serve a task here.
+- [ ] After a round of changes: list what it added; the screen is no busier than it needs
+      to be.
+
+**Components and platform:**
 
 - [ ] The layout switches by width class (600 / 840), not by device. Every feature is
       reachable at every width, from 320 to full screen.
@@ -138,8 +175,9 @@ Go through every item. Fix any failure, or name it and say why it's acceptable.
 - [ ] Loading, empty and error states are designed for each pane, not just the screen.
 - [ ] The design works at 320 wide without horizontal scrolling.
 
-## 6. Present
+## 7. Present
 
-Share the artifact link. In a few lines, state the key decisions and the principle behind
-each (cite the source key), how the layout changes at each width class, any self-check item
-you accepted with a reason, and any open questions.
+Share the artifact link. In a few lines, state the section map (each section's job and
+emphasis), the key decisions and the principle behind each (cite the source key), how the
+layout changes at each width class, any self-check item you accepted with a reason, and any
+open questions.

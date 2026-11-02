@@ -3,6 +3,9 @@
 The citation keys used in [checklist.md](checklist.md) and [SKILL.md](../SKILL.md). Keys
 with a `mobile:`, `tablet:` or `desktop:` prefix are in that skill's own
 `references/sources.md`.
+The composition keys (`SEC-n`, `SCR-n`, `NNG-VH`, `NNG-PROX`, `NNG-REGION`, `NNG-SIM`,
+`NNG-CLICK`, `NNG-GRID`, `NNG-MINIMAL`, `NNG-PD`) and their sources are in
+[shared/composition/principles.md](../../../shared/composition/principles.md).
 Sources were checked in November 2026.
 
 ## Review method

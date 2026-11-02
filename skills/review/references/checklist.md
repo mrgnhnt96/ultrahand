@@ -24,7 +24,56 @@ For each flow, take the primary task step by step and ask four questions at ever
 Also walk the unhappy paths: cancel halfway, go back, enter something invalid, lose the
 connection, come back later.
 
-## Pass 2: Control by control
+## Pass 2: Composition
+
+The screen as a whole, then each section, before any single control. Keys `SEC-n` and
+`SCR-n` are the rules in
+[shared/composition/principles.md](../../../shared/composition/principles.md), which also
+holds their sources. Run its audit (`shared/composition/audit.mjs`, a steps script for the
+input driver) at the largest and smallest size, with `UH_SECTIONS` naming the sections
+from your inventory, and look at the blurred screenshot before the numbers.
+
+**The whole screen**
+
+- [ ] **Squint test:** blurred, the screen shows the intended sections in the intended
+      order of importance, and the primary content draws the eye first. A bright spot that
+      isn't the primary content is a finding [SCR-2] [NNG-VH].
+- [ ] **The work dominates:** the primary content is the largest, highest-contrast area;
+      chrome (toolbars, panels, status) is visibly quieter and takes a small share of the
+      screen [SCR-1].
+- [ ] **Type scale:** about three type sizes and one UI font (a second only with a clear
+      role) [SCR-3].
+- [ ] **Alignment:** sections and rows share edges; no bar whose rows start on unrelated
+      edges [SCR-4].
+- [ ] **Everything earns its place:** count sections, controls and styles; name what could
+      be merged, moved behind a menu or removed [SCR-5]. For a revision, list what the
+      round added: a fix that adds chrome is checked against the whole screen too.
+- [ ] **Narrowing keeps the order:** as the screen narrows, sections collapse in a planned
+      order and stay recognisable [SCR-6].
+
+**Each section** (toolbars and each of their groups, pane headers, form groups, cards,
+sidebars, lists):
+
+- [ ] **One job,** members grouped by function and then frequency [SEC-1].
+- [ ] **Grouped by space:** gaps inside a group clearly smaller than between groups (the
+      audit's `rows[].gaps`: many different gap sizes means no grouping); containers only
+      where space can't do it [SEC-2].
+- [ ] **Few groups:** a bar or panel with more than three groups is a finding unless each
+      group is essential and frequent [SEC-3].
+- [ ] **One look per role:** one control style per role (the audit's `controlStyles`);
+      no label or status that looks like a button or link (`lookClickable`) [SEC-4].
+- [ ] **One emphasis:** at most one strongly emphasised element (`accentFills`); selected
+      states quiet, not the brand accent in every group [SEC-5].
+- [ ] **Consistent labels:** every group labelled the same way, or none [SEC-6].
+- [ ] **One fact, one place:** no value shown twice where the copies can disagree [SEC-7].
+- [ ] **Frequent in view, rare behind:** nothing frequent hidden, nothing rare given
+      prime space [SEC-8].
+
+A composition finding names the section (or the screen), what the eye or the audit shows,
+the rule, and a concrete reorganisation: which groups, in what order, which members move
+to a menu, which emphasis stays. "Clean it up" is not a fix.
+
+## Pass 3: Control by control
 
 Every control in the inventory:
 
@@ -113,7 +162,7 @@ Scrolling (every scroller: page, panes, lists, sheets, previews):
       Down, Space) scroll whatever is under the pointer or focused [HIG-SCROLL]
       [WCAG 2.1.1].
 
-## Pass 3: Nielsen's 10 heuristics
+## Pass 4: Nielsen's 10 heuristics
 
 Each screen, and the flow as a whole [NNG-HEURISTICS]:
 
@@ -130,9 +179,9 @@ Each screen, and the flow as a whole [NNG-HEURISTICS]:
 | NNG-H9 | Help users recognize, diagnose, and recover from errors | Plain-language errors that say what happened and what to do, without blame. |
 | NNG-H10 | Help and documentation | Help in context where it's needed, findable in the same place on every screen [WCAG 3.2.6]. |
 
-## Pass 4: WCAG 2.2 AA
+## Pass 5: WCAG 2.2 AA
 
-Check these success criteria, in addition to the ones cited in pass 2 [WCAG22].
+Check these success criteria, in addition to the ones cited in pass 3 [WCAG22].
 
 **Perceivable**
 
@@ -196,7 +245,7 @@ ratio('#767676', '#ffffff') // 4.54
 Resolve `light-dark()` and semi-transparent colours to the final colour on its actual
 background before computing.
 
-## Pass 5: Platform
+## Pass 6: Platform
 
 Use the rules for the platform and size classes from step 2. These are the checks reviews
 most often miss; the linked principles hold the rest.
@@ -261,7 +310,7 @@ most often miss; the linked principles hold the rest.
 - [ ] Frequent targets are large and close to where the pointer already is; related
       controls are grouped [NNG-FITTS].
 
-## Pass 6: Resize and variants
+## Pass 7: Resize and variants
 
 On a canvas, use the presets and the readout. From code, read the breakpoints and container
 queries. From a screenshot, say which sizes you couldn't see.
@@ -289,10 +338,10 @@ queries. From a screenshot, say which sizes you couldn't see.
       the screen height. Overflow detectors miss content covered by sticky layers, so
       look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].
 
-## Pass 7: Tools
+## Pass 8: Tools
 
 For a tool built for the owner rather than for end users: the ultrahand canvas, an editor,
-a viewer, a dashboard. Review it as a desktop pointer-and-keyboard app (pass 5, desktop),
+a viewer, a dashboard. Review it as a desktop pointer-and-keyboard app (pass 6, desktop),
 used in a browser window of any size, then add these checks.
 
 - [ ] **The work stays the biggest thing:** at every browser window size, from the
@@ -300,13 +349,13 @@ used in a browser window of any size, then add these checks.
       of the window to the work and never cover it [NNG-H8] [HIG-MACOS].
 - [ ] **Every control at every size:** at each window size, every toolbar control is
       visible or in an overflow menu, none covers another, and a row of options that no
-      longer fits turns into a select (pass 2, option count) [NNG-H6].
+      longer fits turns into a select (pass 3, option count) [NNG-H6].
 - [ ] **Canvas overscroll:** a pan-and-zoom stage pans past every edge of the content, by
       at least half the view, so each edge and corner can be brought to the middle and
       isn't pinned under a toolbar or the window edge [NNG-FITTS] [NNG-H3]. (Half the
       view is this skill's convention; design tools do the same.) Wheel, trackpad, touch
       and Space-drag all pan it, and scrolling over the content pans the stage rather than
-      stopping at a nested scroller (pass 2, scrolling) [HIG-SCROLL].
+      stopping at a nested scroller (pass 3, scrolling) [HIG-SCROLL].
 - [ ] **Zoom has limits and a way back:** zoom has a minimum and a maximum, zooms about the
       pointer, and Fit and 100% commands recentre the content, each with a shortcut
       [HIG-SCROLL] [NNG-H3] [NNG-H7].
@@ -315,8 +364,8 @@ used in a browser window of any size, then add these checks.
       keeps [MS-KBD] [NNG-H7].
 - [ ] **Drags can be cancelled:** Esc during a drag (resize, pan, move) puts things back,
       and every drag has a typed or keyboard alternative [NNG-H3] [WCAG 2.5.7].
-- [ ] **Pass 6 for the tool's own chrome:** the toolbar, panels and menus of the tool
-      itself get these pass 6 checks. Browser window sizes from the smallest the tool
+- [ ] **Pass 7 for the tool's own chrome:** the toolbar, panels and menus of the tool
+      itself get these pass 7 checks. Browser window sizes from the smallest the tool
       supports up to a large display, for the desktop window range. Browser page zoom at
       200%, which is the 200% text check for chrome sized in px [WCAG 1.4.4], and at
       400% of a 1280-wide window, which is the 320-wide reflow check [WCAG 1.4.10]. The
@@ -338,7 +387,13 @@ they know) [NNG-SEVERITY]. These anchors are this skill's convention for applyin
 | **4 Catastrophe** | The primary task can't be finished at some size, state or input: control unreachable or hidden at a breakpoint, keyboard trap, unlabelled icon-only primary action for screen-reader users, data lost on resize, Back, or an in-app action (switching items, closing a panel), destructive action with no confirm or undo next to a frequent one. |
 | **3 Major** | WCAG AA failure on a primary flow (text contrast, target size, missing label, invisible focus); frequent confusion or a wrong-path step in the walkthrough; error with no way to recover; feature missing at one size class. |
 | **2 Minor** | WCAG AA failure on a secondary screen; inconsistency that slows people; missing loading or empty state with a workaround; a platform convention ignored but learnable. |
-| **1 Cosmetic** | Spacing, alignment or wording polish that doesn't affect the task. |
+| **1 Cosmetic** | Spacing, alignment or wording polish in one place that doesn't affect the task. |
+
+**Composition** is not cosmetic by default. A primary surface (the main toolbar, the main
+pane) with no grouping, emphasis on everything, mixed control styles or contradictory
+readouts slows every use and leads to wrong picks: rate it **3 Major**. A single section
+with one of those problems is **2 Minor**; one stray gap or misaligned edge is
+**1 Cosmetic**.
 
 Raise a rating one step when the problem appears on every screen or blocks a common task,
 and lower it one step when it's on a rare path with an obvious workaround. Weigh what is

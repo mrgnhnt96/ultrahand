@@ -40,6 +40,11 @@ Each design skill builds its screen into the shared canvas in `shared/canvas/`
 within min/max bounds, with light/dark, 200% text, state and tap-target toggles.
 Design claims cite their sources in each skill's `references/sources.md`.
 
+Every skill works at three levels: each component, each section (a toolbar, a pane, a form
+group) and the whole screen. The composition rules for sections and screens, and an audit
+that measures them, are in `shared/composition/`. The review skill uses real mouse, wheel,
+keyboard and touch input through the driver in `shared/input/`.
+
 ## License
 
 MIT
