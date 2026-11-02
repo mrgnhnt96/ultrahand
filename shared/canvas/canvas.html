@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trail log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<!-- ULTRAHAND:HEAD:BEGIN -->
+<!-- ULTRAHAND:HEAD:END -->
+<style>
+/* ultrahand canvas harness. Layout: a toolbar on top, a dotted stage below; the
+   device frame is the only object on the stage. Everything below styles the
+   harness chrome only. The designed screen lives in a shadow root and never
+   sees these rules. */
+:root {
+  --bg: #e9ecf1;
+  --surface: #ffffff;
+  --ink: #1a1e26;
+  --muted: #5b6372;
+  --line: #d3d8e1;
+  --accent: #2b52d0;
+  --accent-ink: #ffffff;
+  --warn: #a8500c;
+  --dot: #c5cbd6;
+  --bezel: #15171c;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a;
+    --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a;
+  --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+/* The harness sizes its own text in px. The root font-size is the screen's text
+   scale: screens size text in rem, and the Text 200% toggle doubles it. */
+html { font-size: 16px; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.4 var(--font-ui);
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Toolbar */
+.uh-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 2;
+}
+.uh-id { display: grid; gap: 1px; min-width: 0; }
+.uh-eyebrow {
+  font: 500 11px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.uh-id h1 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; }
+.uh-presets {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 2px;
+}
+.uh-pgroup { display: flex; align-items: center; gap: 6px; flex: none; }
+.uh-pgroup > span {
+  font: 500 11px/1 var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.uh-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.uh-btn:hover { border-color: var(--muted); }
+.uh-btn small { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.uh-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.uh-btn[aria-pressed="true"] small { color: inherit; opacity: 0.8; }
+.uh-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.uh-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.uh-dim { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--font-mono); color: var(--muted); }
+.uh-dim input {
+  width: 6.5ch;
+  padding: 3px 4px;
+  border: 1px solid transparent;
+  border-bottom-color: var(--line);
+  border-radius: 4px;
+  background: transparent;
+  font: 500 15px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.uh-dim input::-webkit-inner-spin-button, .uh-dim input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.uh-dim input:hover { border-color: var(--line); }
+.uh-dim input:disabled { color: var(--muted); }
+.uh-times { color: var(--muted); }
+.uh-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font: 500 12px var(--font-mono);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.uh-chip.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.uh-flag { font: 500 12px var(--font-mono); color: var(--warn); white-space: nowrap; }
+.uh-preset-name { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+.uh-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.uh-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.uh-seg .uh-btn { border: 0; border-radius: 0; }
+.uh-seg .uh-btn + .uh-btn { border-left: 1px solid var(--line); }
+.uh-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.uh-select select {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.uh-zoom { font: 12px var(--font-mono); color: var(--muted); min-width: 4ch; font-variant-numeric: tabular-nums; }
+
+/* Stage */
+.uh-stage {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  padding: 16px;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+.uh-scaler { position: relative; flex: none; margin: auto; }
+.uh-rig { position: absolute; left: 0; top: 0; transform-origin: 0 0; --s: 1; }
+
+/* Device frames */
+.uh-frame { position: relative; width: max-content; background: var(--bezel); }
+.uh-frame[data-kind="phone"] {
+  padding: 12px;
+  border-radius: calc(var(--uh-radius, 44px) + 12px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bezel) 70%, #888), 0 24px 60px rgb(0 0 0 / 0.22);
+}
+.uh-frame[data-kind="tablet"] {
+  padding: 18px;
+  border-radius: calc(var(--uh-radius, 20px) + 18px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bezel) 70%, #888), 0 24px 60px rgb(0 0 0 / 0.22);
+}
+.uh-frame[data-kind="window"] {
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.18);
+  overflow: hidden;
+}
+.uh-frame[data-kind="none"] { background: none; outline: 1px solid var(--line); }
+.uh-frame[data-kind="phone"] .uh-area { border-radius: var(--uh-radius, 44px); }
+.uh-frame[data-kind="tablet"] .uh-area { border-radius: var(--uh-radius, 20px); }
+.uh-frame[data-kind="window"] .uh-area,
+.uh-frame[data-kind="none"] .uh-area { border-radius: var(--uh-radius, 0); }
+
+.uh-titlebar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  user-select: none;
+}
+.uh-frame[data-kind="window"] .uh-titlebar { display: flex; }
+.uh-titlebar .uh-wintitle { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uh-lights { display: inline-flex; gap: 8px; width: 52px; }
+.uh-lights i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+.uh-titlebar[data-style="mac"] .uh-lights i:nth-child(1) { background: #ff5f57; }
+.uh-titlebar[data-style="mac"] .uh-lights i:nth-child(2) { background: #febc2e; }
+.uh-titlebar[data-style="mac"] .uh-lights i:nth-child(3) { background: #28c840; }
+.uh-wincontrols { display: none; gap: 18px; font: 14px var(--font-mono); width: 80px; justify-content: flex-end; }
+.uh-titlebar[data-style="windows"] .uh-lights { display: none; }
+.uh-titlebar[data-style="windows"] .uh-wincontrols { display: inline-flex; }
+.uh-titlebar[data-style="windows"] .uh-wintitle { text-align: left; }
+.uh-titlebar[data-style="plain"] .uh-lights { visibility: hidden; }
+
+.uh-area {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 100%;
+  overflow: hidden;
+  background: var(--bezel);
+}
+.uh-host { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: Canvas; }
+.uh-divider {
+  display: none;
+  position: relative;
+  background: var(--bezel);
+  cursor: col-resize;
+  touch-action: none;
+}
+.uh-divider::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 4px; height: 44px;
+  border-radius: 2px;
+  background: #8b919c;
+  transform: translate(-50%, -50%);
+}
+.uh-other {
+  display: none;
+  place-items: center;
+  min-width: 0;
+  background: repeating-linear-gradient(135deg, var(--surface) 0 10px, var(--bg) 10px 20px);
+  color: var(--muted);
+  font: 500 13px var(--font-mono);
+  user-select: none;
+}
+.uh-area[data-split] .uh-divider { display: block; }
+.uh-area[data-split] .uh-other { display: grid; }
+
+.uh-statusbar {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  font: 600 15px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  pointer-events: none;
+  z-index: 1;
+}
+.uh-statusbar[data-tone="dark"] { color: #000; }
+.uh-statusbar[data-tone="light"] { color: #fff; }
+.uh-frame[data-kind="tablet"] .uh-statusbar { font-size: 12px; padding: 0 20px; }
+.uh-statusbar svg { height: 12px; width: auto; fill: currentColor; }
+.uh-homebar {
+  position: absolute;
+  left: 50%; bottom: 8px;
+  width: min(134px, 36%);
+  height: 5px;
+  border-radius: 3px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.uh-homebar[data-tone="dark"] { background: #000; }
+.uh-homebar[data-tone="light"] { background: #fff; }
+.uh-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--uh-toast-bottom, 0px) + 24px);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgb(20 22 28 / 0.92);
+  color: #fff;
+  font: 500 14px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  transform: translate(-50%, 8px);
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  pointer-events: none;
+  z-index: 2;
+}
+.uh-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Resize handles: counter-scaled so they stay grabbable when the frame is zoomed out */
+.uh-handle {
+  position: absolute;
+  z-index: 3;
+  border-radius: 999px;
+  background: var(--surface);
+  border: calc(1px / var(--s)) solid var(--line);
+  box-shadow: 0 calc(1px / var(--s)) calc(4px / var(--s)) rgb(0 0 0 / 0.15);
+  touch-action: none;
+}
+.uh-handle::after {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border-radius: inherit;
+  background: var(--muted);
+}
+.uh-handle:hover, .uh-handle:focus-visible, .uh-handle.active { background: var(--accent); border-color: var(--accent); }
+.uh-handle:hover::after, .uh-handle:focus-visible::after, .uh-handle.active::after { background: var(--accent-ink); }
+.uh-handle[data-edge="e"], .uh-handle[data-edge="w"] {
+  top: 50%;
+  width: calc(12px / var(--s));
+  height: calc(56px / var(--s));
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+.uh-handle[data-edge="e"] { right: calc(-22px / var(--s)); }
+.uh-handle[data-edge="w"] { left: calc(-22px / var(--s)); }
+.uh-handle[data-edge="s"] {
+  left: 50%;
+  bottom: calc(-22px / var(--s));
+  width: calc(56px / var(--s));
+  height: calc(12px / var(--s));
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+.uh-handle[data-edge="se"] {
+  right: calc(-24px / var(--s));
+  bottom: calc(-24px / var(--s));
+  width: calc(18px / var(--s));
+  height: calc(18px / var(--s));
+  cursor: nwse-resize;
+}
+.uh-rig[data-split] .uh-handle { display: none; }
+body.uh-dragging, body.uh-dragging * { user-select: none !important; }
+body.uh-dragging .uh-host { pointer-events: none; }
+
+.uh-error {
+  position: fixed;
+  left: 16px; right: 16px; bottom: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--warn);
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px/1.45 var(--font-mono);
+  white-space: pre-wrap;
+  z-index: 10;
+}
+.uh-error strong { color: var(--warn); }
+
+@media (max-width: 560px) {
+  .uh-bar { gap: 8px 12px; padding: 8px 16px; }
+  .uh-tools { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .uh-toast { transition: none; }
+}
+</style>
+</head>
+<body>
+<header class="uh-bar">
+  <div class="uh-id">
+    <span class="uh-eyebrow" id="uh-platform">Canvas</span>
+    <h1 id="uh-title">Untitled screen</h1>
+  </div>
+  <nav class="uh-presets" id="uh-presets" aria-label="Size presets"></nav>
+  <div class="uh-readout" role="group" aria-label="Screen size">
+    <label class="uh-dim" for="uh-w">W <input id="uh-w" type="number" inputmode="numeric" step="1"></label>
+    <span class="uh-times" aria-hidden="true">×</span>
+    <label class="uh-dim" for="uh-h">H <input id="uh-h" type="number" inputmode="numeric" step="1"></label>
+    <span class="uh-chip" id="uh-wclass" title="Width size class"></span>
+    <span class="uh-chip quiet" id="uh-hclass" title="Height size class"></span>
+    <span class="uh-preset-name" id="uh-preset-name"></span>
+    <span class="uh-flag" id="uh-flag" role="status"></span>
+  </div>
+  <div class="uh-tools">
+    <label class="uh-select" id="uh-nav-wrap" for="uh-nav" hidden>Screen <select id="uh-nav"></select></label>
+    <label class="uh-select" id="uh-state-wrap" for="uh-state" hidden>State <select id="uh-state"></select></label>
+    <button class="uh-btn" type="button" id="uh-rotate">Rotate</button>
+    <div class="uh-seg" role="group" aria-label="Screen appearance">
+      <button class="uh-btn" type="button" data-scheme="light">Light</button>
+      <button class="uh-btn" type="button" data-scheme="dark">Dark</button>
+    </div>
+    <div class="uh-seg" role="group" aria-label="Text size">
+      <button class="uh-btn" type="button" data-text="1">Text 100%</button>
+      <button class="uh-btn" type="button" data-text="2">200%</button>
+    </div>
+    <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false">Tap targets</button>
+    <div class="uh-seg" role="group" aria-label="Zoom">
+      <button class="uh-btn" type="button" data-zoom="fit">Fit</button>
+      <button class="uh-btn" type="button" data-zoom="1">100%</button>
+    </div>
+    <span class="uh-zoom" id="uh-zoom" title="Current zoom"></span>
+  </div>
+</header>
+<main class="uh-stage" id="uh-stage">
+  <div class="uh-scaler" id="uh-scaler">
+    <div class="uh-rig" id="uh-rig">
+      <div class="uh-frame" id="uh-frame">
+        <div class="uh-titlebar" id="uh-titlebar" data-style="plain">
+          <span class="uh-lights" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="uh-wintitle" id="uh-wintitle"></span>
+          <span class="uh-wincontrols" aria-hidden="true"><span>&#8211;</span><span>&#9633;</span><span>&#215;</span></span>
+        </div>
+        <div class="uh-area" id="uh-area">
+          <div class="uh-host" id="uh-host"></div>
+          <div class="uh-divider" id="uh-divider" data-edge="divider" tabindex="0" role="slider" aria-label="Split view divider" aria-orientation="horizontal"></div>
+          <div class="uh-other" id="uh-other" aria-hidden="true">Other app</div>
+          <div class="uh-statusbar" id="uh-statusbar" aria-hidden="true">
+            <span>9:41</span>
+            <svg viewBox="0 0 46 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="22.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="24.5" y="2.5" width="14" height="7" rx="1.5"/><rect x="43.5" y="4" width="2" height="4" rx="1"/></svg>
+          </div>
+          <div class="uh-homebar" id="uh-homebar" aria-hidden="true"></div>
+          <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="uh-handle" data-edge="w" tabindex="0" role="slider" aria-label="Resize width (left edge)"></div>
+      <div class="uh-handle" data-edge="e" tabindex="0" role="slider" aria-label="Resize width"></div>
+      <div class="uh-handle" data-edge="s" tabindex="0" role="slider" aria-label="Resize height"></div>
+      <div class="uh-handle" data-edge="se" tabindex="0" role="slider" aria-label="Resize width and height"></div>
+    </div>
+  </div>
+</main>
+<div class="uh-error" id="uh-error" role="alert" hidden></div>
+
+<!-- ULTRAHAND:CONFIG:BEGIN -->
+<script type="application/json" id="uh-config">
+{
+  "title": "Trail log",
+  "platform": "Example",
+  "frame": "phone",
+  "states": ["default", "loading", "empty", "error"],
+  "presets": [
+    { "id": "phone-s", "label": "Small phone", "group": "Phone", "width": 360, "height": 800, "platform": "android",
+      "safeArea": { "top": 24, "bottom": 24, "landscapeSide": 24, "landscapeBottom": 24 } },
+    { "id": "phone-l", "label": "Large phone", "group": "Phone", "width": 430, "height": 932, "platform": "ios",
+      "safeArea": { "top": 59, "bottom": 34, "landscapeSide": 59, "landscapeBottom": 21 } },
+    { "id": "tablet", "label": "Tablet", "group": "Tablet", "width": 820, "height": 1180, "frame": "tablet", "safeArea": { "top": 24, "bottom": 20 } },
+    { "id": "tablet-half", "label": "Half split", "group": "Tablet", "width": 585, "height": 820, "frame": "tablet", "safeArea": { "top": 24, "bottom": 20 },
+      "split": { "width": 1180, "snaps": [375, 585, 795] } },
+    { "id": "window", "label": "Window", "group": "Desktop", "width": 1024, "height": 700, "frame": "window", "window": "mac" }
+  ],
+  "extraChecks": [{ "id": "reflow", "label": "Reflow", "width": 320, "height": 568, "safeArea": { "top": 20 } }],
+  "initialPreset": "phone-l",
+  "limits": { "minWidth": 320, "minHeight": 480, "maxWidth": 1600, "maxHeight": 1200 }
+}
+</script>
+<!-- ULTRAHAND:CONFIG:END -->
+
+<!-- ULTRAHAND:SCREEN:BEGIN -->
+<template id="uh-screen">
+<style>
+  .app {
+    --paper: light-dark(#f5f6f2, #101311);
+    --card: light-dark(#ffffff, #191e1b);
+    --text: light-dark(#17201a, #e2e8e3);
+    --sub: light-dark(#56635a, #9ba79f);
+    --rule: light-dark(#dce2dc, #29312c);
+    --pine: light-dark(#1d6847, #6fce9e);
+    height: 100%;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "main" "tabs";
+    background: var(--paper);
+    color: var(--text);
+    font: 1rem/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .main { grid-area: main; min-height: 0; }
+  .tabs {
+    grid-area: tabs;
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px calc(6px + var(--uh-safe-bottom));
+    border-top: 1px solid var(--rule);
+    background: var(--card);
+  }
+  .tab {
+    flex: 1;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--sub);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  .tab[aria-current="page"] { color: var(--pine); font-weight: 600; background: color-mix(in srgb, var(--pine) 12%, transparent); }
+  .page {
+    padding: calc(16px + var(--uh-safe-top)) calc(16px + var(--uh-safe-right)) 24px calc(16px + var(--uh-safe-left));
+  }
+  h1 { margin: 0 0 4px; font-size: 1.75rem; line-height: 1.15; text-wrap: balance; }
+  .lede { margin: 0 0 16px; color: var(--sub); }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 20px; }
+  .stat { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--card); }
+  .stat b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 0.75rem; color: var(--sub); }
+  .list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .trail {
+    width: 100%;
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    background: var(--card);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .trail strong { font-size: 1.0625rem; }
+  .trail .meta { grid-column: 1; font-size: 0.875rem; color: var(--sub); }
+  .trail .grade {
+    grid-column: 2; grid-row: 1 / span 2; align-self: center;
+    padding: 4px 10px; border-radius: 999px; font-size: 0.75rem;
+    background: color-mix(in srgb, var(--pine) 14%, transparent); color: var(--pine);
+  }
+  .skeleton { height: 76px; border-radius: 14px; background: var(--rule); animation: pulse 1.2s ease-in-out infinite alternate; }
+  @keyframes pulse { to { opacity: 0.45; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+  .notice { padding: 20px; border: 1px solid var(--rule); border-radius: 14px; background: var(--card); }
+  .notice strong { font-size: 1.0625rem; }
+  .notice p { margin: 4px 0 16px; color: var(--sub); }
+  .notice.error { border-color: light-dark(#c4362b, #ff8a7f); }
+  .back {
+    min-width: 44px; min-height: 44px; margin: 0 0 8px -8px; padding: 0 12px;
+    border: 0; border-radius: 999px; background: none; color: var(--pine); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+  .btn {
+    min-height: 48px; padding: 0 20px; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--pine); background: none; color: var(--pine);
+  }
+  .btn.primary { background: var(--pine); color: light-dark(#ffffff, #07130d); }
+  .btn[aria-pressed="true"] { background: color-mix(in srgb, var(--pine) 14%, transparent); }
+  label { display: block; margin: 0 0 6px; font-weight: 600; }
+  textarea {
+    display: block; width: 100%; min-height: 112px; margin: 0 0 12px; padding: 12px;
+    border: 1px solid var(--rule); border-radius: 12px; background: var(--card); color: var(--text); font: inherit; resize: vertical;
+  }
+  .notes { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+  .notes li { padding: 12px 14px; border-left: 3px solid var(--pine); border-radius: 4px; background: var(--card); }
+  .notes time { display: block; font-size: 0.75rem; color: var(--sub); }
+  :focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+
+  @container screen (width >= 600px) {
+    .app { grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "tabs main"; }
+    .tabs {
+      flex-direction: column;
+      padding: calc(16px + var(--uh-safe-top)) 8px 16px calc(8px + var(--uh-safe-left));
+      border-top: 0; border-right: 1px solid var(--rule);
+    }
+    .tab { flex: none; min-height: 56px; }
+    .page { padding-inline: 32px; max-width: 1080px; }
+    .list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 32px; }
+  }
+  @container screen (width >= 840px) {
+    .list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
+<div class="app">
+  <div class="main">
+    <section data-screen="trails" data-title="Trails">
+      <div class="page">
+        <h1>Trails nearby</h1>
+        <p class="lede">Example data. Distance in kilometres, climb in metres.</p>
+        <div class="stats">
+          <div class="stat"><b>12.6 km</b><span>this week</span></div>
+          <div class="stat"><b>3</b><span>hikes</span></div>
+          <div class="stat"><b>840 m</b><span>climbed</span></div>
+        </div>
+        <ul class="list" id="trail-list" data-show-state="default"></ul>
+        <ul class="list" data-show-state="loading" aria-busy="true" aria-label="Loading trails">
+          <li class="skeleton"></li><li class="skeleton"></li><li class="skeleton"></li>
+        </ul>
+        <div class="notice" data-show-state="empty">
+          <strong>No trails within 25 km</strong>
+          <p>Widen the search area or check back after the next map update.</p>
+          <button class="btn primary" type="button">Search a wider area</button>
+        </div>
+        <div class="notice error" data-show-state="error" role="alert">
+          <strong>Couldn't load trails</strong>
+          <p>Check your connection, then try again. Saved trails still work offline.</p>
+          <button class="btn primary" type="button" id="retry">Try again</button>
+        </div>
+      </div>
+    </section>
+    <section data-screen="saved" data-title="Saved">
+      <div class="page">
+        <h1>Saved trails</h1>
+        <p class="lede" id="saved-empty">Trails you save show up here. Open a trail and choose Save trail.</p>
+        <ul class="list" id="saved-list"></ul>
+      </div>
+    </section>
+    <section data-screen="trail" data-title="Trail detail">
+      <div class="page">
+        <button class="back" type="button" data-nav-back>&#8249; Back</button>
+        <div class="detail">
+          <div>
+            <h1 id="trail-name"></h1>
+            <p class="lede" id="trail-grade"></p>
+            <div class="stats">
+              <div class="stat"><b id="trail-km"></b><span>distance</span></div>
+              <div class="stat"><b id="trail-gain"></b><span>climb</span></div>
+              <div class="stat"><b id="trail-time"></b><span>typical time</span></div>
+            </div>
+            <div class="actions">
+              <button class="btn" type="button" id="save-trail" aria-pressed="false">Save trail</button>
+            </div>
+          </div>
+          <form id="note-form">
+            <label for="note">Trail note</label>
+            <textarea id="note" placeholder="Conditions, water, parking"></textarea>
+            <button class="btn primary" type="submit">Add note</button>
+            <ul class="notes" id="notes"></ul>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <button class="tab" type="button" data-nav="trails" data-nav-replace aria-current="page">Trails</button>
+    <button class="tab" type="button" data-nav="saved" data-nav-replace>Saved</button>
+  </nav>
+</div>
+</template>
+<script>
+window.ultrahandSetup = function (canvas) {
+  const trails = [
+    { id: 'cedar', name: 'Cedar Ridge Loop', km: 7.4, gain: 410, time: '2 h 30 min', grade: 'Moderate' },
+    { id: 'falls', name: 'Hidden Falls Spur', km: 3.1, gain: 120, time: '1 h', grade: 'Easy' },
+    { id: 'saddle', name: 'North Saddle Traverse', km: 14.8, gain: 1120, time: '6 h', grade: 'Hard' },
+    { id: 'lake', name: 'Lakeshore Path', km: 5.2, gain: 60, time: '1 h 30 min', grade: 'Easy' }
+  ];
+  const saved = new Set(['falls']);
+  const notes = {};
+  const drafts = {};
+  let current = trails[0];
+  const $ = canvas.$;
+
+  function card(t) {
+    return '<li><button class="trail" type="button" data-nav="trail" data-trail="' + t.id + '">' +
+      '<strong>' + t.name + '</strong><span class="meta">' + t.km + ' km · ' + t.gain + ' m climb · ' + t.time + '</span>' +
+      '<span class="grade">' + t.grade + '</span></button></li>';
+  }
+  function renderLists() {
+    $('#trail-list').innerHTML = trails.map(card).join('');
+    const list = trails.filter(function (t) { return saved.has(t.id); });
+    $('#saved-list').innerHTML = list.map(card).join('');
+    $('#saved-empty').hidden = list.length > 0;
+  }
+  function renderNotes() {
+    const ul = $('#notes');
+    ul.replaceChildren();
+    (notes[current.id] || []).forEach(function (n) {
+      const li = document.createElement('li');
+      const time = document.createElement('time');
+      time.textContent = n.at;
+      li.append(time, n.text);
+      ul.append(li);
+    });
+  }
+  function openTrail(id) {
+    drafts[current.id] = $('#note').value;
+    current = trails.find(function (t) { return t.id === id; }) || trails[0];
+    $('#trail-name').textContent = current.name;
+    $('#trail-grade').textContent = current.grade + ' trail';
+    $('#trail-km').textContent = current.km + ' km';
+    $('#trail-gain').textContent = current.gain + ' m';
+    $('#trail-time').textContent = current.time;
+    const isSaved = saved.has(current.id);
+    $('#save-trail').setAttribute('aria-pressed', String(isSaved));
+    $('#save-trail').textContent = isSaved ? 'Saved' : 'Save trail';
+    $('#note').value = drafts[current.id] || '';
+    renderNotes();
+  }
+
+  canvas.root.addEventListener('click', function (e) {
+    const t = e.target.closest('[data-trail]');
+    if (t) openTrail(t.dataset.trail);
+  });
+  $('#save-trail').addEventListener('click', function () {
+    if (saved.has(current.id)) saved.delete(current.id); else saved.add(current.id);
+    openTrail(current.id);
+    renderLists();
+    canvas.toast(saved.has(current.id) ? 'Saved ' + current.name : 'Removed from saved');
+  });
+  $('#note-form').addEventListener('submit', function () {
+    const text = $('#note').value.trim();
+    if (!text) { canvas.toast('Write a note first'); return; }
+    (notes[current.id] = notes[current.id] || []).unshift({ text: text, at: 'Today, 9:41' });
+    $('#note').value = '';
+    drafts[current.id] = '';
+    renderNotes();
+    canvas.toast('Note added');
+  });
+  $('#retry').addEventListener('click', function () { canvas.setState('loading'); });
+  canvas.onNavigate(function (nav) {
+    const tab = nav.screen === 'saved' ? 'saved' : 'trails';
+    canvas.$$('.tab').forEach(function (b) {
+      if (b.dataset.nav === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+  });
+
+  renderLists();
+  openTrail('cedar');
+};
+</script>
+<!-- ULTRAHAND:SCREEN:END -->
+
+<script>
+/* ultrahand canvas runtime. Reads #uh-config, mounts #uh-screen into a shadow
+   root, and drives resizing, presets, size classes and navigation. */
+(function () {
+  'use strict';
+  var byId = function (id) { return document.getElementById(id); };
+  var el = {
+    error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'),
+    w: byId('uh-w'), h: byId('uh-h'), wclass: byId('uh-wclass'), hclass: byId('uh-hclass'), flag: byId('uh-flag'),
+    presetName: byId('uh-preset-name'), navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
+    zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
+    titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
+    divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'),
+    toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets')
+  };
+  var errors = [];
+  function report(msg) {
+    errors.push(msg);
+    el.error.hidden = false;
+    el.error.innerHTML = '';
+    var head = document.createElement('strong');
+    head.textContent = 'Canvas problem';
+    el.error.append(head, '\n' + errors.join('\n'));
+  }
+  window.addEventListener('error', function (e) {
+    report('Script error: ' + e.message + (e.lineno ? ' (line ' + e.lineno + ')' : ''));
+  });
+
+  /* Defaults: Material 3 window size classes (width) and height classes.
+     A platform skill overrides them with config.sizeClasses. */
+  var WIDTH_CLASSES = [
+    { name: 'compact', min: 0 }, { name: 'medium', min: 600 }, { name: 'expanded', min: 840 },
+    { name: 'large', min: 1200 }, { name: 'extra-large', min: 1600 }
+  ];
+  var HEIGHT_CLASSES = [{ name: 'compact', min: 0 }, { name: 'medium', min: 480 }, { name: 'expanded', min: 900 }];
+  var FRAMES = ['phone', 'tablet', 'window', 'none'];
+  var GUTTER = 36; /* room around the frame for the handles, in logical px */
+
+  var cfg = {};
+  try {
+    cfg = JSON.parse(byId('uh-config').textContent) || {};
+  } catch (err) {
+    report('The canvas config is not valid JSON: ' + err.message);
+  }
+  var limits = Object.assign({ minWidth: 200, minHeight: 200, maxWidth: 3840, maxHeight: 2400 }, cfg.limits || {});
+  function byMin(list) { return list.slice().sort(function (a, b) { return a.min - b.min; }); }
+  var widthClasses = byMin((cfg.sizeClasses && cfg.sizeClasses.width) || WIDTH_CLASSES);
+  var heightClasses = byMin((cfg.sizeClasses && cfg.sizeClasses.height) || HEIGHT_CLASSES);
+  /* "device" is the field a platform skill's presets block uses; it picks the default frame. */
+  var DEVICE_FRAME = { mobile: 'phone', phone: 'phone', tablet: 'tablet', desktop: 'window', web: 'none' };
+  var defaultFrame = FRAMES.indexOf(cfg.frame) >= 0 ? cfg.frame : (DEVICE_FRAME[cfg.device] || 'phone');
+  /* extraChecks (e.g. a 320-wide reflow pass) show as their own preset group. */
+  var allPresets = (Array.isArray(cfg.presets) ? cfg.presets : []).concat(
+    (Array.isArray(cfg.extraChecks) ? cfg.extraChecks : []).map(function (p) {
+      return Object.assign({ group: 'Checks' }, p);
+    })
+  );
+  var presets = allPresets.filter(function (p, i) {
+    var ok = p && p.id && p.width > 0 && p.height > 0;
+    if (!ok) report('Preset ' + (i + 1) + ' needs an id, a width and a height.');
+    return ok;
+  });
+  var states = (Array.isArray(cfg.states) ? cfg.states : []).map(function (s) {
+    return typeof s === 'string' ? { id: s, label: s.charAt(0).toUpperCase() + s.slice(1) } : s;
+  }).filter(function (s) { return s && s.id; });
+
+  var st = {
+    w: 390, h: 844, preset: null, resized: false, kind: defaultFrame,
+    baseSafe: { top: 0, right: 0, bottom: 0, left: 0 }, landscapeSafe: null, statusBar: false, homeBar: false,
+    radius: null, windowStyle: 'plain', split: null, landscape: false, platform: '',
+    scheme: cfg.scheme === 'dark' ? 'dark' : 'light', statusTone: 'auto',
+    textScale: 1, state: states.length ? states[0].id : null, showTargets: false, smallTargets: 0, minTarget: 44,
+    zoom: 'fit', s: 1, flags: [], dragging: false
+  };
+
+  el.title.textContent = cfg.title || 'Untitled screen';
+  el.platform.textContent = cfg.platform || (cfg.device ? cfg.device : 'Canvas');
+  el.wintitle.textContent = cfg.title || '';
+
+  /* ---------- Screen mount ---------- */
+  var root = el.host.attachShadow({ mode: 'open' });
+  var base = document.createElement('style');
+  base.textContent = [
+    ':host { display: block; }',
+    '.uh-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; container: screen / size; contain: layout paint;',
+    '  color-scheme: light; background: Canvas; color: CanvasText; font: 1rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;',
+    '  -webkit-text-size-adjust: 100%; }',
+    '.uh-viewport[data-scheme="dark"] { color-scheme: dark; }',
+    /* Show tap targets: dashed outline on every hit area, solid and hatched when under the minimum. */
+    '.uh-viewport[data-show-targets] :is(a[href], button, input, select, textarea, summary, label[for], [role="button"], [role="link"],',
+    '  [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [data-nav], [data-nav-back], [tabindex]:not([tabindex="-1"])) {',
+    '  outline: 2px dashed #d61f8a !important; outline-offset: -2px !important; }',
+    '.uh-viewport[data-show-targets] [data-uh-small] { outline: 2px solid #e5484d !important;',
+    '  background-image: repeating-linear-gradient(45deg, rgb(229 72 77 / 0.28) 0 4px, transparent 4px 8px) !important; }',
+    '.uh-viewport *, .uh-viewport *::before, .uh-viewport *::after { box-sizing: border-box; }',
+    '.uh-viewport[data-touch] * { scrollbar-width: none; }',
+    '.uh-viewport[data-touch] *::-webkit-scrollbar { display: none; }',
+    '[data-screen] { height: 100%; overflow: auto; overscroll-behavior: contain; }',
+    '[data-screen][hidden], [hidden] { display: none !important; }'
+  ].join('\n');
+  var viewport = document.createElement('div');
+  viewport.className = 'uh-viewport';
+  viewport.setAttribute('part', 'viewport');
+  root.append(base, viewport);
+  var tpl = byId('uh-screen');
+  if (tpl && tpl.content) viewport.append(tpl.content.cloneNode(true));
+  else report('No <template id="uh-screen"> found. Put the screen markup in the SCREEN region.');
+
+  /* ---------- Navigation between [data-screen] sections ---------- */
+  var screens = Array.prototype.slice.call(viewport.querySelectorAll('[data-screen]'));
+  var currentScreen = null;
+  var stack = [];
+  var scrolls = {};
+  var navListeners = [];
+  function screenById(id) {
+    for (var i = 0; i < screens.length; i++) if (screens[i].dataset.screen === id) return screens[i];
+    return null;
+  }
+  function show(id) {
+    var next = screenById(id);
+    if (!next) {
+      report('No screen named "' + id + '". Screens: ' + screens.map(function (s) { return s.dataset.screen; }).join(', '));
+      return false;
+    }
+    if (currentScreen) {
+      scrolls[currentScreen.dataset.screen] = currentScreen.scrollTop;
+      currentScreen.hidden = true;
+    }
+    next.hidden = false;
+    next.scrollTop = scrolls[id] || 0;
+    currentScreen = next;
+    el.nav.value = id;
+    return true;
+  }
+  function emitNav(from) {
+    var info = { screen: currentScreen ? currentScreen.dataset.screen : null, from: from, depth: stack.length };
+    navListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onNavigate handler: ' + err.message); } });
+    if (typeof measureTargets === 'function') measureTargets();
+  }
+  function navigate(id, opts) {
+    var from = currentScreen ? currentScreen.dataset.screen : null;
+    if (from === id) return;
+    if (!show(id)) return;
+    if (from && !(opts && opts.replace)) stack.push(from);
+    emitNav(from);
+  }
+  function back() {
+    var from = currentScreen ? currentScreen.dataset.screen : null;
+    var prev = stack.pop();
+    if (prev && show(prev)) emitNav(from);
+  }
+  if (screens.length) {
+    screens.forEach(function (s) {
+      s.hidden = true;
+      var opt = document.createElement('option');
+      opt.value = s.dataset.screen;
+      opt.textContent = s.dataset.title || s.dataset.screen;
+      el.nav.append(opt);
+    });
+    el.navWrap.hidden = screens.length < 2;
+    show(screenById(cfg.initialScreen) ? cfg.initialScreen : screens[0].dataset.screen);
+  }
+  el.nav.addEventListener('change', function () { navigate(el.nav.value); });
+
+  root.addEventListener('click', function (e) {
+    var nav = e.target.closest('[data-nav], [data-nav-back]');
+    if (nav) {
+      e.preventDefault();
+      if (nav.hasAttribute('data-nav-back')) back();
+      else navigate(nav.dataset.nav, { replace: nav.hasAttribute('data-nav-replace') });
+      return;
+    }
+    var a = e.target.closest('a[href]');
+    if (a && a.getAttribute('href').charAt(0) === '#') e.preventDefault();
+  });
+  /* Forms have nowhere to submit inside an artifact: handle submit in setup. */
+  root.addEventListener('submit', function (e) { e.preventDefault(); });
+
+  /* ---------- Size model ---------- */
+  function classFor(list, v) {
+    var name = list[0] ? list[0].name : '';
+    for (var i = 0; i < list.length; i++) if (v >= list[i].min) name = list[i].name;
+    return name;
+  }
+  function safe() {
+    if (!st.landscape) return st.baseSafe;
+    if (st.landscapeSafe) return st.landscapeSafe;
+    var b = st.baseSafe;
+    if (st.kind === 'phone') {
+      /* Landscape phone: the camera side becomes a side inset (shown on the left) and the
+         home-indicator inset shrinks. landscapeSide/landscapeBottom override the guess. */
+      var side = b.landscapeSide != null ? b.landscapeSide : b.top;
+      var bottom = b.landscapeBottom != null ? b.landscapeBottom : (b.bottom ? Math.round(b.bottom * 0.6) : 0);
+      return { top: 0, bottom: bottom, left: side, right: b.landscapeSide != null ? 0 : side };
+    }
+    return { top: b.top, bottom: b.bottom, left: b.left, right: b.right };
+  }
+  function bounds() {
+    if (st.split) {
+      var sp = st.split;
+      return {
+        minW: sp.minApp, maxW: sp.deviceW - sp.divider - sp.minOther,
+        minH: sp.deviceH, maxH: sp.deviceH
+      };
+    }
+    /* Limits bound free resizing; the active preset's own size (either way round) always fits. */
+    var b = { minW: limits.minWidth, maxW: limits.maxWidth, minH: limits.minHeight, maxH: limits.maxHeight };
+    if (st.preset) {
+      var pw = st.landscape ? st.preset.height : st.preset.width;
+      var ph = st.landscape ? st.preset.width : st.preset.height;
+      b.minW = Math.min(b.minW, pw); b.maxW = Math.max(b.maxW, pw);
+      b.minH = Math.min(b.minH, ph); b.maxH = Math.max(b.maxH, ph);
+    }
+    return b;
+  }
+  function setSize(w, h, source) {
+    var b = bounds();
+    var flags = [];
+    w = Math.round(Number(w));
+    h = Math.round(Number(h));
+    if (!isFinite(w)) w = st.w;
+    if (!isFinite(h)) h = st.h;
+    if (w < b.minW) { w = b.minW; flags.push('min width'); }
+    if (w > b.maxW) { w = b.maxW; flags.push('max width'); }
+    if (!st.split) {
+      if (h < b.minH) { h = b.minH; flags.push('min height'); }
+      if (h > b.maxH) { h = b.maxH; flags.push('max height'); }
+    } else {
+      h = b.minH;
+    }
+    st.w = w;
+    st.h = h;
+    st.flags = flags;
+    if (source !== 'preset' && source !== 'rotate') st.resized = true;
+    render();
+  }
+  function usePreset(p) {
+    st.preset = p;
+    st.resized = false;
+    st.landscape = false;
+    st.kind = FRAMES.indexOf(p.frame) >= 0 ? p.frame : defaultFrame;
+    st.platform = p.platform || '';
+    /* Minimum hit area: 44pt Apple HIG, 48dp Material; override with minTarget. */
+    st.minTarget = p.minTarget || cfg.minTarget || (st.platform === 'android' ? 48 : 44);
+    st.baseSafe = Object.assign({ top: 0, right: 0, bottom: 0, left: 0 }, p.safeArea || {});
+    st.landscapeSafe = p.landscapeSafeArea ? Object.assign({ top: 0, right: 0, bottom: 0, left: 0 }, p.landscapeSafeArea) : null;
+    var touch = st.kind === 'phone' || st.kind === 'tablet';
+    st.statusBar = p.statusBar != null ? !!p.statusBar : touch && st.baseSafe.top > 0;
+    st.homeBar = p.homeIndicator != null ? !!p.homeIndicator : touch && st.baseSafe.bottom > 0;
+    st.radius = typeof p.radius === 'number' ? p.radius : null;
+    st.windowStyle = ['mac', 'windows', 'plain'].indexOf(p.window) >= 0 ? p.window : 'plain';
+    if (p.split && p.split.width > p.width) {
+      st.split = {
+        deviceW: p.split.width,
+        deviceH: p.split.height || p.height,
+        divider: p.split.divider != null ? p.split.divider : 10,
+        side: p.split.side === 'trailing' ? 'trailing' : 'leading',
+        snaps: (p.split.snaps || []).slice().sort(function (a, b) { return a - b; }),
+        minApp: p.split.minWidth || Math.min(limits.minWidth, p.width),
+        minOther: p.split.minOther || 0
+      };
+    } else {
+      if (p.split) report('Preset "' + p.id + '": split.width must be larger than width.');
+      st.split = null;
+    }
+    setSize(p.width, st.split ? st.split.deviceH : p.height, 'preset');
+  }
+  function rotate() {
+    if (st.kind === 'window' || st.kind === 'none') return;
+    st.landscape = !st.landscape;
+    if (st.split) {
+      var sp = st.split;
+      var ratio = sp.deviceH / sp.deviceW;
+      var frac = st.w / sp.deviceW;
+      var dw = sp.deviceH;
+      sp.deviceH = sp.deviceW;
+      sp.deviceW = dw;
+      sp.snaps = sp.snaps.map(function (v) { return Math.round(v * ratio); });
+      setSize(frac * sp.deviceW, sp.deviceH, 'rotate');
+    } else {
+      setSize(st.h, st.w, 'rotate');
+    }
+  }
+
+  /* ---------- Render ---------- */
+  var resizeListeners = [];
+  var notifyQueued = false;
+  function sizeInfo() {
+    return {
+      width: st.w, height: st.h,
+      widthClass: classFor(widthClasses, st.w), heightClass: classFor(heightClasses, st.h),
+      orientation: st.w > st.h ? 'landscape' : 'portrait',
+      preset: st.preset ? st.preset.id : null, resized: st.resized,
+      frame: st.kind, split: !!st.split, scheme: st.scheme, platform: st.platform,
+      textScale: st.textScale, state: st.state, safeArea: Object.assign({}, safe())
+    };
+  }
+  /* Count hit areas under the minimum, in screen px (undo the zoom). */
+  var TARGETS = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, label[for], [role="button"], [role="link"], ' +
+    '[role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [data-nav], [data-nav-back]';
+  var targetsQueued = false;
+  function measureTargets() {
+    if (targetsQueued) return;
+    targetsQueued = true;
+    requestAnimationFrame(function () {
+      targetsQueued = false;
+      var n = 0;
+      Array.prototype.forEach.call(viewport.querySelectorAll(TARGETS), function (t) {
+        var r = t.getBoundingClientRect();
+        var w = r.width / st.s, h = r.height / st.s;
+        var small = w > 0 && h > 0 && !t.hasAttribute('data-uh-ignore-target') && (w < st.minTarget - 0.5 || h < st.minTarget - 0.5);
+        if (small && st.showTargets) t.setAttribute('data-uh-small', ''); else t.removeAttribute('data-uh-small');
+        if (small) n++;
+      });
+      st.smallTargets = n;
+      showFlags();
+    });
+  }
+  function showFlags() {
+    var parts = st.flags.length ? ['at ' + st.flags.join(', ')] : [];
+    if (st.showTargets && st.smallTargets) {
+      parts.push(st.smallTargets + (st.smallTargets === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px');
+    }
+    el.flag.textContent = parts.join(' · ');
+  }
+  function notify() {
+    if (notifyQueued) return;
+    notifyQueued = true;
+    requestAnimationFrame(function () {
+      notifyQueued = false;
+      var info = sizeInfo();
+      resizeListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onResize handler: ' + err.message); } });
+      viewport.dispatchEvent(new CustomEvent('uh:resize', { detail: info }));
+    });
+  }
+  function render() {
+    var info = sizeInfo();
+    var sa = info.safeArea;
+    var sp = st.split;
+    var areaW = sp ? sp.deviceW : st.w;
+    var areaH = sp ? sp.deviceH : st.h;
+
+    el.frame.dataset.kind = st.kind;
+    if (st.radius != null) el.frame.style.setProperty('--uh-radius', st.radius + 'px');
+    else el.frame.style.removeProperty('--uh-radius');
+    el.titlebar.dataset.style = st.windowStyle;
+    el.area.style.width = areaW + 'px';
+    el.area.style.height = areaH + 'px';
+    if (sp) {
+      el.area.dataset.split = sp.side;
+      el.rig.dataset.split = '';
+      el.area.style.gridTemplateColumns = sp.side === 'leading'
+        ? st.w + 'px ' + sp.divider + 'px minmax(0, 1fr)'
+        : 'minmax(0, 1fr) ' + sp.divider + 'px ' + st.w + 'px';
+      el.host.style.order = sp.side === 'leading' ? 0 : 2;
+      el.divider.style.order = 1;
+      el.other.style.order = sp.side === 'leading' ? 2 : 0;
+    } else {
+      delete el.area.dataset.split;
+      delete el.rig.dataset.split;
+      el.area.style.gridTemplateColumns = '';
+      el.host.style.order = '';
+    }
+
+    viewport.dataset.scheme = st.scheme;
+    viewport.dataset.widthClass = info.widthClass;
+    viewport.dataset.heightClass = info.heightClass;
+    viewport.dataset.orientation = info.orientation;
+    viewport.dataset.frame = st.kind;
+    viewport.dataset.platform = st.platform;
+    viewport.dataset.textScale = st.textScale;
+    if (st.state) viewport.dataset.state = st.state;
+    if (st.showTargets) viewport.dataset.showTargets = ''; else delete viewport.dataset.showTargets;
+    if (st.kind === 'phone' || st.kind === 'tablet') viewport.dataset.touch = '';
+    else delete viewport.dataset.touch;
+    document.documentElement.style.fontSize = 16 * st.textScale + 'px';
+    ['top', 'right', 'bottom', 'left'].forEach(function (k) { viewport.style.setProperty('--uh-safe-' + k, (sa[k] || 0) + 'px'); });
+    viewport.style.setProperty('--uh-width', st.w + 'px');
+    viewport.style.setProperty('--uh-height', st.h + 'px');
+
+    var tone = st.statusTone === 'auto' ? (st.scheme === 'dark' ? 'light' : 'dark') : st.statusTone;
+    var showStatus = st.statusBar && st.statusTone !== 'hidden' && sa.top > 0;
+    el.statusbar.hidden = !showStatus;
+    el.statusbar.dataset.tone = tone;
+    el.statusbar.style.height = sa.top + 'px';
+    el.homebar.hidden = !st.homeBar;
+    el.homebar.dataset.tone = tone;
+    el.area.style.setProperty('--uh-toast-bottom', (sa.bottom || 0) + 'px');
+
+    /* readout */
+    if (document.activeElement !== el.w) el.w.value = st.w;
+    if (document.activeElement !== el.h) el.h.value = st.h;
+    el.h.disabled = !!sp;
+    el.w.min = bounds().minW; el.w.max = bounds().maxW;
+    el.h.min = bounds().minH; el.h.max = bounds().maxH;
+    el.wclass.textContent = info.widthClass;
+    el.hclass.textContent = info.heightClass + ' height';
+    showFlags();
+    el.presetName.textContent = st.preset
+      ? st.preset.label + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '')
+      : 'Custom';
+    Array.prototype.forEach.call(el.presets.querySelectorAll('[data-preset]'), function (b) {
+      b.setAttribute('aria-pressed', String(!!st.preset && b.dataset.preset === st.preset.id && !st.resized && !st.landscape));
+    });
+    el.rotate.disabled = st.kind === 'window' || st.kind === 'none';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-scheme]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.scheme === st.scheme));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-text]'), function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.text) === st.textScale));
+    });
+    el.targets.setAttribute('aria-pressed', String(st.showTargets));
+    if (st.state) el.state.value = st.state;
+    Array.prototype.forEach.call(el.rig.querySelectorAll('.uh-handle'), function (hd) {
+      var v = hd.dataset.edge === 's' ? st.h : st.w;
+      hd.setAttribute('aria-valuenow', v);
+      hd.setAttribute('aria-valuetext', st.w + ' by ' + st.h + ' pixels');
+    });
+    el.divider.setAttribute('aria-valuenow', st.w);
+    el.divider.setAttribute('aria-valuetext', 'App width ' + st.w + ' pixels');
+
+    if (!st.dragging) fit();
+    notify();
+    measureTargets();
+  }
+
+  /* ---------- Zoom ---------- */
+  function stageInner() {
+    var cs = getComputedStyle(el.stage);
+    return {
+      w: el.stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
+      h: el.stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    };
+  }
+  function fit() {
+    var rw = el.frame.offsetWidth;
+    var rh = el.frame.offsetHeight;
+    var inner = stageInner();
+    var s = 1;
+    if (st.zoom === 'fit') s = Math.min(1, inner.w / (rw + 2 * GUTTER), inner.h / (rh + 2 * GUTTER));
+    s = Math.max(0.1, s);
+    st.s = s;
+    el.rig.style.width = rw + 'px';
+    el.rig.style.height = rh + 'px';
+    el.rig.style.setProperty('--s', s);
+    el.rig.style.transform = 'translate(' + GUTTER * s + 'px, ' + GUTTER * s + 'px) scale(' + s + ')';
+    el.scaler.style.width = (rw + 2 * GUTTER) * s + 'px';
+    el.scaler.style.height = (rh + 2 * GUTTER) * s + 'px';
+    el.zoom.textContent = Math.round(s * 100) + '%';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.zoom === st.zoom));
+    });
+  }
+  if (window.ResizeObserver) new ResizeObserver(function () { if (!st.dragging) fit(); }).observe(el.stage);
+  else window.addEventListener('resize', fit);
+
+  /* ---------- Dragging and keyboard resizing ---------- */
+  var drag = null;
+  el.rig.addEventListener('pointerdown', function (e) {
+    var hd = e.target.closest('[data-edge]');
+    if (!hd || e.button > 0) return;
+    e.preventDefault();
+    hd.setPointerCapture(e.pointerId);
+    hd.classList.add('active');
+    var inner = stageInner();
+    drag = {
+      edge: hd.dataset.edge, el: hd, x: e.clientX, y: e.clientY, w: st.w, h: st.h,
+      /* the frame is centred, so an edge moves half as far as the size changes */
+      kx: el.scaler.offsetWidth < inner.w - 1 ? 2 : 1,
+      ky: el.scaler.offsetHeight < inner.h - 1 ? 2 : 1
+    };
+    st.dragging = true;
+    document.body.classList.add('uh-dragging');
+  });
+  el.rig.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var dx = (e.clientX - drag.x) / st.s;
+    var dy = (e.clientY - drag.y) / st.s;
+    var w = drag.w, h = drag.h;
+    switch (drag.edge) {
+      case 'e': w += dx * drag.kx; break;
+      case 'w': w -= dx * drag.kx; break;
+      case 's': h += dy * drag.ky; break;
+      case 'se': w += dx * drag.kx; h += dy * drag.ky; break;
+      case 'divider': w += st.split && st.split.side === 'trailing' ? -dx : dx; break;
+    }
+    setSize(w, h, 'drag');
+  });
+  function endDrag() {
+    if (!drag) return;
+    drag.el.classList.remove('active');
+    var wasDivider = drag.edge === 'divider';
+    drag = null;
+    st.dragging = false;
+    document.body.classList.remove('uh-dragging');
+    if (wasDivider && st.split && st.split.snaps.length) {
+      var w = st.w;
+      var snap = st.split.snaps.reduce(function (a, b) { return Math.abs(b - w) < Math.abs(a - w) ? b : a; });
+      setSize(snap, st.h, 'drag');
+    } else {
+      render();
+    }
+  }
+  el.rig.addEventListener('pointerup', endDrag);
+  el.rig.addEventListener('pointercancel', endDrag);
+  el.rig.addEventListener('keydown', function (e) {
+    var hd = e.target.closest('[data-edge]');
+    if (!hd) return;
+    var step = e.shiftKey ? 10 : 1;
+    var w = st.w, h = st.h;
+    var edge = hd.dataset.edge;
+    if (edge === 'divider' && st.split && st.split.snaps.length && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      var snaps = st.split.snaps;
+      var dir = (e.key === 'ArrowRight') === (st.split.side === 'leading') ? 1 : -1;
+      var next = dir > 0 ? snaps.filter(function (v) { return v > w; })[0] : snaps.filter(function (v) { return v < w; }).pop();
+      if (next != null) { e.preventDefault(); setSize(next, h, 'key'); }
+      return;
+    }
+    if (e.key === 'ArrowRight' && edge !== 's') w += edge === 'divider' && st.split.side === 'trailing' ? -step : step;
+    else if (e.key === 'ArrowLeft' && edge !== 's') w -= edge === 'divider' && st.split.side === 'trailing' ? -step : step;
+    else if (e.key === 'ArrowDown' && (edge === 's' || edge === 'se')) h += step;
+    else if (e.key === 'ArrowUp' && (edge === 's' || edge === 'se')) h -= step;
+    else return;
+    e.preventDefault();
+    setSize(w, h, 'key');
+  });
+
+  /* ---------- Toolbar ---------- */
+  function buildPresets() {
+    var groups = [];
+    var byGroup = {};
+    presets.forEach(function (p) {
+      var g = p.group || '';
+      if (!byGroup[g]) { byGroup[g] = []; groups.push(g); }
+      byGroup[g].push(p);
+    });
+    groups.forEach(function (g) {
+      var wrap = document.createElement('div');
+      wrap.className = 'uh-pgroup';
+      wrap.setAttribute('role', 'group');
+      if (g) {
+        var label = document.createElement('span');
+        label.textContent = g;
+        wrap.append(label);
+        wrap.setAttribute('aria-label', g);
+      }
+      byGroup[g].forEach(function (p) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'uh-btn';
+        b.dataset.preset = p.id;
+        var name = document.createElement('span');
+        name.textContent = p.label || p.id;
+        var dims = document.createElement('small');
+        dims.textContent = p.width + '×' + p.height;
+        b.append(name, dims);
+        b.addEventListener('click', function () { usePreset(p); });
+        wrap.append(b);
+      });
+      el.presets.append(wrap);
+    });
+    el.presets.hidden = presets.length === 0;
+  }
+  /* States (default, loading, empty, error…): elements with data-show-state="a b" are
+     shown only in those states; setup code can also listen with onState. */
+  var stateListeners = [];
+  function setState(id) {
+    if (!states.some(function (s) { return s.id === id; })) { report('No state named "' + id + '".'); return; }
+    st.state = id;
+    Array.prototype.forEach.call(viewport.querySelectorAll('[data-show-state]'), function (n) {
+      n.hidden = n.getAttribute('data-show-state').split(/\s+/).indexOf(id) < 0;
+    });
+    stateListeners.forEach(function (fn) { try { fn(id); } catch (err) { report('onState handler: ' + err.message); } });
+    render();
+  }
+  states.forEach(function (s) {
+    var opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.label || s.id;
+    el.state.append(opt);
+  });
+  el.stateWrap.hidden = states.length < 2;
+  el.state.addEventListener('change', function () { setState(el.state.value); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-text]'), function (b) {
+    b.addEventListener('click', function () { st.textScale = Number(b.dataset.text) || 1; render(); });
+  });
+  el.targets.addEventListener('click', function () { st.showTargets = !st.showTargets; render(); });
+
+  function applyInputs() { setSize(el.w.value, el.h.value, 'input'); }
+  el.w.addEventListener('change', applyInputs);
+  el.h.addEventListener('change', applyInputs);
+  el.rotate.addEventListener('click', rotate);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-scheme]'), function (b) {
+    b.addEventListener('click', function () { st.scheme = b.dataset.scheme; render(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
+    b.addEventListener('click', function () { st.zoom = b.dataset.zoom; fit(); });
+  });
+
+  /* ---------- Public API handed to the screen's setup function ---------- */
+  var toastTimer = 0;
+  var canvas = {
+    root: root,
+    viewport: viewport,
+    $: function (sel) { return viewport.querySelector(sel); },
+    $$: function (sel) { return Array.prototype.slice.call(viewport.querySelectorAll(sel)); },
+    get size() { return sizeInfo(); },
+    get screen() { return currentScreen ? currentScreen.dataset.screen : null; },
+    onResize: function (fn) {
+      resizeListeners.push(fn);
+      try { fn(sizeInfo()); } catch (err) { report('onResize handler: ' + err.message); }
+      return function () { resizeListeners = resizeListeners.filter(function (f) { return f !== fn; }); };
+    },
+    onNavigate: function (fn) {
+      navListeners.push(fn);
+      return function () { navListeners = navListeners.filter(function (f) { return f !== fn; }); };
+    },
+    navigate: navigate,
+    back: back,
+    setSize: function (w, h) { setSize(w, h == null ? st.h : h, 'api'); },
+    usePreset: function (id) {
+      var p = presets.filter(function (x) { return x.id === id; })[0];
+      if (p) usePreset(p); else report('No preset named "' + id + '".');
+    },
+    setScheme: function (s) { st.scheme = s === 'dark' ? 'dark' : 'light'; render(); },
+    get state() { return st.state; },
+    setState: setState,
+    onState: function (fn) {
+      stateListeners.push(fn);
+      if (st.state) { try { fn(st.state); } catch (err) { report('onState handler: ' + err.message); } }
+      return function () { stateListeners = stateListeners.filter(function (f) { return f !== fn; }); };
+    },
+    setTextScale: function (n) { st.textScale = Number(n) > 0 ? Number(n) : 1; render(); },
+    /* Call after changing the DOM in a way that moves hit areas (e.g. opening a sheet). */
+    refresh: function () { measureTargets(); },
+    setStatusBar: function (tone) {
+      st.statusTone = ['light', 'dark', 'hidden'].indexOf(tone) >= 0 ? tone : 'auto';
+      render();
+    },
+    toast: function (text, ms) {
+      el.toast.textContent = text;
+      el.toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, ms || 2400);
+    }
+  };
+  window.ultrahandCanvas = canvas;
+
+  /* ---------- Start ---------- */
+  buildPresets();
+  var first = presets.filter(function (p) { return p.id === cfg.initialPreset; })[0] || presets[0];
+  if (first) {
+    usePreset(first);
+  } else {
+    var init = cfg.initial || {};
+    setSize(init.width || 390, init.height || 844, 'preset');
+  }
+  if (typeof window.ultrahandSetup === 'function') {
+    try { window.ultrahandSetup(canvas); } catch (err) { report('Screen setup failed: ' + err.message); }
+  }
+  if (currentScreen) emitNav(null);
+  if (st.state) setState(cfg.initialState && states.some(function (s) { return s.id === cfg.initialState; }) ? cfg.initialState : st.state);
+})();
+</script>
+</body>
+</html>
