@@ -38,7 +38,9 @@ command -v node >/dev/null || die "needs node to edit $manifest"
 # 1. Check the checkout.
 branch="$(git symbolic-ref --quiet --short HEAD || true)"
 [ "$branch" = main ] || die "run it from main (on: ${branch:-a detached HEAD})"
-[ -z "$(git status --porcelain)" ] || die "the checkout has uncommitted changes"
+# Untracked files (such as worktrees under .claude/) can't reach the release commit, which
+# stages only the manifest, so only tracked changes block a release.
+[ -z "$(git status --porcelain --untracked-files=no)" ] || die "the checkout has uncommitted changes"
 git fetch --quiet --tags "$remote" main
 git merge --quiet --ff-only "$remote/main" || die "main has commits that aren't on $remote/main"
 git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null && die "tag $tag already exists"
