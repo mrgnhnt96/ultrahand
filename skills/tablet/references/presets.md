@@ -48,42 +48,45 @@ at the end.
 - **Minimum:** 320 wide, the WCAG reflow width [WCAG-1.4.10]. Android's multi-window example
   sets a minimum of 300 × 450 [AND-MW]. That makes 320 × 450 a safe floor for narrow tiles
   and floating windows such as Slide Over [MR-261].
-- **Maximum:** the preset's full width and height in the current orientation.
+- **Maximum:** the preset's full width and height in the current orientation. The canvas
+  can't vary its limit per preset, so it allows up to the largest preset (1376 × 1376); stop
+  each drag at the device's own full size.
 
-Machine-readable form for the canvas:
+Machine-readable form for the canvas (`shared/canvas/README.md` defines every field). The
+*Split view* presets open in landscape with the app on the leading side of the divider; the
+divider's snaps are the 1/3, 1/2 and 2/3 widths from the table above, and Rotate turns the
+whole device (the snaps scale with it). Drag the divider, or focus it and use the arrow
+keys to step between snaps. *Full* is the matching full-screen preset rotated to landscape.
+`limits` bound free resizing: 320 × 450 at the bottom, the largest preset at the top. The
+size classes are the canvas defaults, which are the Android breakpoints above, so they're
+not repeated here.
 
 ```json
 {
   "device": "tablet",
+  "platform": "Tablet",
+  "initialPreset": "ipad",
+  "limits": { "minWidth": 320, "minHeight": 450, "maxWidth": 1376, "maxHeight": 1376 },
   "presets": [
-    { "id": "ipad-mini",      "label": "iPad mini · 744",     "width": 744,  "height": 1133, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
-    { "id": "ipad",           "label": "iPad 11\" · 820",     "width": 820,  "height": 1180, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
-    { "id": "ipad-13",        "label": "iPad 13\" · 1032",    "width": 1032, "height": 1376, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
-    { "id": "android-tablet", "label": "Android 10\" · 800",  "width": 800,  "height": 1280, "safeArea": { "top": 24, "bottom": 24, "landscapeSide": 0, "landscapeBottom": 24 }, "platform": "android" }
-  ],
-  "orientations": ["portrait", "landscape"],
-  "splits": [
-    { "id": "third",      "label": "1/3", "fraction": 0.3333 },
-    { "id": "half",       "label": "1/2", "fraction": 0.5 },
-    { "id": "two-thirds", "label": "2/3", "fraction": 0.6667 },
-    { "id": "full",       "label": "Full", "fraction": 1 }
-  ],
-  "resize": { "axes": ["width", "height"], "minWidth": 320, "minHeight": 450, "max": "preset", "liveReflow": true },
-  "sizeClasses": [
-    { "id": "compact",     "minWidth": 0 },
-    { "id": "medium",      "minWidth": 600 },
-    { "id": "expanded",    "minWidth": 840 },
-    { "id": "large",       "minWidth": 1200 },
-    { "id": "extra-large", "minWidth": 1600 }
+    { "id": "ipad-mini",      "label": "iPad mini · 744",    "group": "Full screen", "width": 744,  "height": 1133, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
+    { "id": "ipad",           "label": "iPad 11\" · 820",    "group": "Full screen", "width": 820,  "height": 1180, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
+    { "id": "ipad-13",        "label": "iPad 13\" · 1032",   "group": "Full screen", "width": 1032, "height": 1376, "safeArea": { "top": 24, "bottom": 20, "landscapeSide": 0, "landscapeBottom": 20 }, "platform": "ios" },
+    { "id": "android-tablet", "label": "Android 10\" · 800", "group": "Full screen", "width": 800,  "height": 1280, "safeArea": { "top": 24, "bottom": 24, "landscapeSide": 0, "landscapeBottom": 24 }, "platform": "android" },
+    { "id": "ipad-split",     "label": "iPad split · 590",   "group": "Split view", "width": 590, "height": 820, "safeArea": { "top": 24, "bottom": 20 }, "platform": "ios",
+      "split": { "width": 1180, "snaps": [393, 590, 787], "side": "leading", "minOther": 320 } },
+    { "id": "ipad-13-split",  "label": "iPad 13\" split · 688", "group": "Split view", "width": 688, "height": 1032, "safeArea": { "top": 24, "bottom": 20 }, "platform": "ios",
+      "split": { "width": 1376, "snaps": [459, 688, 917], "side": "leading", "minOther": 320 } },
+    { "id": "android-split",  "label": "Android split · 640", "group": "Split view", "width": 640, "height": 800, "safeArea": { "top": 24, "bottom": 24 }, "platform": "android",
+      "split": { "width": 1280, "snaps": [427, 640, 853], "side": "leading", "minOther": 320 } }
   ],
   "extraChecks": [
-    { "id": "reflow", "label": "Reflow · 320", "width": 320, "height": 1024 },
+    { "id": "reflow",      "label": "Reflow · 320",                      "width": 320,  "height": 1024 },
     { "id": "keyboard-up", "label": "Landscape, keyboard up · 1180 × 420", "width": 1180, "height": 420 }
   ]
 }
 ```
 
-The canvas should show the current width's size class next to the size, so the designer
+The canvas shows the current width's size class next to the size, so the designer
 sees the layout change at 600 and 840.
 
 Safe areas are typical values: the iPad status bar is about 24 pt and the home indicator

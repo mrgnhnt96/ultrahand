@@ -54,6 +54,18 @@ Every control in the inventory:
       single-tap or click alternative [WCAG 2.5.1] [WCAG 2.5.7].
 - [ ] **Destructive actions:** they are separated from safe ones, worded clearly, and can
       be undone or ask to confirm [NNG-H3] [NNG-H5].
+- [ ] **Undo holds up:** it lasts long enough to read and reach, or until the next action,
+      and a timed Undo can be extended [WCAG 2.2.1]. Two deletes in a row can both be
+      undone. After a delete, focus moves to the next item, not to the page top, and Undo
+      puts the item back where it was, in the same pane [NNG-H3] [WCAG 2.4.3].
+- [ ] **Unsaved input survives in-app actions:** switching items, tabs or modes, closing a
+      panel or toggling a view keeps typed text, or saves it, or asks first. Test it: type
+      a draft, then run every command and change every field on the same screen, and check
+      the draft is still there. Dismissing a
+      sheet or dialog that holds typed input asks before discarding it [NNG-H3] [NNG-H5].
+- [ ] **Context menus have a touch route:** where touch is likely, touch-and-hold opens the
+      same menu as right-click, and its commands also exist elsewhere [tablet:HIG-CONTEXT]
+      [WCAG 2.5.1].
 
 Fields and forms:
 
@@ -75,7 +87,7 @@ Each screen, and the flow as a whole [NNG-HEURISTICS]:
 
 | Key | Heuristic | Look for |
 | --- | --- | --- |
-| NNG-H1 | Visibility of system status | Loading, saving, syncing and offline shown. Selected tab, current step and selected row marked. |
+| NNG-H1 | Visibility of system status | Loading, saving, syncing and offline shown. Selected tab, current step and selected row marked. In the error or offline state, commands never report success they didn't have. |
 | NNG-H2 | Match between the system and the real world | The user's words, not internal or technical terms. Familiar icons and natural order. |
 | NNG-H3 | User control and freedom | Back, cancel, close and undo. No dead ends. Sheets and dialogs can be dismissed. |
 | NNG-H4 | Consistency and standards | Same thing, same name and look everywhere. Platform conventions for navigation, controls and gestures. |
@@ -117,10 +129,14 @@ Check these success criteria, in addition to the ones cited in pass 2 [WCAG22].
       keyboard, and focus can always leave a component, including dialogs and embedded
       content.
 - [ ] **Focus order (2.4.3):** focus follows reading order. Opening a dialog moves focus
-      into it; closing it returns focus to what opened it.
+      into it; closing it returns focus to what opened it. While a modal (dialog, sheet,
+      menu) is open, focus stays inside it: the background is `inert` and Tab wraps
+      [desktop:APG-DIALOG].
 - [ ] **Focus visible (2.4.7)** and **not obscured (2.4.11):** the focused element is
       always visibly marked and never fully hidden under a sticky header, footer, toolbar
-      or the keyboard.
+      or the keyboard. Test it: Tab through at the shortest height, and for each focused
+      element check that `elementFromPoint` at its centre returns it, not a sticky bar (on the
+      canvas, call it on `canvas.root`: the document version returns the shadow host).
 - [ ] **Titles and headings (2.4.2, 2.4.6):** each screen has a title that says what it is;
       headings and labels describe their content.
 
@@ -179,7 +195,13 @@ most often miss; the linked principles hold the rest.
 - [ ] Pointer and keyboard work as well as touch: hover states, context menus, visible
       focus, standard shortcuts [tablet:HIG-POINTER] [tablet:HIG-KEYBOARD].
 - [ ] Content clear of the iPad window controls and Android taskbar [tablet:HIG-WINDOWS]
-      [tablet:AND-MW].
+      [tablet:AND-MW]. The canvas doesn't draw the iPad window controls, so check the top
+      leading corner by measurement or list it under Not checked.
+- [ ] Each pane has its own loading, empty and error state, and actions that need content
+      (Edit, Delete, Share) are disabled while a pane is empty or loading [tablet:AND-CANON].
+- [ ] On narrowing to one pane, the open item stays: at expanded, the item shown in the
+      detail pane counts as open, so narrowing shows that detail, not the list
+      [tablet:AND-CANON].
 
 **Desktop, pointer and keyboard windows**
 ([principles](../../desktop/references/principles.md))
@@ -192,7 +214,7 @@ most often miss; the linked principles hold the rest.
       Windows and the web), with its shortcut shown there or in the tooltip
       [HIG-MACOS] [MS-KBD].
 - [ ] Standard shortcuts work (Ctrl or Cmd + C, V, X, Z, A, S, F) and aren't reassigned
-      [MS-KBD].
+      [MS-KBD]. Web apps don't rely on keys the browser keeps (Ctrl or Cmd + N, T, W).
 - [ ] Tab order is logical and follows visual order; initial focus is on the most likely
       action, never on a destructive one [MS-KBD].
 - [ ] Arrow keys move inside groups (lists, grids, toolbars, radio groups), which take one
@@ -201,7 +223,9 @@ most often miss; the linked principles hold the rest.
 - [ ] Panes can be reached from the keyboard without tabbing through everything (F6 on
       Windows, landmarks on the web) [MS-KBD] [WCAG 2.4.1].
 - [ ] Hover reveals extra detail but never the only path to a command. Right-click opens a
-      context menu next to the item [NNG-FITTS] [tablet:HIG-POINTER].
+      context menu next to the item [NNG-FITTS] [desktop:HIG-POINTER]. Shift+F10 or the
+      Menu key opens the same menu on the focused item, and its commands act on that
+      item, not on an earlier selection [desktop:HIG-CONTEXT] [WCAG 2.1.1].
 - [ ] Frequent targets are large and close to where the pointer already is; related
       controls are grouped [NNG-FITTS].
 
@@ -210,22 +234,28 @@ most often miss; the linked principles hold the rest.
 On a canvas, use the presets and the readout. From code, read the breakpoints and container
 queries. From a screenshot, say which sizes you couldn't see.
 
-- [ ] **Every preset** for the platform, in both orientations, renders without overlap,
-      clipping or a lost control.
+- [ ] **Every preset** for the platform, in both orientations on touch devices, renders
+      without overlap, clipping or a lost control.
 - [ ] **Split widths** (1/3, 1/2, 2/3 on tablet) and a slow drag across the 600 and 840
       breakpoints: the layout changes class cleanly, and selection, scroll position and
       typed text survive [tablet:HIG-MULTI] [tablet:AND-MW].
 - [ ] **Desktop window range:** the minimum and the maximum size both work; nothing
       stretches past a readable line length at the maximum.
-- [ ] **320 wide** reflow [WCAG 1.4.10] and **200% text** [WCAG 1.4.4].
+- [ ] **320 wide** reflow [WCAG 1.4.10] and **200% text** [WCAG 1.4.4]. A `label[for]`
+      flagged as a small target passes when its field is big enough (the 2.5.8
+      equivalent-control exception).
 - [ ] **Dark mode:** contrast rechecked; no hard-coded light colours, no lost borders or
       shadows [mobile:HIG-DARK] [mobile:NNG-DARK].
 - [ ] **Each data state** (loading, empty, error, offline, long content, one item, many
-      items) at the smallest and the largest size.
+      items) at the smallest and the largest size, in every pane of a multi-pane layout.
 - [ ] **Keyboard up** on touch devices, in landscape: the focused field is still visible
-      [WCAG 2.4.11].
+      [WCAG 2.4.11]. The canvas has no keyboard: simulate it with `setSize(w, h - 300)`
+      or the `keyboard-up` extra check, or list it under Not checked.
 - [ ] **Short heights** (compact height under 480, landscape phone): sticky headers and
       footers leave room for content.
+- [ ] **Short height × 200% text together:** the sticky header plus footer stay well under
+      the screen height. Overflow detectors miss content covered by sticky layers, so
+      look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].
 
 ## Severity guide
 
@@ -235,14 +265,20 @@ they know) [NNG-SEVERITY]. These anchors are this skill's convention for applyin
 
 | Rating | Typical findings |
 | --- | --- |
-| **4 Catastrophe** | The primary task can't be finished at some size, state or input: control unreachable or hidden at a breakpoint, keyboard trap, unlabelled icon-only primary action for screen-reader users, data lost on resize or Back, destructive action with no confirm or undo next to a frequent one. |
+| **4 Catastrophe** | The primary task can't be finished at some size, state or input: control unreachable or hidden at a breakpoint, keyboard trap, unlabelled icon-only primary action for screen-reader users, data lost on resize, Back, or an in-app action (switching items, closing a panel), destructive action with no confirm or undo next to a frequent one. |
 | **3 Major** | WCAG AA failure on a primary flow (text contrast, target size, missing label, invisible focus); frequent confusion or a wrong-path step in the walkthrough; error with no way to recover; feature missing at one size class. |
 | **2 Minor** | WCAG AA failure on a secondary screen; inconsistency that slows people; missing loading or empty state with a workaround; a platform convention ignored but learnable. |
 | **1 Cosmetic** | Spacing, alignment or wording polish that doesn't affect the task. |
 
 Raise a rating one step when the problem appears on every screen or blocks a common task,
-and lower it one step when it's on a rare path with an obvious workaround. A WCAG AA
-failure is never below 2.
+and lower it one step when it's on a rare path with an obvious workaround. Weigh what is
+lost: a missing undo on a one-tap re-add is minor, on deleting a document it is a
+catastrophe. A WCAG AA failure is never below 2.
+
+Stubbed or faked behaviour in a prototype (no real network, a toast standing in for a
+snackbar) goes under **Not checked**, not in the findings, unless the design itself is
+missing the state. A simulated state is still a design: when the empty state shows a
+count, header or enabled command that contradicts it, that is a finding.
 
 ## Report template
 

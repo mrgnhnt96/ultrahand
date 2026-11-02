@@ -37,7 +37,7 @@ The page gives the viewer:
      --config config.json --screen screen.html --title "Checkout" --out index.html
    ```
 
-   `<plugin>` is the plugin's root folder. The build fails, with a list of problems, on a broken config. It warns about screen code that won't work in an artifact or that defeats the review toggles (see [Limits](#limits-inside-an-artifact)).
+   `<plugin>` is the plugin's root folder: `${CLAUDE_PLUGIN_ROOT}` inside a skill. The build fails, with a list of problems, on a broken config. It warns about screen code that won't work in an artifact or that defeats the review toggles (see [Limits](#limits-inside-an-artifact)).
 5. **Publish.** Publish `index.html` as an artifact: `publish_files` with `as: "index.html"`, a title and an icon. For small follow-up changes, use `edit_version` against the published page. Rebuild and republish when the screen changes a lot.
 
 `--head head.html` injects extra `<head>` content, such as a Google Fonts `<link>`. `--presets` also accepts a plain `.json` file.
@@ -133,7 +133,10 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 
 - The screen lives in a shadow root on a viewport with `container: screen / size`. Respond to its size with `@container screen (width >= …)` and with `cqw`/`cqh` units. `@media` size queries and `vw`/`vh` see the whole artifact window, not the screen.
 - **Size text in `rem`.** The Text 200% toggle doubles the root font size, so only `rem` text scales with it. The canvas chrome uses px, so it stays the same size.
-- **Safe areas:** pad edges with `var(--uh-safe-top|right|bottom|left)`. These follow the preset and its rotation.
+- **Size controls in px, text in `rem`.** Give hit areas, icons and gutters px sizes so 200% text grows the words, not the controls, and let rows wrap instead of truncating.
+- **Breakpoints:** keep window-class breakpoints (600, 840, 1200) in px. Write content-fit breakpoints (which table columns show, labels beside or above fields) in `rem`, such as `@container screen (width < 52.5rem)`, so they also fire at 200% text.
+- **Safe areas:** pad edges with `var(--uh-safe-top|right|bottom|left)`. These follow the preset and its rotation. `:host` sits outside the viewport that defines them, so declare tokens that use `--uh-safe-*` or `cqw`/`cqh` on `[data-screen]`, not on `:host`.
+- **Scrolling:** each `[data-screen]` is its own scroll container. With a sticky header or bottom bar, set `scroll-padding-top`/`scroll-padding-bottom` on it so focused controls scroll clear of the bar (WCAG 2.4.11). At short heights or 200% text, let sticky bars go static so they never cover most of the screen. Stack all bottom-fixed parts (tab bar, FAB, snackbar) in one container so they can't overlap.
 - **Colour:** use `light-dark(light, dark)` or the system colours (`Canvas`, `CanvasText`). The Light/Dark toggle sets `color-scheme` on the viewport, so both follow it. The viewport also carries `data-scheme="light|dark"` for selectors. Don't use `prefers-color-scheme`, which follows the viewer's OS instead of the toggle.
 - **Viewport attributes for selectors:** `data-width-class`, `data-height-class`, `data-orientation`, `data-frame`, `data-platform`, `data-scheme`, `data-state`, `data-text-scale`.
 
@@ -145,8 +148,10 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
   - `data-nav-back` pops.
   - Scroll position is kept per screen. The canvas doesn't set `aria-current` for you, so mark the selected tab yourself in `onNavigate`.
 - **States.** An element with `data-show-state="loading empty"` shows only in those states. Declare the states in the config's `states` field. Retry buttons and the like can call `canvas.setState('loading')`.
-- **Tap targets.** Elements that match `button, a[href], input, select, textarea, summary, label[for], [role=button|link|tab|switch|checkbox|radio|menuitem], [data-nav], [data-nav-back]` are measured. Add `data-uh-ignore-target` to inline links in running text, which WCAG 2.5.8 exempts. Call `canvas.refresh()` after opening a sheet or menu, so the count updates.
+- **Tap targets.** Elements that match `button, a[href], input, select, textarea, summary, label[for], [role=button|link|tab|switch|checkbox|radio|menuitem|slider]`, a focusable `[role=separator]` (a pane divider), `[data-nav], [data-nav-back]` are measured. The readout checks size only: a control that is hidden at some size isn't flagged, so check that every command is still reachable yourself. Add `data-uh-ignore-target` to inline links in running text, which WCAG 2.5.8 exempts. A `label[for]` beside its own field is counted too, but under 2.5.8's equivalent-control exception it passes when the field itself is big enough, so judge those flags rather than counting them. Call `canvas.refresh()` after opening a sheet or menu, so the count updates.
 - **Forms** must call `preventDefault()`. A real submit would navigate the artifact away.
+- **Scripted keyboard checks:** Tab from the page passes the canvas toolbar (about 20 stops) before it reaches the screen, so focus a control inside the screen first. Inside the shadow root, use `canvas.root.elementFromPoint(x, y)`; `document.elementFromPoint` returns the host.
+- **Shortcuts.** Key events on `canvas.root` arrive only while focus is inside the screen. For app-wide shortcuts, also listen on `document` and skip events from text fields and the canvas toolbar, or move focus into the screen on load.
 
 ### API (`canvas`, also `window.ultrahandCanvas`)
 
@@ -155,15 +160,29 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 | `$(sel)`, `$$(sel)` | Query inside the screen. |
 | `root`, `viewport` | The shadow root and the element that holds the screen. |
 | `size` | `{ width, height, widthClass, heightClass, orientation, preset, resized, frame, split, scheme, platform, textScale, state, safeArea }`. |
-| `onResize(fn)` | Called now and on every size change. Returns an unsubscribe function. |
+| `onResize(fn)` | Called now and on every size change. Returns an unsubscribe function. Change callbacks run on the next animation frame, so after `usePreset` or `setSize` wait two frames before reading the layout. |
 | `screen`, `navigate(id, {replace})`, `back()`, `onNavigate(fn)` | Navigation. `fn` gets `{ screen, from, depth }`. |
 | `state`, `setState(id)`, `onState(fn)` | Screen states. `onState` is called now and on every change. |
 | `setSize(w, h)`, `usePreset(id)`, `setScheme('light'\|'dark')`, `setTextScale(n)` | Drive the canvas, for example to open on the case under review. |
 | `setStatusBar('light'\|'dark'\|'hidden'\|'auto')` | The status-bar glyph colour over a full-bleed header. |
-| `toast(text, ms)` | Feedback in place of `alert()`. |
+| `toast(text, ms)` | Text-only feedback in place of `alert()`. It has no action, so build an Undo snackbar in the screen when one is needed. |
 | `refresh()` | Re-measure tap targets after a DOM change. |
 
 Errors in setup or handlers show in a banner above the canvas instead of failing silently.
+
+### Toolbar, for scripted checks
+
+The toolbar lives in the page document, outside the shadow root, so a review script can drive it directly:
+
+| Element | Does |
+| --- | --- |
+| `#uh-targets` | Toggles the tap-target overlay. `aria-pressed` gives its state. |
+| `#uh-flag` | Live readout of problems, such as how many targets are under `minTarget`. Empty when clean. |
+| `#uh-rotate` | Swaps orientation. Disabled for windows. |
+| `[data-zoom="fit"]`, `[data-zoom="1"]`, `#uh-zoom` | Zoom to fit or to 100%, and the current zoom. |
+| `[data-scheme]`, `[data-text]` | The Light/Dark and Text 100%/200% toggles. Prefer `setScheme` and `setTextScale`. |
+
+There is no on-screen keyboard. To check a keyboard-up layout, shrink the height with `setSize(width, height - 300)`, or use the platform's `keyboard-up` extra check where it has one.
 
 ## Limits inside an artifact
 

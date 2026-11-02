@@ -40,30 +40,53 @@ than inventing new ones.
 
 ## 3. Build the canvas artifact
 
-Build on the plugin's shared resizable canvas (`shared/canvas/`). Load the tablet config
-from the JSON block in `references/presets.md`:
+Build on the plugin's shared resizable canvas (`shared/canvas/`; its `README.md` has the full
+contract). Write the screen as `screen.html` and the design's own settings as `config.json`
+in a working folder, then build:
 
-- **Presets:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800, each
-  in portrait and landscape.
-- **Split buttons:** 1/3, 1/2, 2/3 and Full of the current width.
-- **Free resize:** a drag handle from full size down to 320 × 450.
+```sh
+node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
+  --presets "${CLAUDE_PLUGIN_ROOT}/skills/tablet/references/presets.md" \
+  --config config.json --screen screen.html \
+  --title "<design name>" --out index.html
+```
+
+Publish `index.html` as an artifact. From `references/presets.md` the canvas gets:
+
+- **Full screen:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800.
+  Rotate gives each in landscape.
+- **Split view:** `ipad-split`, `ipad-13-split` and `android-split`, the landscape device
+  with your app on one side of a divider. The divider snaps to 1/3, 1/2 and 2/3 (drag it,
+  or focus it and press the arrow keys); Full is the full-screen preset in landscape.
+- **Free resize:** drag handles from the preset size down to 320 × 450.
+- **Checks:** 320-wide reflow, and landscape with the keyboard up (1180 × 420).
 
 While dragging, the layout must **reflow live**. Going from full width to half width has to
 re-render continuously, crossing the 840 and 600 breakpoints with no reload and no lost
-state. Show the current width and its size class (compact, medium, expanded, large) on the
-canvas.
+state. The readout shows the current width and its size class (compact, medium, expanded,
+large).
 
-- Lay out by **size class**, not by preset. One responsive layout serves every preset and
-  split.
-- Draw the safe-area insets, and in windowed iPad states the top-leading window controls.
-  Keep content clear of them.
-- Add toggles for **light/dark**, **large text (200%)** and **state** (default, loading,
-  empty, error).
-- Add a **show tap targets** toggle that outlines every hit area.
-- Add an **input** toggle: *touch*, or *pointer + keyboard*. Pointer + keyboard shows hover
-  states, context menus on right-click, visible keyboard focus and shortcut hints.
+- **`config.json`** sets `title` and `states` (e.g. default, loading, empty, error). For an
+  Android-only design set `"initialPreset": "android-tablet"`; for iPadOS and Android
+  together set `"minTarget": 48`.
+- **Screen contract:** one `<template id="uh-screen">` with `[data-screen]` sections, and
+  `data-nav`, `data-nav-replace`, `data-nav-back` and `data-show-state` for clicks. Lay out
+  by **size class** with `@container screen (width >= 600px)` and `(width >= 840px)`, or
+  the viewport's `data-width-class`, never by preset or `@media`. Pad edges with
+  `var(--uh-safe-*)`, declared on `[data-screen]` (`:host` can't see them). Text in `rem`;
+  hit areas, icons and gutters in px, so 200% text grows the words, not the controls.
+  Colours with `light-dark()`. Behaviour goes in
+  `window.ultrahandSetup = function (canvas) { … }`.
+- **Built-in toggles:** light/dark, 200% text, the state picker and show tap targets. Don't
+  build your own. Call `canvas.refresh()` after opening a sheet, popover or menu.
+- **Pointer and keyboard are always live:** the viewer drives the artifact with a mouse and
+  keyboard, so give every control a hover state, a right-click context menu where the
+  platform has one, visible `:focus-visible` focus and shortcut hints. Check touch with the
+  tap-target overlay. Don't hide any of this behind a toggle of your own.
+- In windowed iPad states, keep leading toolbar buttons clear of the top-leading window
+  controls.
 - Make the main flow clickable: navigation switches, rows select or push, panes hide and
-  show, and sheets and popovers open and close.
+  show, and sheets and popovers open and close. Never use `alert`, `confirm` or `prompt`.
 
 ## 4. Design every size class
 
@@ -101,8 +124,10 @@ Go through every item. Fix any failure, or name it and say why it's acceptable.
       controls are reachable from the side edges.
 - [ ] Nothing interactive sits under the status bar, home indicator, taskbar or the iPad
       window controls, in either orientation.
-- [ ] Pointer: every control has a hover state, right-click opens a context menu, and
-      nothing is available only on hover.
+- [ ] Pointer: every control has a hover state, right-click and touch-and-hold open a
+      context menu, and nothing is available only on hover.
+- [ ] Switching items, closing a panel or dismissing a sheet never loses typed text; Undo
+      survives two deletes in a row and returns the item to its pane.
 - [ ] Keyboard: main flows work with Tab and the arrows, focus is always visible, standard
       shortcuts work, and Esc closes, cancels or clears.
 - [ ] Every drag-and-drop has a non-drag alternative, shows valid targets and can be undone.

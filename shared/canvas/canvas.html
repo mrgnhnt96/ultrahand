@@ -257,6 +257,8 @@ button, input, select { font: inherit; color: inherit; }
 .uh-area[data-split] .uh-divider { display: block; }
 .uh-area[data-split] .uh-other { display: grid; }
 
+/* Chrome toggled with the hidden attribute must stay hidden despite its display rule. */
+.uh-statusbar[hidden], .uh-homebar[hidden] { display: none; }
 .uh-statusbar {
   position: absolute;
   left: 0; right: 0; top: 0;
@@ -819,7 +821,7 @@ window.ultrahandSetup = function (canvas) {
     '.uh-viewport[data-scheme="dark"] { color-scheme: dark; }',
     /* Show tap targets: dashed outline on every hit area, solid and hatched when under the minimum. */
     '.uh-viewport[data-show-targets] :is(a[href], button, input, select, textarea, summary, label[for], [role="button"], [role="link"],',
-    '  [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [data-nav], [data-nav-back], [tabindex]:not([tabindex="-1"])) {',
+    '  [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="slider"], [data-nav], [data-nav-back], [tabindex]:not([tabindex="-1"])) {',
     '  outline: 2px dashed #d61f8a !important; outline-offset: -2px !important; }',
     '.uh-viewport[data-show-targets] [data-uh-small] { outline: 2px solid #e5484d !important;',
     '  background-image: repeating-linear-gradient(45deg, rgb(229 72 77 / 0.28) 0 4px, transparent 4px 8px) !important; }',
@@ -1028,7 +1030,7 @@ window.ultrahandSetup = function (canvas) {
   }
   /* Count hit areas under the minimum, in screen px (undo the zoom). */
   var TARGETS = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, label[for], [role="button"], [role="link"], ' +
-    '[role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [data-nav], [data-nav-back]';
+    '[role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="slider"], [role="separator"][tabindex], [data-nav], [data-nav-back]';
   var targetsQueued = false;
   function measureTargets() {
     if (targetsQueued) return;

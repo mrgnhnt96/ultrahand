@@ -1,7 +1,8 @@
 # Sources
 
 The citation keys used in [checklist.md](checklist.md) and [SKILL.md](../SKILL.md). Keys
-with a `mobile:` or `tablet:` prefix are in that skill's own `references/sources.md`.
+with a `mobile:`, `tablet:` or `desktop:` prefix are in that skill's own
+`references/sources.md`.
 Sources were checked in November 2026.
 
 ## Review method
@@ -37,6 +38,7 @@ All W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*. Each key links to it
 | WCAG 1.4.13 | Content on Hover or Focus (AA). https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html |
 | WCAG 2.1.1 | Keyboard (A). https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html |
 | WCAG 2.1.2 | No Keyboard Trap (A). https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html |
+| WCAG 2.2.1 | Timing Adjustable (A): a time limit can be turned off, adjusted or extended. https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html |
 | WCAG 2.4.1 | Bypass Blocks (A). https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html |
 | WCAG 2.4.2 | Page Titled (A). https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html |
 | WCAG 2.4.3 | Focus Order (A). https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html |

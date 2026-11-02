@@ -33,17 +33,45 @@ platform's own patterns (tab bar, navigation stack, sheets) rather than inventin
 
 ## 3. Build the canvas artifact
 
-Build on the plugin's shared resizable canvas (`shared/canvas/`). Load the mobile presets
-from the JSON block in `references/presets.md`: `small` 360, `medium` 393 and `large` 430,
-each in portrait and landscape.
+Build on the plugin's shared resizable canvas (`shared/canvas/`; its `README.md` has the full
+contract). Write the screen as `screen.html` and the design's own settings as `config.json`
+in a working folder, then build:
 
-- Draw the safe-area insets for the current preset, and keep content inside them.
+```sh
+node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
+  --presets "${CLAUDE_PLUGIN_ROOT}/skills/mobile/references/presets.md" \
+  --config config.json --screen screen.html \
+  --title "<design name>" --out index.html
+```
+
+Publish `index.html` as an artifact. The presets are `small` 360 (Android), `medium` 393 and
+`large` 430 (iOS); Rotate gives each in landscape, and the 320-wide reflow pass sits under
+Checks.
+
+- **`config.json`** sets `title` and `states` (e.g. default, loading, empty, error). For an
+  iOS-only design set `"initialPreset": "medium"`; for iOS and Android together set
+  `"minTarget": 48` so every preset measures against the stricter target.
+- **Screen contract:** one `<template id="uh-screen">` with `[data-screen]` sections, and
+  `data-nav`, `data-nav-replace` (tabs), `data-nav-back` and `data-show-state` for clicks.
+  Pad edges with `var(--uh-safe-top|right|bottom|left)`, which follow the preset and its
+  rotation; declare tokens that use them on `[data-screen]`, since `:host` can't see them.
+  Respond to size with `@container screen (width >= …)`, not `@media`. Text in `rem`; hit
+  areas, icons and gutters in px, so 200% text grows the words, not the controls. Colours
+  with `light-dark()`. Behaviour goes in `window.ultrahandSetup = function (canvas) { … }`.
+- **Sticky parts:** stack everything pinned to the bottom (tab bar, FAB, snackbar) in one
+  dock so nothing overlaps, and set `scroll-padding` on `[data-screen]` so focus scrolls
+  clear of sticky bars [WCAG-2.4.11]. At compact height or 200% text, let the header go
+  static [WCAG-1.4.4].
+- **Platform per preset:** `small` is Android, `medium` and `large` are iOS. Follow
+  `canvas.size.platform` for conventions that differ, such as the back control, the
+  title alignment and the target size.
+- **Built-in toggles:** light/dark, 200% text, the state picker and show tap targets (44 pt,
+  or 48 dp on Android presets). Don't build your own. Call `canvas.refresh()` after opening
+  a sheet so the target overlay sees it.
 - Lay out with flexible units and the insets, not fixed device numbers, so one design
   adapts to every preset.
-- Add toggles for **light/dark**, **large text (200%)** and **state** (default, loading,
-  empty, error).
-- Add a **show tap targets** toggle that outlines every hit area.
-- Make the main flow clickable: tabs switch, rows push, and sheets open and close.
+- Make the main flow clickable: tabs switch, rows push, and sheets open and close. Draw
+  sheets and dialogs in the screen; never use `alert`, `confirm` or `prompt`.
 
 ## 4. Design every preset
 
@@ -53,7 +81,8 @@ landscape. Fix each problem at the size where it appears:
 - **small (360):** text and buttons still fit without truncating key information.
 - **large (430):** content doesn't stretch into long lines or leave dead space.
 - **landscape:** the short height still shows the focused field above the keyboard, and the
-  side safe area is respected.
+  side safe area is respected. Check it with 200% text too: the sticky header and dock
+  together must leave most of the screen for content.
 
 Then do a quick pass at the 320-wide reflow check.
 
@@ -69,7 +98,10 @@ Go through every item. Fix any failure, or name it and say why it's acceptable.
       orientation.
 - [ ] There are 3–5 top-level tabs, each with a text label, and no lone hamburger.
 - [ ] Every sheet has a visible Close or Cancel button and a clear detent, and sheets never
-      stack.
+      stack. Opening one moves focus into it, Esc closes it, and focus returns to the opener
+      [NNG-SHEET].
+- [ ] The selected tab is marked by more than colour, such as an indicator pill or weight
+      [WCAG-1.4] [M3-NAVBAR], and removing something offers a tappable Undo.
 - [ ] Every field has a label above it (not a placeholder), the right keyboard and
       autocomplete type, and stays visible with the keyboard up.
 - [ ] Errors appear inline, next to the field, and say how to fix the problem; typed input

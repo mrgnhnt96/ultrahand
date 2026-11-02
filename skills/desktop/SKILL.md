@@ -45,13 +45,13 @@ contract). Write the screen as `screen.html` and the design's own settings as `c
 then build:
 
 ```sh
-node <plugin>/shared/canvas/build.mjs \
-  --presets <plugin>/skills/desktop/references/presets.md \
+node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
+  --presets "${CLAUDE_PLUGIN_ROOT}/skills/desktop/references/presets.md" \
   --config config.json --screen screen.html \
   --title "<design name>" --out index.html
 ```
 
-`<plugin>` is the plugin's root folder. Publish `index.html` as an artifact.
+Publish `index.html` as an artifact.
 
 - **`config.json`** sets `title`, `states` (e.g. default, loading, empty, error) and the
   design's **`limits`**: `{ minWidth, minHeight, maxWidth, maxHeight }`. The canvas lets you
@@ -62,7 +62,8 @@ node <plugin>/shared/canvas/build.mjs \
   at 320 × 256.
 - **Screen contract:** one `<template id="uh-screen">` with `[data-screen]` sections, and
   `data-nav`, `data-nav-back` and `data-show-state` for clicks. Respond to size with
-  `@container screen (width >= …)`, not `@media`. Text in `rem`, colours with
+  `@container screen (width >= …)`, not `@media`. Text in `rem`; hit areas, icons and
+  gutters in px, so 200% text grows the words, not the controls. Colours with
   `light-dark()`. Behaviour goes in `window.ultrahandSetup = function (canvas) { … }`.
 - **Built-in toggles:** light/dark, 200% text, state picker, and tap targets (24 px minimum
   for desktop). Call `canvas.refresh()` after opening a menu or popover so the target overlay
