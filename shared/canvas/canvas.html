@@ -156,7 +156,8 @@ button, input, select { font: inherit; color: inherit; }
   background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
   background-size: 20px 20px;
 }
-.uh-scaler { position: relative; flex: none; margin: auto; }
+/* fit() sets the margins: at least half the stage (or half the frame) on every side, so it pans past the design. */
+.uh-scaler { position: relative; flex: none; }
 .uh-rig { position: absolute; left: 0; top: 0; transform-origin: 0 0; --s: 1; }
 
 /* Device frames */
@@ -790,7 +791,7 @@ window.ultrahandSetup = function (canvas) {
     radius: null, windowStyle: 'plain', split: null, landscape: false, platform: '',
     scheme: cfg.scheme === 'dark' ? 'dark' : 'light', statusTone: 'auto',
     textScale: 1, state: states.length ? states[0].id : null, showTargets: false, smallTargets: 0, minTarget: 44,
-    zoom: 'fit', s: 1, flags: [], dragging: false
+    zoom: 'fit', s: 1, flags: [], dragging: false, recenter: true
   };
 
   el.title.textContent = cfg.title || 'Untitled screen';
@@ -955,6 +956,7 @@ window.ultrahandSetup = function (canvas) {
     render();
   }
   function usePreset(p) {
+    st.recenter = true;
     st.preset = p;
     st.resized = false;
     st.landscape = false;
@@ -987,6 +989,7 @@ window.ultrahandSetup = function (canvas) {
   }
   function rotate() {
     if (st.kind === 'window' || st.kind === 'none') return;
+    st.recenter = true;
     st.landscape = !st.landscape;
     if (st.split) {
       var sp = st.split;
@@ -1154,7 +1157,22 @@ window.ultrahandSetup = function (canvas) {
       h: el.stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
     };
   }
+  /* Overscroll: the stage pans at least half a stage, or half the frame if larger, past
+     every edge. view holds the point under the stage's centre, as a fraction of the
+     frame; scrolling updates it and fit() restores it, or recentres when st.recenter is
+     set (start, preset, rotate, zoom buttons). Reading it from the scroll position
+     inside fit() would drift, since the stage may already have changed size. */
+  var view = { x: 0.5, y: 0.5 };
+  el.stage.addEventListener('scroll', function () {
+    if (!el.scaler.offsetWidth || !el.scaler.offsetHeight) return;
+    view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - el.scaler.offsetLeft) / el.scaler.offsetWidth;
+    view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - el.scaler.offsetTop) / el.scaler.offsetHeight;
+  }, { passive: true });
   function fit() {
+    var stage = el.stage;
+    if (st.recenter) view = { x: 0.5, y: 0.5 };
+    st.recenter = false;
+    var cx = view.x, cy = view.y;
     var rw = el.frame.offsetWidth;
     var rh = el.frame.offsetHeight;
     var inner = stageInner();
@@ -1168,6 +1186,11 @@ window.ultrahandSetup = function (canvas) {
     el.rig.style.transform = 'translate(' + GUTTER * s + 'px, ' + GUTTER * s + 'px) scale(' + s + ')';
     el.scaler.style.width = (rw + 2 * GUTTER) * s + 'px';
     el.scaler.style.height = (rh + 2 * GUTTER) * s + 'px';
+    var mx = Math.max(stage.clientWidth, (rw + 2 * GUTTER) * s) / 2;
+    var my = Math.max(stage.clientHeight, (rh + 2 * GUTTER) * s) / 2;
+    el.scaler.style.margin = my + 'px ' + mx + 'px';
+    stage.scrollLeft = el.scaler.offsetLeft + cx * el.scaler.offsetWidth - stage.clientWidth / 2;
+    stage.scrollTop = el.scaler.offsetTop + cy * el.scaler.offsetHeight - stage.clientHeight / 2;
     el.zoom.textContent = Math.round(s * 100) + '%';
     Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.zoom === st.zoom));
@@ -1320,7 +1343,7 @@ window.ultrahandSetup = function (canvas) {
     b.addEventListener('click', function () { st.scheme = b.dataset.scheme; render(); });
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
-    b.addEventListener('click', function () { st.zoom = b.dataset.zoom; fit(); });
+    b.addEventListener('click', function () { st.zoom = b.dataset.zoom; st.recenter = true; fit(); });
   });
 
   /* ---------- Public API handed to the screen's setup function ---------- */
