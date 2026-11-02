@@ -23,7 +23,7 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 | Command | Options |
 | --- | --- |
 | `open <url or file>` | `--size WxH` (default 1280x800), `--port` (default 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
-| `do <steps>` | Steps as a JSON file, inline JSON, or `-` for stdin. `--port`, `--out <dir>` for screenshots |
+| `do <steps>` | Steps as a JSON file, inline JSON, `-` for stdin, or a `.mjs` steps script (see [Steps files](#steps-files)). `--port`, `--out <dir>` for screenshots |
 | `close` | `--port` |
 | `run <url> <steps>` | All of the above |
 
@@ -46,21 +46,76 @@ Each step is an object whose first key is the verb.
 
 | Step | Example | Does |
 | --- | --- | --- |
-| `size` | `{"size":[1024,768]}` | Resizes the browser window so the viewport is that size. Below the window's minimum (about 500px wide headless), the size is emulated and lasts only for that `do` call, with a warning. |
+| `size` | `{"size":[1024,768]}` | Resizes the browser window so the viewport is that size. Headless windows stop at about 500px wide, so a smaller size is emulated: the result says `emulated`, and a small helper process keeps it for the rest of the session, across `do` calls, until the next `size` step or `close`. |
 | `goto` | `{"goto":"other.html"}` | Navigates. |
 | `controls` | `{"controls":true}` | Lists every visible interactive element as `@n` refs, with name, centre, size, and whether it is in view, covered by something else, or disabled. |
 | `click` | `{"click":"@4","button":"right","count":2,"mods":["Shift"]}` | Moves the mouse there and presses. `button` is `left`, `right` or `middle`. |
 | `hover` | `{"hover":"text=Info"}` | Moves the mouse there. |
 | `drag` | `{"drag":"[aria-label=Width]","to":{"dx":-120,"dy":0},"cancel":"Escape"}` | Press, move in steps, release. `to` is a target or `{dx,dy}`. `hold` keeps a key down for the drag (`"Space"` to pan). `cancel` presses a key before release. `button` as for click. |
 | `wheel` | `{"wheel":"#list","dy":600,"mods":["Ctrl"]}` | Mouse wheel over the target, in 100px ticks (`ticks` to change). |
-| `key` | `{"key":"Shift+Tab","repeat":3}` | A key or combo: `Ctrl+=`, `Cmd+0`, `Escape`, `ArrowDown`, `F6`. |
+| `key` | `{"key":"Shift+Tab","repeat":3}` | A key or combo: `Ctrl+=`, `Cmd+0`, `Escape`, `ArrowDown`, `F6`. `Mod` is Cmd on macOS and Ctrl elsewhere, and `Option` is Alt. On macOS, editing shortcuts in a text field run the editor command a person's keypress would (`Cmd+A` select all, `Cmd+C`/`X`/`V`, `Cmd+Z`, `Cmd+Shift+Z`, `Cmd`/`Option` + arrows, `Option+Backspace`), and the result names it as `command`. |
 | `type` | `{"type":"Hello\n"}` | Types text into the focused element. `\n` presses Enter. |
+| `choose` | `{"choose":"#size","text":"Large"}` or `{"choose":"#size","value":"l"}` | Picks an option of a native `<select>`: it focuses the select and types the option's text, the keyboard type-ahead a person can use. `input` in the result says how it went: `keyboard`, or `script` with a `warning` when type-ahead couldn't reach the option (a multiple select, say) and the value was set by script with `input` and `change` events. That part is not real input. A custom listbox isn't a `<select>`: use click and key steps. |
 | `tap` | `{"tap":"@2","hold":600}` | A touch tap. `hold` in ms makes it a long press. |
 | `touchScroll` | `{"touchScroll":"#list","dy":400}` | A touch swipe that scrolls the content by `dx`/`dy`. |
 | `pinch` | `{"pinch":"#stage","scale":1.5}` | A trackpad pinch at the target. |
 | `wait` | `{"wait":300}` or `{"wait":"text=Saved"}` | Waits some ms, or up to 5s for a target. |
-| `eval` | `{"eval":"document.title"}` | Reads a value from the page. Use it to check state after real input, never to cause it. |
+| `eval` | `{"eval":"document.title"}` | Reads a value from the page: an expression, or statements, whose value is the last statement's, as in the console (`const n = list.children.length; n * 2`). `await` and `return` work. `__uhDrive.resolve(target)` finds an element by any target form above, through shadow roots (a canvas screen is in one). Use it to check state after real input, never to cause it. |
 | `shot` | `{"shot":"after-resize"}` | Saves `<out>/<name>.png`. |
+
+## Steps files
+
+A `do` or `run` takes the steps in one of four forms.
+
+- **JSON:** a `.json` file, or the array inline.
+- **Heredoc:** `-` reads the JSON from stdin, which saves escaping quotes in the shell:
+
+  ```sh
+  node shared/input/drive.mjs do - <<'EOF'
+  [{"click":"text=Save"}, {"eval":"const s = __uhDrive.resolve('#status'); s.textContent"}]
+  EOF
+  ```
+
+- **A steps script exporting an array:** for steps you'd rather build with code.
+
+  ```js
+  // steps.mjs
+  const sizes = [[1440, 900], [1024, 700], [640, 480]];
+  export default sizes.flatMap(([w, h]) => [{ size: [w, h] }, { controls: true }, { shot: `${w}` }]);
+  ```
+
+- **A steps script exporting an async function:** for steps that depend on earlier
+  results. The function gets one method per verb. `ui.click('@3', { button: 'right' })`
+  runs `{"click":"@3","button":"right"}`, prints its line as usual, and returns it. A
+  failed step throws and ends the script, unless it has `optional: true`.
+
+  ```js
+  // steps.mjs
+  export default async function (ui) {
+    const { controls } = await ui.controls();
+    for (const c of controls.filter((c) => c.control.startsWith('select'))) {
+      await ui.choose(c.ref, { text: 'Large', optional: true });
+    }
+    const { value } = await ui.eval('__uhDrive.resolve("#total").textContent');
+    if (value === '') await ui.shot('empty-total');
+  }
+  ```
+
+## What can't be driven
+
+A few native controls draw outside the page, in UI that headless Chrome doesn't have, so
+trusted input can't reach them:
+
+- **A select's popup.** Pick the option with `choose`, which types its text into the closed
+  select. A select's arrow keys open the popup on macOS instead of changing the value.
+- **File pickers.** List the upload under *Not checked*, or test the page's drop target with
+  `drag`.
+- **Colour and date pickers** (`<input type="color">`, `type="date"` and its kin). Type into
+  a date field's segments with `key` and `type` where it has them, and list the picker
+  itself under *Not checked*.
+
+When `choose` reports `input: "script"`, the option was set by script. Say so in the
+review rather than counting it as checked with real input.
 
 ## What each result tells you
 
@@ -72,7 +127,7 @@ Each step is an object whose first key is the verb.
 
 ## Recipes
 
-Use every control at several sizes. Inventory first, then use each `@n` the way its kind is meant to be used (click a button, type in a field, drag a slider, open a select with the keyboard). Then do it again at the next size:
+Use every control at several sizes. Inventory first, then use each `@n` the way its kind is meant to be used (click a button, type in a field, drag a slider, pick a select's option with `choose`). Then do it again at the next size:
 
 ```json
 [{"size":[1440,900]}, {"controls":true}, {"click":"@0"}, {"key":"Escape"}, {"shot":"1440"},
