@@ -37,7 +37,7 @@ The page gives the viewer:
      --config config.json --screen screen.html --title "Checkout" --out index.html
    ```
 
-   `<plugin>` is the plugin's root folder. The build fails, with a list of problems, on a broken config. It warns about screen code that won't work in an artifact or that defeats the review toggles (see [Limits](#limits-inside-an-artifact)).
+   `<plugin>` is the plugin's root folder: `${CLAUDE_PLUGIN_ROOT}` inside a skill. The build fails, with a list of problems, on a broken config. It warns about screen code that won't work in an artifact or that defeats the review toggles (see [Limits](#limits-inside-an-artifact)).
 5. **Publish.** Publish `index.html` as an artifact: `publish_files` with `as: "index.html"`, a title and an icon. For small follow-up changes, use `edit_version` against the published page. Rebuild and republish when the screen changes a lot.
 
 `--head head.html` injects extra `<head>` content, such as a Google Fonts `<link>`. `--presets` also accepts a plain `.json` file.

@@ -45,13 +45,13 @@ contract). Write the screen as `screen.html` and the design's own settings as `c
 then build:
 
 ```sh
-node <plugin>/shared/canvas/build.mjs \
-  --presets <plugin>/skills/desktop/references/presets.md \
+node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
+  --presets "${CLAUDE_PLUGIN_ROOT}/skills/desktop/references/presets.md" \
   --config config.json --screen screen.html \
   --title "<design name>" --out index.html
 ```
 
-`<plugin>` is the plugin's root folder. Publish `index.html` as an artifact.
+Publish `index.html` as an artifact.
 
 - **`config.json`** sets `title`, `states` (e.g. default, loading, empty, error) and the
   design's **`limits`**: `{ minWidth, minHeight, maxWidth, maxHeight }`. The canvas lets you

@@ -33,17 +33,37 @@ platform's own patterns (tab bar, navigation stack, sheets) rather than inventin
 
 ## 3. Build the canvas artifact
 
-Build on the plugin's shared resizable canvas (`shared/canvas/`). Load the mobile presets
-from the JSON block in `references/presets.md`: `small` 360, `medium` 393 and `large` 430,
-each in portrait and landscape.
+Build on the plugin's shared resizable canvas (`shared/canvas/`; its `README.md` has the full
+contract). Write the screen as `screen.html` and the design's own settings as `config.json`
+in a working folder, then build:
 
-- Draw the safe-area insets for the current preset, and keep content inside them.
+```sh
+node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
+  --presets "${CLAUDE_PLUGIN_ROOT}/skills/mobile/references/presets.md" \
+  --config config.json --screen screen.html \
+  --title "<design name>" --out index.html
+```
+
+Publish `index.html` as an artifact. The presets are `small` 360 (Android), `medium` 393 and
+`large` 430 (iOS); Rotate gives each in landscape, and the 320-wide reflow pass sits under
+Checks.
+
+- **`config.json`** sets `title` and `states` (e.g. default, loading, empty, error). For an
+  iOS-only design set `"initialPreset": "medium"`; for iOS and Android together set
+  `"minTarget": 48` so every preset measures against the stricter target.
+- **Screen contract:** one `<template id="uh-screen">` with `[data-screen]` sections, and
+  `data-nav`, `data-nav-replace` (tabs), `data-nav-back` and `data-show-state` for clicks.
+  Pad edges with `var(--uh-safe-top|right|bottom|left)`, which follow the preset and its
+  rotation. Respond to size with `@container screen (width >= …)`, not `@media`. Text in
+  `rem`, colours with `light-dark()`. Behaviour goes in
+  `window.ultrahandSetup = function (canvas) { … }`.
+- **Built-in toggles:** light/dark, 200% text, the state picker and show tap targets (44 pt,
+  or 48 dp on Android presets). Don't build your own. Call `canvas.refresh()` after opening
+  a sheet so the target overlay sees it.
 - Lay out with flexible units and the insets, not fixed device numbers, so one design
   adapts to every preset.
-- Add toggles for **light/dark**, **large text (200%)** and **state** (default, loading,
-  empty, error).
-- Add a **show tap targets** toggle that outlines every hit area.
-- Make the main flow clickable: tabs switch, rows push, and sheets open and close.
+- Make the main flow clickable: tabs switch, rows push, and sheets open and close. Draw
+  sheets and dialogs in the screen; never use `alert`, `confirm` or `prompt`.
 
 ## 4. Design every preset
 
