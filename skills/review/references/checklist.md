@@ -48,6 +48,14 @@ Every control in the inventory:
       [NNG-H1] [mobile:NNG-RESPONSE].
 - [ ] **Keyboard:** reachable with Tab, operable with Enter or Space, and arrows move
       within groups (tabs, radios, lists, toolbars) [WCAG 2.1.1] [MS-KBD].
+- [ ] **Sliders and resize grips:** a slider takes Tab focus, its arrow keys change the
+      value by a step, Home and End go to the ends, and Page Up and Page Down take a larger
+      step. It exposes `aria-valuenow`, `aria-valuemin` and `aria-valuemax` (plus
+      `aria-valuetext` when a bare number isn't clear) and has a name [APG-SLIDER]
+      [WCAG 4.1.2]. A grip that resizes a pane is a window splitter: a focusable
+      `separator` whose arrow keys move it, whose value says the primary pane's size,
+      which names that pane with `aria-controls`, and where Enter collapses and restores
+      the pane [APG-SPLITTER]. Keys are the non-drag alternative [WCAG 2.5.7].
 - [ ] **No surprises:** focusing or changing it doesn't move focus, submit or navigate on
       its own [WCAG 3.2.1] [WCAG 3.2.2].
 - [ ] **Gestures and drags:** anything done by swipe, pinch, long-press or drag has a
@@ -307,6 +315,15 @@ used in a browser window of any size, then add these checks.
       keeps [MS-KBD] [NNG-H7].
 - [ ] **Drags can be cancelled:** Esc during a drag (resize, pan, move) puts things back,
       and every drag has a typed or keyboard alternative [NNG-H3] [WCAG 2.5.7].
+- [ ] **Pass 6 for the tool's own chrome:** the toolbar, panels and menus of the tool
+      itself get these pass 6 checks. Browser window sizes from the smallest the tool
+      supports up to a large display, for the desktop window range. Browser page zoom at
+      200%, which is the 200% text check for chrome sized in px [WCAG 1.4.4], and at
+      400% of a 1280-wide window, which is the 320-wide reflow check [WCAG 1.4.10]. The
+      tool's own light and dark themes, for dark mode. Every data state of the tool
+      (nothing loaded, loading, error, a very large file). The design's presets, split
+      widths, orientations and on-screen keyboard apply to the design inside the tool, not
+      to its chrome.
 - [ ] **Readouts tell the truth:** size, zoom and count readouts update after every input
       path (typing, dragging, wheel, pinch, shortcuts, presets), not only some [NNG-H1].
 
