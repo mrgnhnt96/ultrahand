@@ -31,7 +31,8 @@ you can confirm.
   read the canvas readout (`#uh-flag`), which flags targets under the platform minimum.
   Call `refresh()` after opening a sheet or menu so the count includes it. The canvas
   README lists the toolbar's element ids for scripted checks. A prototype's stubs (no real
-  network, no keyboard) go under *Not checked*, not in the findings.
+  network, no on-screen keyboard) go under *Not checked*, not in the findings. The
+  hardware keyboard is real: drive every flow with it.
 - **Local canvas build** (an `index.html` from `build.mjs`): treat it like the artifact.
   Open it in a headless browser if one is available, and drive keys, right-click and drags
   with real input (for example Playwright's `page.keyboard` and `page.mouse`), not
@@ -82,7 +83,8 @@ Go through the design twice: once to learn it, once to find problems.
 4. **Accessibility:** WCAG 2.2 AA. Compute contrast; don't eyeball it.
 5. **Platform:** the rules for the platform and size class from step 2.
 6. **Resize and variants:** every preset, the split widths, 320-wide reflow, 200% text,
-   dark mode, each data state, both orientations and the keyboard up.
+   dark mode, each data state, and on touch devices both orientations and the keyboard up
+   (desktop windows don't rotate: check the minimum, maximum and short window instead).
 
 Record a problem the moment you see it, with where you saw it (screen › element, plus the
 size, scheme and state). One problem that shows up in several places is one finding with

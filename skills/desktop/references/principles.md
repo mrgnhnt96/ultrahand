@@ -113,7 +113,8 @@ number wins. Units: 1 CSS px ≈ 1 pt (macOS) ≈ 1 epx (Windows) at the canvas 
 - **Hide items that don't apply** (except Cut, Copy and Paste) rather than disabling them;
   this is the opposite of the menu bar rule [HIG-CONTEXT].
 - **Keyboard access:** the same menu opens on the focused item from the keyboard (Shift+F10
-  or the Menu key on Windows and the web) [WCAG-2.1.1].
+  or the Menu key on Windows and the web), and its commands act on that focused item
+  [WCAG-2.1.1].
 
 ## 9. Keyboard shortcuts and focus
 
@@ -134,6 +135,9 @@ number wins. Units: 1 CSS px ≈ 1 pt (macOS) ≈ 1 epx (Windows) at the canvas 
   | Rename, refresh, next pane | — | F2, F5, F6 |
   | Zoom in, out, reset | ⌘+, ⌘−, ⌘0 | Ctrl+plus, Ctrl+minus, Ctrl+0 |
   | Full screen | ⌃⌘F | F11 (browsers) |
+
+  In a web app, the browser keeps some keys (Ctrl or ⌘ + N, T, W, and Ctrl+Tab), and the
+  page never sees them. Give those commands another shortcut or none.
 
 - **Add custom shortcuts only for frequent commands** [HIG-KEYBOARD][NNG-EFFICIENCY]. On
   macOS, Command is the main modifier and Shift the secondary; use Option sparingly and avoid
@@ -221,8 +225,10 @@ Prefer the least interruptive option that fits the task [HIG-MACOS][NNG-MODAL]:
 
 ## 14. Drag and drop
 
-- **Every drag has a non-drag alternative**: a menu command, a Move to… dialog, cut and
-  paste, or keyboard reordering [WCAG-2.5.7][WCAG-2.1.1].
+- **Every drag has a single-pointer alternative**: a menu command, a Move to… dialog,
+  buttons or cut and paste [WCAG-2.5.7]. Keyboard reordering is needed too, but doesn't
+  count as that alternative [WCAG-2.1.1]. For a pane divider, offer width presets or a
+  Reset command beside the arrow keys.
 - **Show what can be dropped where,** preview the result, and make the move undoable
   [NNG-CONTROL].
 

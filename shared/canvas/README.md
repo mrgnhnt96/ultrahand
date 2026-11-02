@@ -148,8 +148,9 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
   - `data-nav-back` pops.
   - Scroll position is kept per screen. The canvas doesn't set `aria-current` for you, so mark the selected tab yourself in `onNavigate`.
 - **States.** An element with `data-show-state="loading empty"` shows only in those states. Declare the states in the config's `states` field. Retry buttons and the like can call `canvas.setState('loading')`.
-- **Tap targets.** Elements that match `button, a[href], input, select, textarea, summary, label[for], [role=button|link|tab|switch|checkbox|radio|menuitem], [data-nav], [data-nav-back]` are measured. Add `data-uh-ignore-target` to inline links in running text, which WCAG 2.5.8 exempts. A `label[for]` beside its own field is counted too, but under 2.5.8's equivalent-control exception it passes when the field itself is big enough, so judge those flags rather than counting them. Call `canvas.refresh()` after opening a sheet or menu, so the count updates.
+- **Tap targets.** Elements that match `button, a[href], input, select, textarea, summary, label[for], [role=button|link|tab|switch|checkbox|radio|menuitem|slider]`, a focusable `[role=separator]` (a pane divider), `[data-nav], [data-nav-back]` are measured. The readout checks size only: a control that is hidden at some size isn't flagged, so check that every command is still reachable yourself. Add `data-uh-ignore-target` to inline links in running text, which WCAG 2.5.8 exempts. A `label[for]` beside its own field is counted too, but under 2.5.8's equivalent-control exception it passes when the field itself is big enough, so judge those flags rather than counting them. Call `canvas.refresh()` after opening a sheet or menu, so the count updates.
 - **Forms** must call `preventDefault()`. A real submit would navigate the artifact away.
+- **Scripted keyboard checks:** Tab from the page passes the canvas toolbar (about 20 stops) before it reaches the screen, so focus a control inside the screen first. Inside the shadow root, use `canvas.root.elementFromPoint(x, y)`; `document.elementFromPoint` returns the host.
 - **Shortcuts.** Key events on `canvas.root` arrive only while focus is inside the screen. For app-wide shortcuts, also listen on `document` and skip events from text fields and the canvas toolbar, or move focus into the screen on load.
 
 ### API (`canvas`, also `window.ultrahandCanvas`)
@@ -159,7 +160,7 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 | `$(sel)`, `$$(sel)` | Query inside the screen. |
 | `root`, `viewport` | The shadow root and the element that holds the screen. |
 | `size` | `{ width, height, widthClass, heightClass, orientation, preset, resized, frame, split, scheme, platform, textScale, state, safeArea }`. |
-| `onResize(fn)` | Called now and on every size change. Returns an unsubscribe function. |
+| `onResize(fn)` | Called now and on every size change. Returns an unsubscribe function. Change callbacks run on the next animation frame, so after `usePreset` or `setSize` wait two frames before reading the layout. |
 | `screen`, `navigate(id, {replace})`, `back()`, `onNavigate(fn)` | Navigation. `fn` gets `{ screen, from, depth }`. |
 | `state`, `setState(id)`, `onState(fn)` | Screen states. `onState` is called now and on every change. |
 | `setSize(w, h)`, `usePreset(id)`, `setScheme('light'\|'dark')`, `setTextScale(n)` | Drive the canvas, for example to open on the case under review. |

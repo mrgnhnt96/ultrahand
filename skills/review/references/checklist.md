@@ -59,7 +59,9 @@ Every control in the inventory:
       undone. After a delete, focus moves to the next item, not to the page top, and Undo
       puts the item back where it was, in the same pane [NNG-H3] [WCAG 2.4.3].
 - [ ] **Unsaved input survives in-app actions:** switching items, tabs or modes, closing a
-      panel or toggling a view keeps typed text, or saves it, or asks first. Dismissing a
+      panel or toggling a view keeps typed text, or saves it, or asks first. Test it: type
+      a draft, then run every command and change every field on the same screen, and check
+      the draft is still there. Dismissing a
       sheet or dialog that holds typed input asks before discarding it [NNG-H3] [NNG-H5].
 - [ ] **Context menus have a touch route:** where touch is likely, touch-and-hold opens the
       same menu as right-click, and its commands also exist elsewhere [tablet:HIG-CONTEXT]
@@ -85,7 +87,7 @@ Each screen, and the flow as a whole [NNG-HEURISTICS]:
 
 | Key | Heuristic | Look for |
 | --- | --- | --- |
-| NNG-H1 | Visibility of system status | Loading, saving, syncing and offline shown. Selected tab, current step and selected row marked. |
+| NNG-H1 | Visibility of system status | Loading, saving, syncing and offline shown. Selected tab, current step and selected row marked. In the error or offline state, commands never report success they didn't have. |
 | NNG-H2 | Match between the system and the real world | The user's words, not internal or technical terms. Familiar icons and natural order. |
 | NNG-H3 | User control and freedom | Back, cancel, close and undo. No dead ends. Sheets and dialogs can be dismissed. |
 | NNG-H4 | Consistency and standards | Same thing, same name and look everywhere. Platform conventions for navigation, controls and gestures. |
@@ -133,7 +135,8 @@ Check these success criteria, in addition to the ones cited in pass 2 [WCAG22].
 - [ ] **Focus visible (2.4.7)** and **not obscured (2.4.11):** the focused element is
       always visibly marked and never fully hidden under a sticky header, footer, toolbar
       or the keyboard. Test it: Tab through at the shortest height, and for each focused
-      element check that `elementFromPoint` at its centre returns it, not a sticky bar.
+      element check that `elementFromPoint` at its centre returns it, not a sticky bar (on the
+      canvas, call it on `canvas.root`: the document version returns the shadow host).
 - [ ] **Titles and headings (2.4.2, 2.4.6):** each screen has a title that says what it is;
       headings and labels describe their content.
 
@@ -211,7 +214,7 @@ most often miss; the linked principles hold the rest.
       Windows and the web), with its shortcut shown there or in the tooltip
       [HIG-MACOS] [MS-KBD].
 - [ ] Standard shortcuts work (Ctrl or Cmd + C, V, X, Z, A, S, F) and aren't reassigned
-      [MS-KBD].
+      [MS-KBD]. Web apps don't rely on keys the browser keeps (Ctrl or Cmd + N, T, W).
 - [ ] Tab order is logical and follows visual order; initial focus is on the most likely
       action, never on a destructive one [MS-KBD].
 - [ ] Arrow keys move inside groups (lists, grids, toolbars, radio groups), which take one
@@ -220,7 +223,9 @@ most often miss; the linked principles hold the rest.
 - [ ] Panes can be reached from the keyboard without tabbing through everything (F6 on
       Windows, landmarks on the web) [MS-KBD] [WCAG 2.4.1].
 - [ ] Hover reveals extra detail but never the only path to a command. Right-click opens a
-      context menu next to the item [NNG-FITTS] [tablet:HIG-POINTER].
+      context menu next to the item [NNG-FITTS] [desktop:HIG-POINTER]. Shift+F10 or the
+      Menu key opens the same menu on the focused item, and its commands act on that
+      item, not on an earlier selection [desktop:HIG-CONTEXT] [WCAG 2.1.1].
 - [ ] Frequent targets are large and close to where the pointer already is; related
       controls are grouped [NNG-FITTS].
 
@@ -229,8 +234,8 @@ most often miss; the linked principles hold the rest.
 On a canvas, use the presets and the readout. From code, read the breakpoints and container
 queries. From a screenshot, say which sizes you couldn't see.
 
-- [ ] **Every preset** for the platform, in both orientations, renders without overlap,
-      clipping or a lost control.
+- [ ] **Every preset** for the platform, in both orientations on touch devices, renders
+      without overlap, clipping or a lost control.
 - [ ] **Split widths** (1/3, 1/2, 2/3 on tablet) and a slow drag across the 600 and 840
       breakpoints: the layout changes class cleanly, and selection, scroll position and
       typed text survive [tablet:HIG-MULTI] [tablet:AND-MW].
@@ -272,7 +277,8 @@ catastrophe. A WCAG AA failure is never below 2.
 
 Stubbed or faked behaviour in a prototype (no real network, a toast standing in for a
 snackbar) goes under **Not checked**, not in the findings, unless the design itself is
-missing the state.
+missing the state. A simulated state is still a design: when the empty state shows a
+count, header or enabled command that contradicts it, that is a finding.
 
 ## Report template
 
