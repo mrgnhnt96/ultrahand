@@ -16,6 +16,7 @@ Platform guidelines are living documents; they were checked in November 2026.
 | HIG-TABS | Apple, *HIG: Tab bars* (iPad tab bar at the top, converts to a sidebar). https://developer.apple.com/design/human-interface-guidelines/tab-bars |
 | HIG-MENUBAR | Apple, *HIG: The menu bar* (iPadOS menu bar). https://developer.apple.com/design/human-interface-guidelines/the-menu-bar |
 | HIG-POINTER | Apple, *HIG: Pointing devices* (pointer effects, hover, I-beam, rectangle selection). https://developer.apple.com/design/human-interface-guidelines/pointing-devices |
+| HIG-CONTEXT | Apple, *HIG: Context menus* (touch and hold or secondary click; relevant and few; every item also available elsewhere). https://developer.apple.com/design/human-interface-guidelines/context-menus |
 | HIG-KEYBOARD | Apple, *HIG: Keyboards* (standard shortcuts, modifiers, Full Keyboard Access). https://developer.apple.com/design/human-interface-guidelines/keyboards |
 | HIG-DND | Apple, *HIG: Drag and drop*. https://developer.apple.com/design/human-interface-guidelines/drag-and-drop |
 | HIG-A11Y | Apple, *HIG: Accessibility* (44 × 44 pt targets, contrast). https://developer.apple.com/design/human-interface-guidelines/accessibility |

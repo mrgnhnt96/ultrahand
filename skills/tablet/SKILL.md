@@ -124,8 +124,10 @@ Go through every item. Fix any failure, or name it and say why it's acceptable.
       controls are reachable from the side edges.
 - [ ] Nothing interactive sits under the status bar, home indicator, taskbar or the iPad
       window controls, in either orientation.
-- [ ] Pointer: every control has a hover state, right-click opens a context menu, and
-      nothing is available only on hover.
+- [ ] Pointer: every control has a hover state, right-click and touch-and-hold open a
+      context menu, and nothing is available only on hover.
+- [ ] Switching items, closing a panel or dismissing a sheet never loses typed text; Undo
+      survives two deletes in a row and returns the item to its pane.
 - [ ] Keyboard: main flows work with Tab and the arrows, focus is always visible, standard
       shortcuts work, and Esc closes, cancels or clears.
 - [ ] Every drag-and-drop has a non-drag alternative, shows valid targets and can be undone.

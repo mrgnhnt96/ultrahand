@@ -63,7 +63,8 @@ Pick one of the three canonical layouts before inventing your own [AND-CANON][M3
 - **List-detail** (mail, settings, files):
   - Expanded: both panes side by side.
   - Medium and compact: show the list *or* the detail, and Back returns to the list.
-  - On narrowing while a detail is open, keep the detail and hide the list.
+  - On narrowing while a detail is open, keep the detail and hide the list. At expanded,
+    the item shown in the detail pane counts as open.
   - On widening, show the list with that item still selected.
   - If only the list was showing when the window widens, fill the detail pane with a
     placeholder or the most relevant item. Never leave it blank [AND-CANON][HIG-SPLIT].
@@ -154,7 +155,8 @@ Pick one of the three canonical layouts before inventing your own [AND-CANON][M3
 - **Show an I-beam over editable text, and reveal minimised controls on hover,** such as a
   video scrubber [HIG-POINTER].
 - **Secondary click (right-click or two-finger tap) opens a context menu** next to the
-  selected item [AND-T2].
+  selected item [AND-T2]. Touch-and-hold opens the same menu, so touch users get it too,
+  and every command in it also exists elsewhere [HIG-CONTEXT].
 - **Support rectangle drag-select and modifier-click** for multiple selection where lists
   allow it [HIG-POINTER].
 - **Support Ctrl/⌘-scroll and pinch to zoom content** where zoom makes sense [AND-T2].
