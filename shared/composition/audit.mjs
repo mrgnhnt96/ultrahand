@@ -4,7 +4,8 @@
 //   UH_SECTIONS='header,main' node shared/input/drive.mjs do shared/composition/audit.mjs --out shots
 //
 // For each section (UH_SECTIONS, comma-separated selectors; by default the page's top-level
-// header, toolbar, nav, aside and main, inside a canvas screen too) it prints one JSON line
+// header, toolbar, nav, aside and main, inside a canvas screen too; named sections are all
+// measured, even when one is inside another) it prints one JSON line
 // of measures, and it saves a blurred screenshot for the squint test (blur-<w>x<h>.png).
 // The numbers point at problems; judging them is the reviewer's job (see principles.md).
 //
@@ -53,7 +54,8 @@ const MEASURE = String.raw`(() => {
   const wanted = (window.__uhSections || '').split(',').map((s) => s.trim()).filter(Boolean);
   let sections = wanted.length ? wanted.flatMap((s) => all(s)) :
     all('header, [role=toolbar], nav, aside, main, [role=banner], [role=navigation], [role=main], [role=complementary]');
-  sections = sections.filter((s) => visible(s) && !sections.some((o) => o !== s && o.contains(s)));
+  /* Named sections are all measured (a toolbar and its groups); found ones keep the outermost. */
+  sections = sections.filter((s) => visible(s) && (wanted.length || !sections.some((o) => o !== s && o.contains(s))));
   return sections.map((sec) => {
     const inside = [sec, ...sec.querySelectorAll('*')];
     const controls = inside.filter((el) => el.matches(CONTROL) && visible(el) && !el.closest('[aria-hidden=true]'));
