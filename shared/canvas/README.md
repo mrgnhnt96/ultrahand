@@ -4,15 +4,18 @@ The canvas is the resizable harness that every ultrahand design skill renders it
 
 The page gives the viewer:
 
-- **A device frame.** Phone, tablet (with split view), desktop window, or bare. Drag handles on the left, right, bottom and corner edges resize it live. The handles move by 1px with the arrow keys, or 10px with Shift + arrow.
-- **A readout.** It shows the width and height (both editable), the width and height size class, and flags such as "at min width" or "3 targets under 44px".
+- **A device frame.** Phone, tablet (with split view), desktop window, or bare. Every edge and corner resizes it: each edge is a hit strip along its full length, with a grip in the middle. The frame grows evenly about its centre and the zoom holds while you drag, so the edge you hold follows the pointer; at Fit it re-fits once you let go. Esc cancels a drag. From the keyboard, the Width and Height grips are sliders: arrows move 1px (10px with Shift), PageUp/PageDown 100px, Home/End go to the limits.
+- **A readout.** It shows the width and height and their size classes ("large width", "medium height"). The fields are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
 - **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so. Rotate swaps the orientation, including safe areas.
 - **Review toggles:**
   - Light / Dark
   - Text 100% / 200%
   - a State picker (default, loading, empty, error…)
-  - Tap targets, which outlines every interactive element and marks any that are under the platform minimum
-  - Fit / 100% zoom. The stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Fit, 100%, Rotate and a new preset recentre it.
+  - Tap targets (Hit targets for windows), which outlines every interactive element and marks any under the platform minimum. While it's on, the result shows beside it: "all ≥ 44px" or "3 targets under 44px".
+  - Zoom: − and + step through 10–400%; Fit; 100%. Ctrl or ⌘ with the wheel, or a trackpad pinch, zooms at the pointer. Shortcuts: Ctrl or ⌘ `=` and `−`, Ctrl or ⌘ `0` for 100%, Ctrl or ⌘ Shift `1` for Fit.
+  - Panning: the stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Scroll, hold Space and drag, or drag with the middle button. Wheel scrolling over the screen scrolls the screen first. Fit, 100%, Rotate and a new preset recentre it.
+  - Canvas: Auto / Light / Dark for the canvas's own colours, separate from the screen's Light / Dark.
+- **Keyboard:** each segmented group in the toolbar is one tab stop, and the arrow keys move within it. Rotate only shows for phones and tablets.
 - **The screen itself.** It renders in a shadow root and stays fully interactive: buttons, multi-screen navigation with a back stack, form state, scroll position per screen.
 
 `canvas.html` is a working example as it stands (the "Trail log" demo), so you can open it directly to see every feature.
@@ -177,9 +180,11 @@ The toolbar lives in the page document, outside the shadow root, so a review scr
 | Element | Does |
 | --- | --- |
 | `#uh-targets` | Toggles the tap-target overlay. `aria-pressed` gives its state. |
-| `#uh-flag` | Live readout of problems, such as how many targets are under `minTarget`. Empty when clean. |
-| `#uh-rotate` | Swaps orientation. Disabled for windows. |
-| `[data-zoom="fit"]`, `[data-zoom="1"]`, `#uh-zoom` | Zoom to fit or to 100%, and the current zoom. |
+| `#uh-targets-result` | The overlay's result, e.g. "3 targets under 44px" or "all ≥ 44px". Hidden while the overlay is off. |
+| `#uh-flag` | Size limits hit, e.g. "at min width 640". Empty when the size is within limits. |
+| `#uh-rotate` | Swaps orientation. Hidden for windows and bare frames. |
+| `[data-zoom="fit"]`, `[data-zoom="1"]`, `#uh-zoom-in`, `#uh-zoom-out`, `#uh-zoom` | Zoom to fit, to 100%, a step in or out, and the current zoom. |
+| `#uh-theme` | The canvas's own colours: `auto`, `light` or `dark`. |
 | `[data-scheme]`, `[data-text]` | The Light/Dark and Text 100%/200% toggles. Prefer `setScheme` and `setTextScale`. |
 
 There is no on-screen keyboard. To check a keyboard-up layout, shrink the height with `setSize(width, height - 300)`, or use the platform's `keyboard-up` extra check where it has one.

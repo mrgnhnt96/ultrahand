@@ -20,6 +20,7 @@
   --ink: #1a1e26;
   --muted: #5b6372;
   --line: #d3d8e1;
+  --field-line: #858e9e; /* 3.3:1 on --surface: a field's edge must read as one (WCAG 1.4.11) */
   --accent: #2b52d0;
   --accent-ink: #ffffff;
   --warn: #a8500c;
@@ -31,13 +32,13 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a;
+    --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a; --field-line: #6b7383;
     --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a;
+  --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a; --field-line: #6b7383;
   --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
   color-scheme: dark;
 }
@@ -103,11 +104,10 @@ button, input, select { font: inherit; color: inherit; }
 .uh-dim { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--font-mono); color: var(--muted); }
 .uh-dim input {
   width: 6.5ch;
-  padding: 3px 4px;
-  border: 1px solid transparent;
-  border-bottom-color: var(--line);
-  border-radius: 4px;
-  background: transparent;
+  padding: 3px 6px;
+  border: 1px solid var(--field-line);
+  border-radius: 6px;
+  background: var(--surface);
   font: 500 15px var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -116,7 +116,7 @@ button, input, select { font: inherit; color: inherit; }
   appearance: textfield;
 }
 .uh-dim input::-webkit-inner-spin-button, .uh-dim input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.uh-dim input:hover { border-color: var(--line); }
+.uh-dim input:hover { border-color: var(--muted); }
 .uh-dim input:disabled { color: var(--muted); }
 .uh-times { color: var(--muted); }
 .uh-chip {
@@ -143,7 +143,12 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--surface);
   color: var(--ink);
 }
-.uh-zoom { font: 12px var(--font-mono); color: var(--muted); min-width: 4ch; font-variant-numeric: tabular-nums; }
+.uh-zoom { font: 12px var(--font-mono); color: var(--muted); min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; }
+.uh-result { font: 500 12px var(--font-mono); white-space: nowrap; color: var(--muted); }
+.uh-result[data-bad] { color: var(--warn); }
+body.uh-space .uh-stage { cursor: grab; }
+body.uh-space .uh-host, body.uh-panning .uh-host { pointer-events: none; }
+body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: none !important; }
 
 /* Stage */
 .uh-stage {
@@ -293,49 +298,61 @@ button, input, select { font: inherit; color: inherit; }
 }
 .uh-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* Resize handles: counter-scaled so they stay grabbable when the frame is zoomed out */
+/* Resize handles: counter-scaled so they stay grabbable when the frame is zoomed out.
+   Each edge is a transparent hit strip along its whole length, just outside the frame,
+   with a visible grip in its middle; the corners are hit squares (only the bottom-right
+   one is drawn). Dragging grows the frame evenly about its centre, so the grabbed edge
+   follows the pointer. */
 .uh-handle {
   position: absolute;
   z-index: 3;
+  touch-action: none;
+  --hit: calc(28px / var(--s));
+  --off: calc(-30px / var(--s));
+}
+.uh-handle[data-edge="e"], .uh-handle[data-edge="w"] { top: 0; bottom: 0; width: var(--hit); cursor: ew-resize; }
+.uh-handle[data-edge="n"], .uh-handle[data-edge="s"] { left: 0; right: 0; height: var(--hit); cursor: ns-resize; }
+.uh-handle[data-edge="e"] { right: var(--off); }
+.uh-handle[data-edge="w"] { left: var(--off); }
+.uh-handle[data-edge="s"] { bottom: var(--off); }
+.uh-handle[data-edge="n"] { top: var(--off); }
+.uh-handle[data-edge$="e"][data-edge^="n"], .uh-handle[data-edge$="w"][data-edge^="n"],
+.uh-handle[data-edge$="e"][data-edge^="s"], .uh-handle[data-edge$="w"][data-edge^="s"] { width: var(--hit); height: var(--hit); }
+.uh-handle[data-edge="ne"] { top: var(--off); right: var(--off); cursor: nesw-resize; }
+.uh-handle[data-edge="nw"] { top: var(--off); left: var(--off); cursor: nwse-resize; }
+.uh-handle[data-edge="se"] { bottom: var(--off); right: var(--off); cursor: nwse-resize; }
+.uh-handle[data-edge="sw"] { bottom: var(--off); left: var(--off); cursor: nesw-resize; }
+/* The grip: a pill centred in its strip, with a bar inside. */
+.uh-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
   border-radius: 999px;
   background: var(--surface);
-  border: calc(1px / var(--s)) solid var(--line);
+  border: calc(1px / var(--s)) solid var(--field-line);
   box-shadow: 0 calc(1px / var(--s)) calc(4px / var(--s)) rgb(0 0 0 / 0.15);
-  touch-action: none;
 }
 .uh-handle::after {
   content: "";
   position: absolute;
-  inset: 30%;
-  border-radius: inherit;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
   background: var(--muted);
 }
-.uh-handle:hover, .uh-handle:focus-visible, .uh-handle.active { background: var(--accent); border-color: var(--accent); }
+.uh-handle[data-edge="e"]::before, .uh-handle[data-edge="w"]::before { width: calc(14px / var(--s)); height: calc(64px / var(--s)); }
+.uh-handle[data-edge="e"]::after, .uh-handle[data-edge="w"]::after { width: calc(4px / var(--s)); height: calc(28px / var(--s)); }
+.uh-handle[data-edge="n"]::before, .uh-handle[data-edge="s"]::before { width: calc(64px / var(--s)); height: calc(14px / var(--s)); }
+.uh-handle[data-edge="n"]::after, .uh-handle[data-edge="s"]::after { width: calc(28px / var(--s)); height: calc(4px / var(--s)); }
+.uh-handle[data-edge="se"]::before { width: calc(18px / var(--s)); height: calc(18px / var(--s)); }
+.uh-handle[data-edge="se"]::after { width: calc(6px / var(--s)); height: calc(6px / var(--s)); }
+.uh-handle[data-edge="ne"]::before, .uh-handle[data-edge="nw"]::before, .uh-handle[data-edge="sw"]::before,
+.uh-handle[data-edge="ne"]::after, .uh-handle[data-edge="nw"]::after, .uh-handle[data-edge="sw"]::after { display: none; }
+.uh-handle:hover::before, .uh-handle:focus-visible::before, .uh-handle.active::before { background: var(--accent); border-color: var(--accent); }
 .uh-handle:hover::after, .uh-handle:focus-visible::after, .uh-handle.active::after { background: var(--accent-ink); }
-.uh-handle[data-edge="e"], .uh-handle[data-edge="w"] {
-  top: 50%;
-  width: calc(12px / var(--s));
-  height: calc(56px / var(--s));
-  transform: translateY(-50%);
-  cursor: ew-resize;
-}
-.uh-handle[data-edge="e"] { right: calc(-22px / var(--s)); }
-.uh-handle[data-edge="w"] { left: calc(-22px / var(--s)); }
-.uh-handle[data-edge="s"] {
-  left: 50%;
-  bottom: calc(-22px / var(--s));
-  width: calc(56px / var(--s));
-  height: calc(12px / var(--s));
-  transform: translateX(-50%);
-  cursor: ns-resize;
-}
-.uh-handle[data-edge="se"] {
-  right: calc(-24px / var(--s));
-  bottom: calc(-24px / var(--s));
-  width: calc(18px / var(--s));
-  height: calc(18px / var(--s));
-  cursor: nwse-resize;
-}
+.uh-handle:focus-visible { outline: none; }
+.uh-handle:focus-visible::before { outline: calc(2px / var(--s)) solid var(--accent); outline-offset: calc(2px / var(--s)); }
 .uh-rig[data-split] .uh-handle { display: none; }
 body.uh-dragging, body.uh-dragging * { user-select: none !important; }
 body.uh-dragging .uh-host { pointer-events: none; }
@@ -383,26 +400,41 @@ body.uh-dragging .uh-host { pointer-events: none; }
   <div class="uh-tools">
     <label class="uh-select" id="uh-nav-wrap" for="uh-nav" hidden>Screen <select id="uh-nav"></select></label>
     <label class="uh-select" id="uh-state-wrap" for="uh-state" hidden>State <select id="uh-state"></select></label>
-    <button class="uh-btn" type="button" id="uh-rotate">Rotate</button>
+    <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
     <div class="uh-seg" role="group" aria-label="Screen appearance">
-      <button class="uh-btn" type="button" data-scheme="light">Light</button>
-      <button class="uh-btn" type="button" data-scheme="dark">Dark</button>
+      <button class="uh-btn" type="button" data-scheme="light" title="Show the screen in light mode">Light</button>
+      <button class="uh-btn" type="button" data-scheme="dark" title="Show the screen in dark mode">Dark</button>
     </div>
     <div class="uh-seg" role="group" aria-label="Text size">
-      <button class="uh-btn" type="button" data-text="1">Text 100%</button>
-      <button class="uh-btn" type="button" data-text="2">200%</button>
+      <button class="uh-btn" type="button" data-text="1" title="Text at its normal size">Text 100%</button>
+      <button class="uh-btn" type="button" data-text="2" title="Text at 200% (WCAG 1.4.4)">200%</button>
     </div>
-    <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false">Tap targets</button>
+    <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
+    <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
     <div class="uh-seg" role="group" aria-label="Zoom">
-      <button class="uh-btn" type="button" data-zoom="fit">Fit</button>
-      <button class="uh-btn" type="button" data-zoom="1">100%</button>
+      <button class="uh-btn" type="button" id="uh-zoom-out" aria-label="Zoom out" title="Zoom out (Ctrl or ⌘ −)">−</button>
+      <button class="uh-btn" type="button" id="uh-zoom-in" aria-label="Zoom in" title="Zoom in (Ctrl or ⌘ =)">+</button>
+      <button class="uh-btn" type="button" data-zoom="fit" title="Fit the frame in view (Ctrl or ⌘ Shift 1)">Fit</button>
+      <button class="uh-btn" type="button" data-zoom="1" title="Actual size (Ctrl or ⌘ 0)">100%</button>
     </div>
-    <span class="uh-zoom" id="uh-zoom" title="Current zoom"></span>
+    <span class="uh-zoom" id="uh-zoom" title="Current zoom. Ctrl or ⌘ and scroll, or pinch, to zoom at the pointer"></span>
+    <label class="uh-select" for="uh-theme" title="Colours of this canvas, not of the screen">Canvas <select id="uh-theme">
+      <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
+    </select></label>
   </div>
 </header>
 <main class="uh-stage" id="uh-stage">
   <div class="uh-scaler" id="uh-scaler">
     <div class="uh-rig" id="uh-rig">
+      <!-- Keyboard: Width and Height are the two sliders; the other edges and corners are pointer-only. -->
+      <div class="uh-handle" data-edge="e" tabindex="0" role="slider" aria-label="Width" aria-orientation="horizontal"></div>
+      <div class="uh-handle" data-edge="s" tabindex="0" role="slider" aria-label="Height" aria-orientation="vertical"></div>
+      <div class="uh-handle" data-edge="w" aria-hidden="true"></div>
+      <div class="uh-handle" data-edge="n" aria-hidden="true"></div>
+      <div class="uh-handle" data-edge="ne" aria-hidden="true"></div>
+      <div class="uh-handle" data-edge="nw" aria-hidden="true"></div>
+      <div class="uh-handle" data-edge="se" aria-hidden="true"></div>
+      <div class="uh-handle" data-edge="sw" aria-hidden="true"></div>
       <div class="uh-frame" id="uh-frame">
         <div class="uh-titlebar" id="uh-titlebar" data-style="plain">
           <span class="uh-lights" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -421,10 +453,6 @@ body.uh-dragging .uh-host { pointer-events: none; }
           <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
         </div>
       </div>
-      <div class="uh-handle" data-edge="w" tabindex="0" role="slider" aria-label="Resize width (left edge)"></div>
-      <div class="uh-handle" data-edge="e" tabindex="0" role="slider" aria-label="Resize width"></div>
-      <div class="uh-handle" data-edge="s" tabindex="0" role="slider" aria-label="Resize height"></div>
-      <div class="uh-handle" data-edge="se" tabindex="0" role="slider" aria-label="Resize width and height"></div>
     </div>
   </div>
 </main>
@@ -732,7 +760,8 @@ window.ultrahandSetup = function (canvas) {
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
     divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'),
-    toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets')
+    toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets'),
+    targetsResult: byId('uh-targets-result'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme')
   };
   var errors = [];
   function report(msg) {
@@ -942,11 +971,11 @@ window.ultrahandSetup = function (canvas) {
     h = Math.round(Number(h));
     if (!isFinite(w)) w = st.w;
     if (!isFinite(h)) h = st.h;
-    if (w < b.minW) { w = b.minW; flags.push('min width'); }
-    if (w > b.maxW) { w = b.maxW; flags.push('max width'); }
+    if (w < b.minW) { w = b.minW; flags.push('min width ' + w); }
+    if (w > b.maxW) { w = b.maxW; flags.push('max width ' + w); }
     if (!st.split) {
-      if (h < b.minH) { h = b.minH; flags.push('min height'); }
-      if (h > b.maxH) { h = b.maxH; flags.push('max height'); }
+      if (h < b.minH) { h = b.minH; flags.push('min height ' + h); }
+      if (h > b.maxH) { h = b.maxH; flags.push('max height ' + h); }
     } else {
       h = b.minH;
     }
@@ -1041,11 +1070,14 @@ window.ultrahandSetup = function (canvas) {
     });
   }
   function showFlags() {
-    var parts = st.flags.length ? ['at ' + st.flags.join(', ')] : [];
-    if (st.showTargets && st.smallTargets) {
-      parts.push(st.smallTargets + (st.smallTargets === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px');
-    }
-    el.flag.textContent = parts.join(' · ');
+    el.flag.textContent = st.flags.length ? 'at ' + st.flags.join(', ') : '';
+    /* The overlay's result sits beside its toggle and always says something while it's on. */
+    el.targetsResult.hidden = !st.showTargets;
+    var n = st.smallTargets;
+    el.targetsResult.textContent = n
+      ? n + (n === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px'
+      : 'all ≥ ' + st.minTarget + 'px';
+    if (n) el.targetsResult.dataset.bad = ''; else delete el.targetsResult.dataset.bad;
   }
   function notify() {
     if (notifyQueued) return;
@@ -1115,9 +1147,12 @@ window.ultrahandSetup = function (canvas) {
     if (document.activeElement !== el.w) el.w.value = st.w;
     if (document.activeElement !== el.h) el.h.value = st.h;
     el.h.disabled = !!sp;
-    el.w.min = bounds().minW; el.w.max = bounds().maxW;
-    el.h.min = bounds().minH; el.h.max = bounds().maxH;
-    el.wclass.textContent = info.widthClass;
+    var bd = bounds();
+    el.w.min = bd.minW; el.w.max = bd.maxW;
+    el.h.min = bd.minH; el.h.max = bd.maxH;
+    el.w.title = 'Width in px, ' + bd.minW + '–' + bd.maxW + '. Enter applies, Esc reverts.';
+    el.h.title = sp ? 'Height is fixed by the split view' : 'Height in px, ' + bd.minH + '–' + bd.maxH + '. Enter applies, Esc reverts.';
+    el.wclass.textContent = info.widthClass + ' width';
     el.hclass.textContent = info.heightClass + ' height';
     showFlags();
     /* An exact preset selects its option; anything else shows in the "custom" option. */
@@ -1128,7 +1163,9 @@ window.ultrahandSetup = function (canvas) {
       ? presetText(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '')
       : 'Custom size';
     el.presets.value = exact ? st.preset.id : '';
-    el.rotate.disabled = st.kind === 'window' || st.kind === 'none';
+    /* Desktop windows and bare frames don't rotate, so Rotate isn't offered. */
+    el.rotate.hidden = st.kind === 'window' || st.kind === 'none';
+    el.targets.textContent = st.kind === 'phone' || st.kind === 'tablet' ? 'Tap targets' : 'Hit targets';
     Array.prototype.forEach.call(document.querySelectorAll('[data-scheme]'), function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.scheme === st.scheme));
     });
@@ -1137,15 +1174,18 @@ window.ultrahandSetup = function (canvas) {
     });
     el.targets.setAttribute('aria-pressed', String(st.showTargets));
     if (st.state) el.state.value = st.state;
-    Array.prototype.forEach.call(el.rig.querySelectorAll('.uh-handle'), function (hd) {
-      var v = hd.dataset.edge === 's' ? st.h : st.w;
-      hd.setAttribute('aria-valuenow', v);
-      hd.setAttribute('aria-valuetext', st.w + ' by ' + st.h + ' pixels');
+    Array.prototype.forEach.call(el.rig.querySelectorAll('.uh-handle[role="slider"]'), function (hd) {
+      var tall = hd.dataset.edge === 's';
+      hd.setAttribute('aria-valuenow', tall ? st.h : st.w);
+      hd.setAttribute('aria-valuemin', tall ? bd.minH : bd.minW);
+      hd.setAttribute('aria-valuemax', tall ? bd.maxH : bd.maxW);
+      hd.setAttribute('aria-valuetext', (tall ? st.h : st.w) + ' pixels, ' + st.w + ' by ' + st.h);
     });
+    rovingTabs();
     el.divider.setAttribute('aria-valuenow', st.w);
     el.divider.setAttribute('aria-valuetext', 'App width ' + st.w + ' pixels');
 
-    if (!st.dragging) fit();
+    if (drag) fit({ scale: drag.s, anchor: drag.anchor }); else fit();
     notify();
     measureTargets();
   }
@@ -1169,17 +1209,25 @@ window.ultrahandSetup = function (canvas) {
     view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - el.scaler.offsetLeft) / el.scaler.offsetWidth;
     view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - el.scaler.offsetTop) / el.scaler.offsetHeight;
   }, { passive: true });
-  function fit() {
+  /* opts.scale holds the zoom (during a drag). opts.anchor = { fx, fy, cx, cy } keeps the
+     point at fraction fx, fy of the frame area at stage pixel cx, cy: a drag anchors the
+     frame's centre, a pinch the point under the pointer. Default: the stage's centre. */
+  var ZMIN = 0.1, ZMAX = 4;
+  var ZSTEPS = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
+  function fit(opts) {
+    opts = opts || {};
     var stage = el.stage;
     if (st.recenter) view = { x: 0.5, y: 0.5 };
     st.recenter = false;
-    var cx = view.x, cy = view.y;
+    var a = opts.anchor || { fx: view.x, fy: view.y, cx: stage.clientWidth / 2, cy: stage.clientHeight / 2 };
     var rw = el.frame.offsetWidth;
     var rh = el.frame.offsetHeight;
     var inner = stageInner();
-    var s = 1;
-    if (st.zoom === 'fit') s = Math.min(1, inner.w / (rw + 2 * GUTTER), inner.h / (rh + 2 * GUTTER));
-    s = Math.max(0.1, s);
+    var s;
+    if (opts.scale) s = opts.scale;
+    else if (st.zoom === 'fit') s = Math.min(1, inner.w / (rw + 2 * GUTTER), inner.h / (rh + 2 * GUTTER));
+    else s = Number(st.zoom) || 1;
+    s = Math.min(ZMAX, Math.max(ZMIN, s));
     st.s = s;
     el.rig.style.width = rw + 'px';
     el.rig.style.height = rh + 'px';
@@ -1190,65 +1238,114 @@ window.ultrahandSetup = function (canvas) {
     var mx = Math.max(stage.clientWidth, (rw + 2 * GUTTER) * s) / 2;
     var my = Math.max(stage.clientHeight, (rh + 2 * GUTTER) * s) / 2;
     el.scaler.style.margin = my + 'px ' + mx + 'px';
-    stage.scrollLeft = el.scaler.offsetLeft + cx * el.scaler.offsetWidth - stage.clientWidth / 2;
-    stage.scrollTop = el.scaler.offsetTop + cy * el.scaler.offsetHeight - stage.clientHeight / 2;
+    stage.scrollLeft = el.scaler.offsetLeft + a.fx * el.scaler.offsetWidth - a.cx;
+    stage.scrollTop = el.scaler.offsetTop + a.fy * el.scaler.offsetHeight - a.cy;
     el.zoom.textContent = Math.round(s * 100) + '%';
     Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.zoom === st.zoom));
+      b.setAttribute('aria-pressed', String(b.dataset.zoom === 'fit' ? st.zoom === 'fit' : st.zoom !== 'fit' && Math.abs(s - Number(b.dataset.zoom)) < 0.001));
     });
+    el.zoomOut.disabled = s <= ZMIN + 0.001;
+    el.zoomIn.disabled = s >= ZMAX - 0.001;
+    rovingTabs();
   }
-  if (window.ResizeObserver) new ResizeObserver(function () { if (!st.dragging) fit(); }).observe(el.stage);
+  function setZoom(z, anchor) {
+    st.zoom = z;
+    if (z === 'fit' || z === 1) st.recenter = !anchor;
+    fit({ anchor: anchor });
+  }
+  function zoomStep(dir) {
+    var s = st.s;
+    var next = dir > 0
+      ? ZSTEPS.filter(function (v) { return v > s + 0.001; })[0]
+      : ZSTEPS.filter(function (v) { return v < s - 0.001; }).pop();
+    if (next != null) setZoom(next);
+  }
+  /* The stage point under (clientX, clientY), as an anchor for fit(). */
+  function anchorAt(clientX, clientY) {
+    var r = el.stage.getBoundingClientRect();
+    var cx = clientX - r.left - el.stage.clientLeft, cy = clientY - r.top - el.stage.clientTop;
+    return {
+      fx: (el.stage.scrollLeft + cx - el.scaler.offsetLeft) / el.scaler.offsetWidth,
+      fy: (el.stage.scrollTop + cy - el.scaler.offsetTop) / el.scaler.offsetHeight,
+      cx: cx, cy: cy
+    };
+  }
+  /* Ctrl or ⌘ + wheel, and trackpad pinch (which arrives as a ctrlKey wheel), zoom at the pointer. */
+  el.stage.addEventListener('wheel', function (e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    var d = Math.max(-25, Math.min(25, e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY));
+    setZoom(Math.min(ZMAX, Math.max(ZMIN, st.s * Math.exp(-d * 0.01))), anchorAt(e.clientX, e.clientY));
+  }, { passive: false });
+  if (window.ResizeObserver) new ResizeObserver(function () { if (!drag) fit(); }).observe(el.stage);
   else window.addEventListener('resize', fit);
 
   /* ---------- Dragging and keyboard resizing ---------- */
+  /* The frame grows evenly about its centre and the zoom holds while dragging, so the
+     grabbed edge or corner follows the pointer 1:1 and nothing jumps on release. At Fit
+     the zoom is re-fitted once, on release, about the same centre. Esc cancels. */
   var drag = null;
   el.rig.addEventListener('pointerdown', function (e) {
     var hd = e.target.closest('[data-edge]');
-    if (!hd || e.button > 0) return;
+    if (!hd || e.button > 0 || document.body.classList.contains('uh-space')) return;
     e.preventDefault();
     hd.setPointerCapture(e.pointerId);
     hd.classList.add('active');
-    var inner = stageInner();
+    var edge = hd.dataset.edge;
+    var r = el.stage.getBoundingClientRect();
+    var c = el.scaler.getBoundingClientRect();
     drag = {
-      edge: hd.dataset.edge, el: hd, x: e.clientX, y: e.clientY, w: st.w, h: st.h,
-      /* the frame is centred, so an edge moves half as far as the size changes */
-      kx: el.scaler.offsetWidth < inner.w - 1 ? 2 : 1,
-      ky: el.scaler.offsetHeight < inner.h - 1 ? 2 : 1
+      edge: edge, el: hd, pointer: e.pointerId, x: e.clientX, y: e.clientY, w: st.w, h: st.h, s: st.s,
+      anchor: {
+        fx: 0.5, fy: 0.5,
+        cx: c.left + c.width / 2 - r.left - el.stage.clientLeft,
+        cy: c.top + c.height / 2 - r.top - el.stage.clientTop
+      },
+      /* the divider moves one side only; frame edges move both sides */
+      k: edge === 'divider' ? 1 : 2
     };
     st.dragging = true;
     document.body.classList.add('uh-dragging');
   });
   el.rig.addEventListener('pointermove', function (e) {
-    if (!drag) return;
-    var dx = (e.clientX - drag.x) / st.s;
-    var dy = (e.clientY - drag.y) / st.s;
-    var w = drag.w, h = drag.h;
-    switch (drag.edge) {
-      case 'e': w += dx * drag.kx; break;
-      case 'w': w -= dx * drag.kx; break;
-      case 's': h += dy * drag.ky; break;
-      case 'se': w += dx * drag.kx; h += dy * drag.ky; break;
-      case 'divider': w += st.split && st.split.side === 'trailing' ? -dx : dx; break;
+    if (!drag || e.pointerId !== drag.pointer) return;
+    var dx = (e.clientX - drag.x) / drag.s;
+    var dy = (e.clientY - drag.y) / drag.s;
+    var w = drag.w, h = drag.h, edge = drag.edge;
+    if (edge === 'divider') {
+      w += st.split && st.split.side === 'trailing' ? -dx : dx;
+    } else {
+      if (edge.indexOf('e') >= 0) w += dx * drag.k;
+      if (edge.indexOf('w') >= 0) w -= dx * drag.k;
+      if (edge.indexOf('s') >= 0) h += dy * drag.k;
+      if (edge.indexOf('n') >= 0) h -= dy * drag.k;
     }
     setSize(w, h, 'drag');
   });
-  function endDrag() {
+  function endDrag(cancel) {
     if (!drag) return;
-    drag.el.classList.remove('active');
-    var wasDivider = drag.edge === 'divider';
+    var d = drag;
+    d.el.classList.remove('active');
+    try { d.el.releasePointerCapture(d.pointer); } catch (err) { /* already released */ }
     drag = null;
     st.dragging = false;
     document.body.classList.remove('uh-dragging');
-    if (wasDivider && st.split && st.split.snaps.length) {
+    if (cancel === true) {
+      setSize(d.w, d.h, 'drag');
+    } else if (d.edge === 'divider' && st.split && st.split.snaps.length) {
       var w = st.w;
       var snap = st.split.snaps.reduce(function (a, b) { return Math.abs(b - w) < Math.abs(a - w) ? b : a; });
       setSize(snap, st.h, 'drag');
     } else {
       render();
     }
+    fit({ anchor: d.anchor });
   }
   el.rig.addEventListener('pointerup', endDrag);
   el.rig.addEventListener('pointercancel', endDrag);
+  document.addEventListener('keydown', function (e) {
+    if (drag && e.key === 'Escape') { e.preventDefault(); endDrag(true); }
+  });
   el.rig.addEventListener('keydown', function (e) {
     var hd = e.target.closest('[data-edge]');
     if (!hd) return;
@@ -1262,10 +1359,18 @@ window.ultrahandSetup = function (canvas) {
       if (next != null) { e.preventDefault(); setSize(next, h, 'key'); }
       return;
     }
-    if (e.key === 'ArrowRight' && edge !== 's') w += edge === 'divider' && st.split.side === 'trailing' ? -step : step;
-    else if (e.key === 'ArrowLeft' && edge !== 's') w -= edge === 'divider' && st.split.side === 'trailing' ? -step : step;
-    else if (e.key === 'ArrowDown' && (edge === 's' || edge === 'se')) h += step;
-    else if (e.key === 'ArrowUp' && (edge === 's' || edge === 'se')) h -= step;
+    var b = bounds();
+    var tall = edge === 's';
+    var flip = edge === 'divider' && st.split.side === 'trailing' ? -1 : 1;
+    /* Arrows move the edge (Right and Down grow); PageUp/PageDown step 100; Home/End go to the limits. */
+    if (e.key === 'ArrowRight' && !tall) w += step * flip;
+    else if (e.key === 'ArrowLeft' && !tall) w -= step * flip;
+    else if (e.key === 'ArrowDown' && tall) h += step;
+    else if (e.key === 'ArrowUp' && tall) h -= step;
+    else if (e.key === 'PageUp') { if (tall) h += 100; else w += 100; }
+    else if (e.key === 'PageDown') { if (tall) h -= 100; else w -= 100; }
+    else if (e.key === 'Home') { if (tall) h = b.minH; else w = b.minW; }
+    else if (e.key === 'End') { if (tall) h = b.maxH; else w = b.maxW; }
     else return;
     e.preventDefault();
     setSize(w, h, 'key');
@@ -1336,16 +1441,120 @@ window.ultrahandSetup = function (canvas) {
   });
   el.targets.addEventListener('click', function () { st.showTargets = !st.showTargets; render(); });
 
-  function applyInputs() { setSize(el.w.value, el.h.value, 'input'); }
-  el.w.addEventListener('change', applyInputs);
-  el.h.addEventListener('change', applyInputs);
+  /* An empty or invalid entry reverts; a value past the limits is clamped, and the field
+     always shows the size the screen is really at afterwards. Esc reverts an edit. */
+  function writeBack() { el.w.value = st.w; el.h.value = st.h; }
+  function applyInput(input) {
+    var raw = input.value.trim();
+    var n = Number(raw);
+    if (raw !== '' && isFinite(n) && n > 0) {
+      setSize(input === el.w ? n : st.w, input === el.h ? n : st.h, 'input');
+    }
+    writeBack();
+  }
+  [el.w, el.h].forEach(function (input) {
+    input.setAttribute('aria-describedby', 'uh-flag');
+    input.addEventListener('change', function () { applyInput(input); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); writeBack(); input.select(); }
+    });
+  });
   el.rotate.addEventListener('click', rotate);
   Array.prototype.forEach.call(document.querySelectorAll('[data-scheme]'), function (b) {
     b.addEventListener('click', function () { st.scheme = b.dataset.scheme; render(); });
   });
   Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
-    b.addEventListener('click', function () { st.zoom = b.dataset.zoom; st.recenter = true; fit(); });
+    b.addEventListener('click', function () { setZoom(b.dataset.zoom === 'fit' ? 'fit' : Number(b.dataset.zoom)); });
   });
+  el.zoomIn.addEventListener('click', function () { zoomStep(1); });
+  el.zoomOut.addEventListener('click', function () { zoomStep(-1); });
+  /* Zoom shortcuts take a modifier, so they never fire while typing (WCAG 2.1.4). */
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomStep(1); }
+    else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(-1); }
+    else if (e.code === 'Digit0' && !e.shiftKey) { e.preventDefault(); setZoom(1); }
+    else if (e.code === 'Digit1' && e.shiftKey) { e.preventDefault(); setZoom('fit'); }
+  });
+
+  /* ---------- Panning ---------- */
+  /* Hold Space and drag, or drag with the middle button, to pan the stage from anywhere,
+     the screen included. Space is left alone when it would press a focused control. */
+  var INTERACTIVE = 'input, textarea, select, button, a[href], summary, [contenteditable=""], [contenteditable="true"], ' +
+    '[role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="option"]';
+  function typingTarget(e) {
+    var t = e.composedPath ? e.composedPath()[0] : e.target;
+    return t && t.closest && t.closest(INTERACTIVE);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== ' ') return;
+    if (document.body.classList.contains('uh-space')) { e.preventDefault(); return; }
+    if (e.repeat || typingTarget(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    document.body.classList.add('uh-space');
+  });
+  function endSpace(e) { if (!e || e.key === ' ') document.body.classList.remove('uh-space'); }
+  document.addEventListener('keyup', endSpace);
+  window.addEventListener('blur', function () { endSpace(); });
+  var pan = null;
+  el.stage.addEventListener('pointerdown', function (e) {
+    var space = document.body.classList.contains('uh-space');
+    if (!(e.button === 1 || (space && e.button === 0)) || drag) return;
+    e.preventDefault();
+    el.stage.setPointerCapture(e.pointerId);
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY, l: el.stage.scrollLeft, t: el.stage.scrollTop };
+    document.body.classList.add('uh-panning');
+  });
+  el.stage.addEventListener('pointermove', function (e) {
+    if (!pan || e.pointerId !== pan.id) return;
+    el.stage.scrollLeft = pan.l - (e.clientX - pan.x);
+    el.stage.scrollTop = pan.t - (e.clientY - pan.y);
+  });
+  function endPan(e) {
+    if (!pan || (e && e.pointerId !== pan.id)) return;
+    pan = null;
+    document.body.classList.remove('uh-panning');
+  }
+  el.stage.addEventListener('pointerup', endPan);
+  el.stage.addEventListener('pointercancel', endPan);
+  /* Stop the browser's middle-click autoscroll. */
+  el.stage.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
+
+  /* ---------- Toolbar keyboard ---------- */
+  /* Each segmented group is one tab stop; arrow keys move between its buttons. */
+  function rovingTabs() {
+    Array.prototype.forEach.call(document.querySelectorAll('.uh-seg'), function (g) {
+      var bs = Array.prototype.filter.call(g.querySelectorAll('.uh-btn'), function (b) { return !b.disabled && !b.hidden; });
+      var cur = bs.filter(function (b) { return b === document.activeElement; })[0] ||
+        bs.filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; })[0] || bs[0];
+      bs.forEach(function (b) { b.tabIndex = b === cur ? 0 : -1; });
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.uh-seg'), function (g) {
+    g.addEventListener('keydown', function (e) {
+      var dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!dir) return;
+      var bs = Array.prototype.filter.call(g.querySelectorAll('.uh-btn'), function (b) { return !b.disabled && !b.hidden; });
+      var i = bs.indexOf(document.activeElement);
+      if (i < 0) return;
+      e.preventDefault();
+      var next = bs[(i + dir + bs.length) % bs.length];
+      bs.forEach(function (b) { b.tabIndex = b === next ? 0 : -1; });
+      next.focus();
+    });
+  });
+
+  /* ---------- Canvas theme ---------- */
+  /* The canvas's own colours: follow the OS (Auto) or pin them. The screen's scheme is the
+     separate Light/Dark toggle. Remembered when storage is allowed. */
+  function setTheme(v) {
+    if (v === 'light' || v === 'dark') document.documentElement.dataset.theme = v;
+    else { v = 'auto'; delete document.documentElement.dataset.theme; }
+    el.theme.value = v;
+    try { localStorage.setItem('uh-canvas-theme', v); } catch (err) { /* storage blocked */ }
+  }
+  el.theme.addEventListener('change', function () { setTheme(el.theme.value); });
+  try { setTheme(localStorage.getItem('uh-canvas-theme')); } catch (err) { setTheme('auto'); }
 
   /* ---------- Public API handed to the screen's setup function ---------- */
   var toastTimer = 0;
