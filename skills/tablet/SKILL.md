@@ -2,3 +2,119 @@
 name: tablet
 description: Use only when the user asks to design a tablet UI screen or flow (split view, adaptive layouts, touch plus pointer). Do not use for phone, desktop, or non-UI work.
 ---
+
+# ultrahand: tablet
+
+Design tablet screens as an interactive Claude artifact. The artifact switches between
+iPad and Android tablet sizes in both orientations, snaps to split widths (1/3, 1/2, 2/3),
+and reflows live while you drag a window from full width down to 320. Every rule you apply
+is in [references/principles.md](references/principles.md), and each rule cites
+[references/sources.md](references/sources.md). The sizes, splits and size classes are in
+[references/presets.md](references/presets.md).
+
+## 1. Gather requirements
+
+Ask only for what you can't infer. Settle these before drawing:
+
+- **Platform:** iPadOS, Android, or both. If both, use 48-unit targets and platform-neutral
+  patterns.
+- **Scope:** one screen or a flow. For a flow, list the screens and how people move between
+  them: sidebar or rail, list to detail, sheet, popover or new window.
+- **Primary task:** the one thing each screen is for, and which canonical layout fits it
+  (list-detail, supporting pane, feed, or a single pane).
+- **Real content:** names, lengths, counts and the longest plausible strings. Don't design
+  with lorem ipsum.
+- **Data states:** what loads, what can be empty, and what can fail or go offline.
+- **Inputs:** touch only, or also a keyboard, trackpad or mouse, or Pencil. Assume all of
+  them are possible unless told otherwise.
+- **Multitasking:** what people do beside this app (side-by-side reference, dragging content
+  in or out). Expect windows from 320 wide to full screen.
+- **Constraints:** brand colours, fonts, an existing design system, and whether it's a
+  native app or the web.
+
+## 2. Read the references
+
+Read `references/principles.md` and `references/presets.md` before you design. Use the
+platform's own patterns (sidebar or rail, split view, popovers, menu bar commands) rather
+than inventing new ones.
+
+## 3. Build the canvas artifact
+
+Build on the plugin's shared resizable canvas (`shared/canvas/`). Load the tablet config
+from the JSON block in `references/presets.md`:
+
+- **Presets:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800, each
+  in portrait and landscape.
+- **Split buttons:** 1/3, 1/2, 2/3 and Full of the current width.
+- **Free resize:** a drag handle from full size down to 320 × 450.
+
+While dragging, the layout must **reflow live**. Going from full width to half width has to
+re-render continuously, crossing the 840 and 600 breakpoints with no reload and no lost
+state. Show the current width and its size class (compact, medium, expanded, large) on the
+canvas.
+
+- Lay out by **size class**, not by preset. One responsive layout serves every preset and
+  split.
+- Draw the safe-area insets, and in windowed iPad states the top-leading window controls.
+  Keep content clear of them.
+- Add toggles for **light/dark**, **large text (200%)** and **state** (default, loading,
+  empty, error).
+- Add a **show tap targets** toggle that outlines every hit area.
+- Add an **input** toggle: *touch*, or *pointer + keyboard*. Pointer + keyboard shows hover
+  states, context menus on right-click, visible keyboard focus and shortcut hints.
+- Make the main flow clickable: navigation switches, rows select or push, panes hide and
+  show, and sheets and popovers open and close.
+
+## 4. Design every size class
+
+Work from wide to narrow, and fix each problem at the size where it appears:
+
+1. **Expanded / large, landscape full screen** (e.g. `ipad` 1180): choose the panes,
+   navigation (sidebar or rail) and density. Cap line lengths and control widths.
+2. **Medium, portrait full screen and 2/3 split** (e.g. 820, 787): collapse to fewer panes,
+   with a rail or a top tab bar.
+3. **Compact, 1/2 and 1/3 split** (e.g. 590, 393): the phone layout, with a bottom bar or
+   tab bar, one pane at a time and Back to the list.
+4. **Drag** slowly from full width to 320 and back. Check that the selection, scroll
+   position and typed text survive. Check that list-detail keeps the open detail when it
+   narrows, and selects that item when it widens.
+
+Then check the extra cases: 320-wide reflow, landscape with the keyboard up, and the
+`android-tablet` preset (if Android is in scope) in both orientations.
+
+## 5. Self-check before you present
+
+Go through every item. Fix any failure, or name it and say why it's acceptable.
+
+- [ ] The layout switches by width class (600 / 840), not by device. Every feature is
+      reachable at every width, from 320 to full screen.
+- [ ] Resizing reflows live and keeps selection, scroll, input and playback. Nothing resets
+      at a breakpoint.
+- [ ] Navigation fits the width: a bottom bar at compact, and a rail, top tab bar or sidebar
+      above it. There are five or fewer top-level tabs, none hidden or disabled.
+- [ ] Multi-pane layouts follow a canonical pattern. Selection is highlighted in each pane,
+      hidden panes have more than one way back, and no detail pane is left empty.
+- [ ] Nothing stretches: buttons, fields, sheets, dialogs and images have max widths, and
+      text has a readable line length.
+- [ ] Tap targets are at least 44 × 44 pt (iOS) or 48 × 48 dp (Android) and never below
+      24 × 24, even with a pointer. Primary content sits in the centre and frequent
+      controls are reachable from the side edges.
+- [ ] Nothing interactive sits under the status bar, home indicator, taskbar or the iPad
+      window controls, in either orientation.
+- [ ] Pointer: every control has a hover state, right-click opens a context menu, and
+      nothing is available only on hover.
+- [ ] Keyboard: main flows work with Tab and the arrows, focus is always visible, standard
+      shortcuts work, and Esc closes, cancels or clears.
+- [ ] Every drag-and-drop has a non-drag alternative, shows valid targets and can be undone.
+- [ ] Both orientations work, and the focused field stays visible in landscape with the
+      keyboard up.
+- [ ] The layout survives 200% text, and contrast is at least 4.5:1 for text and 3:1 for UI
+      in **both** light and dark mode.
+- [ ] Loading, empty and error states are designed for each pane, not just the screen.
+- [ ] The design works at 320 wide without horizontal scrolling.
+
+## 6. Present
+
+Share the artifact link. In a few lines, state the key decisions and the principle behind
+each (cite the source key), how the layout changes at each width class, any self-check item
+you accepted with a reason, and any open questions.
