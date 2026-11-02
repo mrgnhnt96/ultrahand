@@ -12,7 +12,7 @@ The page gives the viewer:
   - Text 100% / 200%
   - a State picker (default, loading, empty, error…)
   - Tap targets, which outlines every interactive element and marks any that are under the platform minimum
-  - Fit / 100% zoom
+  - Fit / 100% zoom. The stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Fit, 100%, Rotate and a new preset recentre it.
 - **The screen itself.** It renders in a shadow root and stays fully interactive: buttons, multi-screen navigation with a back stack, form state, scroll position per screen.
 
 `canvas.html` is a working example as it stands (the "Trail log" demo), so you can open it directly to see every feature.
