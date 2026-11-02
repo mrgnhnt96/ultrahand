@@ -62,7 +62,8 @@ Publish `index.html` as an artifact.
   at 320 × 256.
 - **Screen contract:** one `<template id="uh-screen">` with `[data-screen]` sections, and
   `data-nav`, `data-nav-back` and `data-show-state` for clicks. Respond to size with
-  `@container screen (width >= …)`, not `@media`. Text in `rem`, colours with
+  `@container screen (width >= …)`, not `@media`. Text in `rem`; hit areas, icons and
+  gutters in px, so 200% text grows the words, not the controls. Colours with
   `light-dark()`. Behaviour goes in `window.ultrahandSetup = function (canvas) { … }`.
 - **Built-in toggles:** light/dark, 200% text, state picker, and tap targets (24 px minimum
   for desktop). Call `canvas.refresh()` after opening a menu or popover so the target overlay

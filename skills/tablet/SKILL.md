@@ -73,7 +73,9 @@ large).
   `data-nav`, `data-nav-replace`, `data-nav-back` and `data-show-state` for clicks. Lay out
   by **size class** with `@container screen (width >= 600px)` and `(width >= 840px)`, or
   the viewport's `data-width-class`, never by preset or `@media`. Pad edges with
-  `var(--uh-safe-*)`. Text in `rem`, colours with `light-dark()`. Behaviour goes in
+  `var(--uh-safe-*)`, declared on `[data-screen]` (`:host` can't see them). Text in `rem`;
+  hit areas, icons and gutters in px, so 200% text grows the words, not the controls.
+  Colours with `light-dark()`. Behaviour goes in
   `window.ultrahandSetup = function (canvas) { … }`.
 - **Built-in toggles:** light/dark, 200% text, the state picker and show tap targets. Don't
   build your own. Call `canvas.refresh()` after opening a sheet, popover or menu.

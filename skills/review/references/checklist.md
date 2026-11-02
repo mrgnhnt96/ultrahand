@@ -120,7 +120,8 @@ Check these success criteria, in addition to the ones cited in pass 2 [WCAG22].
       into it; closing it returns focus to what opened it.
 - [ ] **Focus visible (2.4.7)** and **not obscured (2.4.11):** the focused element is
       always visibly marked and never fully hidden under a sticky header, footer, toolbar
-      or the keyboard.
+      or the keyboard. Test it: Tab through at the shortest height, and for each focused
+      element check that `elementFromPoint` at its centre returns it, not a sticky bar.
 - [ ] **Titles and headings (2.4.2, 2.4.6):** each screen has a title that says what it is;
       headings and labels describe their content.
 
@@ -217,15 +218,21 @@ queries. From a screenshot, say which sizes you couldn't see.
       typed text survive [tablet:HIG-MULTI] [tablet:AND-MW].
 - [ ] **Desktop window range:** the minimum and the maximum size both work; nothing
       stretches past a readable line length at the maximum.
-- [ ] **320 wide** reflow [WCAG 1.4.10] and **200% text** [WCAG 1.4.4].
+- [ ] **320 wide** reflow [WCAG 1.4.10] and **200% text** [WCAG 1.4.4]. A `label[for]`
+      flagged as a small target passes when its field is big enough (the 2.5.8
+      equivalent-control exception).
 - [ ] **Dark mode:** contrast rechecked; no hard-coded light colours, no lost borders or
       shadows [mobile:HIG-DARK] [mobile:NNG-DARK].
 - [ ] **Each data state** (loading, empty, error, offline, long content, one item, many
       items) at the smallest and the largest size.
 - [ ] **Keyboard up** on touch devices, in landscape: the focused field is still visible
-      [WCAG 2.4.11].
+      [WCAG 2.4.11]. The canvas has no keyboard: simulate it with `setSize(w, h - 300)`
+      or the `keyboard-up` extra check, or list it under Not checked.
 - [ ] **Short heights** (compact height under 480, landscape phone): sticky headers and
       footers leave room for content.
+- [ ] **Short height × 200% text together:** the sticky header plus footer stay well under
+      the screen height. Overflow detectors miss content covered by sticky layers, so
+      look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].
 
 ## Severity guide
 
@@ -241,8 +248,13 @@ they know) [NNG-SEVERITY]. These anchors are this skill's convention for applyin
 | **1 Cosmetic** | Spacing, alignment or wording polish that doesn't affect the task. |
 
 Raise a rating one step when the problem appears on every screen or blocks a common task,
-and lower it one step when it's on a rare path with an obvious workaround. A WCAG AA
-failure is never below 2.
+and lower it one step when it's on a rare path with an obvious workaround. Weigh what is
+lost: a missing undo on a one-tap re-add is minor, on deleting a document it is a
+catastrophe. A WCAG AA failure is never below 2.
+
+Stubbed or faked behaviour in a prototype (no real network, a toast standing in for a
+snackbar) goes under **Not checked**, not in the findings, unless the design itself is
+missing the state.
 
 ## Report template
 

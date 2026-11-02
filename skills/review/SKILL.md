@@ -28,8 +28,10 @@ you can confirm.
   the artifact and drive it through `window.ultrahandCanvas` (see the canvas README in
   `shared/canvas/`): `usePreset(id)`, `setSize(w, h)`, `setScheme('dark')`,
   `setTextScale(2)`, `setState('error')`, `navigate(id)`. Turn on **show tap targets** and
-  read the canvas readout, which flags targets under the platform minimum. Call
-  `refresh()` after opening a sheet or menu so the count includes it.
+  read the canvas readout (`#uh-flag`), which flags targets under the platform minimum.
+  Call `refresh()` after opening a sheet or menu so the count includes it. The canvas
+  README lists the toolbar's element ids for scripted checks. A prototype's stubs (no real
+  network, no keyboard) go under *Not checked*, not in the findings.
 - **Code** (HTML, SwiftUI, Compose, Flutter and so on): you can check labels, roles, focus
   order, colours and breakpoints, but not how it looks unless you can run it.
 - **Screenshot or mockup:** you can judge layout, hierarchy, wording and approximate

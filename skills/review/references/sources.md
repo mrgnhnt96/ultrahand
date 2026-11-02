@@ -1,7 +1,8 @@
 # Sources
 
 The citation keys used in [checklist.md](checklist.md) and [SKILL.md](../SKILL.md). Keys
-with a `mobile:` or `tablet:` prefix are in that skill's own `references/sources.md`.
+with a `mobile:`, `tablet:` or `desktop:` prefix are in that skill's own
+`references/sources.md`.
 Sources were checked in November 2026.
 
 ## Review method
