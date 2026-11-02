@@ -816,7 +816,8 @@ window.ultrahandSetup = function (canvas) {
     '.uh-viewport *, .uh-viewport *::before, .uh-viewport *::after { box-sizing: border-box; }',
     '.uh-viewport[data-touch] * { scrollbar-width: none; }',
     '.uh-viewport[data-touch] *::-webkit-scrollbar { display: none; }',
-    '[data-screen] { height: 100%; overflow: auto; overscroll-behavior: contain; }',
+    /* No overscroll-behavior: once the screen can't scroll further, the wheel pans the stage. */
+    '[data-screen] { height: 100%; overflow: auto; }',
     '[data-screen][hidden], [hidden] { display: none !important; }'
   ].join('\n');
   var viewport = document.createElement('div');
