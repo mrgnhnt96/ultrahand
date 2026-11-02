@@ -51,6 +51,8 @@ body {
   margin: 0;
   display: grid;
   grid-template-rows: auto 1fr;
+  /* minmax(0, …) keeps a wide toolbar from widening the page, which pushed the frame off-centre. */
+  grid-template-columns: minmax(0, 1fr);
   background: var(--bg);
   color: var(--ink);
   font: 14px/1.4 var(--font-ui);
@@ -78,20 +80,7 @@ button, input, select { font: inherit; color: inherit; }
   color: var(--muted);
 }
 .uh-id h1 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; }
-.uh-presets {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  max-width: 100%;
-  padding-bottom: 2px;
-}
-.uh-pgroup { display: flex; align-items: center; gap: 6px; flex: none; }
-.uh-pgroup > span {
-  font: 500 11px/1 var(--font-mono);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
+.uh-presets select { max-width: 32ch; font-size: 13px; }
 .uh-btn {
   display: inline-flex;
   align-items: baseline;
@@ -140,7 +129,6 @@ button, input, select { font: inherit; color: inherit; }
 }
 .uh-chip.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .uh-flag { font: 500 12px var(--font-mono); color: var(--warn); white-space: nowrap; }
-.uh-preset-name { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
 .uh-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .uh-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -257,8 +245,8 @@ button, input, select { font: inherit; color: inherit; }
 .uh-area[data-split] .uh-divider { display: block; }
 .uh-area[data-split] .uh-other { display: grid; }
 
-/* Chrome toggled with the hidden attribute must stay hidden despite its display rule. */
-.uh-statusbar[hidden], .uh-homebar[hidden] { display: none; }
+/* Anything toggled with the hidden attribute must stay hidden despite its display rule. */
+[hidden] { display: none !important; }
 .uh-statusbar {
   position: absolute;
   left: 0; right: 0; top: 0;
@@ -382,14 +370,13 @@ body.uh-dragging .uh-host { pointer-events: none; }
     <span class="uh-eyebrow" id="uh-platform">Canvas</span>
     <h1 id="uh-title">Untitled screen</h1>
   </div>
-  <nav class="uh-presets" id="uh-presets" aria-label="Size presets"></nav>
+  <label class="uh-select uh-presets" id="uh-presets-wrap" for="uh-presets">Size <select id="uh-presets"></select></label>
   <div class="uh-readout" role="group" aria-label="Screen size">
     <label class="uh-dim" for="uh-w">W <input id="uh-w" type="number" inputmode="numeric" step="1"></label>
     <span class="uh-times" aria-hidden="true">×</span>
     <label class="uh-dim" for="uh-h">H <input id="uh-h" type="number" inputmode="numeric" step="1"></label>
     <span class="uh-chip" id="uh-wclass" title="Width size class"></span>
     <span class="uh-chip quiet" id="uh-hclass" title="Height size class"></span>
-    <span class="uh-preset-name" id="uh-preset-name"></span>
     <span class="uh-flag" id="uh-flag" role="status"></span>
   </div>
   <div class="uh-tools">
@@ -738,9 +725,9 @@ window.ultrahandSetup = function (canvas) {
   'use strict';
   var byId = function (id) { return document.getElementById(id); };
   var el = {
-    error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'),
+    error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'), presetsWrap: byId('uh-presets-wrap'),
     w: byId('uh-w'), h: byId('uh-h'), wclass: byId('uh-wclass'), hclass: byId('uh-hclass'), flag: byId('uh-flag'),
-    presetName: byId('uh-preset-name'), navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
+    navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
     divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'),
@@ -1129,12 +1116,14 @@ window.ultrahandSetup = function (canvas) {
     el.wclass.textContent = info.widthClass;
     el.hclass.textContent = info.heightClass + ' height';
     showFlags();
-    el.presetName.textContent = st.preset
-      ? st.preset.label + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '')
-      : 'Custom';
-    Array.prototype.forEach.call(el.presets.querySelectorAll('[data-preset]'), function (b) {
-      b.setAttribute('aria-pressed', String(!!st.preset && b.dataset.preset === st.preset.id && !st.resized && !st.landscape));
-    });
+    /* An exact preset selects its option; anything else shows in the "custom" option. */
+    var exact = !!st.preset && !st.resized && !st.landscape;
+    var custom = el.presets.querySelector('[data-custom]');
+    custom.hidden = exact;
+    custom.textContent = st.preset
+      ? presetText(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '')
+      : 'Custom size';
+    el.presets.value = exact ? st.preset.id : '';
     el.rotate.disabled = st.kind === 'window' || st.kind === 'none';
     Array.prototype.forEach.call(document.querySelectorAll('[data-scheme]'), function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.scheme === st.scheme));
@@ -1259,7 +1248,18 @@ window.ultrahandSetup = function (canvas) {
   });
 
   /* ---------- Toolbar ---------- */
+  /* Option text: the label without any size it ends with, then the full size once. */
+  function presetText(p) {
+    var label = String(p.label || p.id).replace(/\s*·\s*\d+(\s*[×x]\s*\d+)?\s*$/, '');
+    return label + ' · ' + p.width + '×' + p.height;
+  }
+  /* One grouped select: presets can run to a dozen, too many for a row of buttons. */
   function buildPresets() {
+    var custom = document.createElement('option');
+    custom.value = '';
+    custom.disabled = true;
+    custom.dataset.custom = '';
+    el.presets.append(custom);
     var groups = [];
     var byGroup = {};
     presets.forEach(function (p) {
@@ -1268,31 +1268,24 @@ window.ultrahandSetup = function (canvas) {
       byGroup[g].push(p);
     });
     groups.forEach(function (g) {
-      var wrap = document.createElement('div');
-      wrap.className = 'uh-pgroup';
-      wrap.setAttribute('role', 'group');
+      var parent = el.presets;
       if (g) {
-        var label = document.createElement('span');
-        label.textContent = g;
-        wrap.append(label);
-        wrap.setAttribute('aria-label', g);
+        parent = document.createElement('optgroup');
+        parent.label = g;
+        el.presets.append(parent);
       }
       byGroup[g].forEach(function (p) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'uh-btn';
-        b.dataset.preset = p.id;
-        var name = document.createElement('span');
-        name.textContent = p.label || p.id;
-        var dims = document.createElement('small');
-        dims.textContent = p.width + '×' + p.height;
-        b.append(name, dims);
-        b.addEventListener('click', function () { usePreset(p); });
-        wrap.append(b);
+        var o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = presetText(p);
+        parent.append(o);
       });
-      el.presets.append(wrap);
     });
-    el.presets.hidden = presets.length === 0;
+    el.presets.addEventListener('change', function () {
+      var p = presets.filter(function (x) { return x.id === el.presets.value; })[0];
+      if (p) usePreset(p);
+    });
+    el.presetsWrap.hidden = presets.length === 0;
   }
   /* States (default, loading, empty, error…): elements with data-show-state="a b" are
      shown only in those states; setup code can also listen with onState. */
