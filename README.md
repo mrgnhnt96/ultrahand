@@ -4,12 +4,25 @@ A Claude Code plugin with research-backed UX design skills for each screen size,
 
 ## Install
 
-Add the `mrgnhnt96` marketplace, then install the plugin:
+Add ultrahand to a Claude Code marketplace you control by listing it in that
+marketplace's `.claude-plugin/marketplace.json`:
+
+```json
+{
+  "name": "ultrahand",
+  "source": { "source": "github", "repo": "mrgnhnt96/ultrahand" },
+  "description": "Research-backed UX design skills for mobile, tablet and desktop, plus a UX review skill."
+}
+```
+
+Then install it (replace `<marketplace>` with that marketplace's name):
 
 ```sh
-claude plugin marketplace add mrgnhnt96/<marketplace-repo>
-claude plugin install ultrahand@mrgnhnt96
+claude plugin marketplace update <marketplace>
+claude plugin install ultrahand@<marketplace> --scope user
 ```
+
+Installs take whatever is on `main`.
 
 ## Skills
 
@@ -22,9 +35,10 @@ claude plugin install ultrahand@mrgnhnt96
 
 Skills only trigger on UI design or UX review requests.
 
-## Status
-
-Skeleton only: skill bodies, the shared artifact canvas (`shared/`) and the research citations are still to come.
+Each design skill builds its screen into the shared canvas in `shared/canvas/`
+(see its README): mobile size presets, tablet split view, and free desktop resize
+within min/max bounds, with light/dark, 200% text, state and tap-target toggles.
+Design claims cite their sources in each skill's `references/sources.md`.
 
 ## License
 
