@@ -81,7 +81,7 @@ button, input, select { font: inherit; color: inherit; }
   color: var(--muted);
 }
 .uh-id h1 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; }
-.uh-presets select { max-width: 32ch; font-size: 13px; }
+.uh-presets select { width: 30ch; max-width: 100%; font-size: 13px; text-overflow: ellipsis; }
 .uh-btn {
   display: inline-flex;
   align-items: baseline;
@@ -98,7 +98,12 @@ button, input, select { font: inherit; color: inherit; }
 .uh-btn small { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .uh-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .uh-btn[aria-pressed="true"] small { color: inherit; opacity: 0.8; }
-.uh-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* On the accent fill the accent focus ring would vanish, so a pressed button also gets an
+   inner ring in the ink colour (WCAG 2.4.7; aiming at the 3:1 of 2.4.13). */
+.uh-btn[aria-pressed="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+/* At a zoom limit − or + stays focusable (aria-disabled), so focus isn't dropped; presses are ignored. */
+.uh-btn[aria-disabled="true"] { color: color-mix(in srgb, var(--ink) 40%, transparent); cursor: not-allowed; }
+.uh-btn[aria-disabled="true"]:hover { border-color: var(--line); }
 
 .uh-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .uh-dim { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--font-mono); color: var(--muted); }
@@ -128,13 +133,24 @@ button, input, select { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 .uh-chip.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-.uh-flag { font: 500 12px var(--font-mono); color: var(--warn); white-space: nowrap; }
+.uh-flag { display: inline-block; min-width: 22ch; font: 500 12px var(--font-mono); color: var(--warn); white-space: nowrap; }
 
 .uh-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
-.uh-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.uh-seg .uh-btn { border: 0; border-radius: 0; }
-.uh-seg .uh-btn + .uh-btn { border-left: 1px solid var(--line); }
+/* Toolbar order, the same on screen as for Tab: the View items (Tap targets last), the
+   hit-target result beside its toggle, zoom, then help. Below 1024px the View items fold
+   into a menu. */
+.uh-view, .uh-view-menu { display: contents; }
+.uh-view-btn, .uh-view-head { display: none; }
+/* No overflow clip here: it would cut off the focus ring. The end buttons round instead. */
+.uh-seg { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; }
+.uh-seg > * { border: 0; border-radius: 0; }
+.uh-seg > * + * { border-left: 1px solid var(--line); }
+.uh-seg > :first-child { border-radius: 7px 0 0 7px; }
+.uh-seg > :last-child { border-radius: 0 7px 7px 0; }
+.uh-seg .uh-btn:focus-visible { position: relative; z-index: 1; }
 .uh-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+/* A labelled button group keeps the buttons' own size and colour, not the label's. */
+.uh-select .uh-seg { font-size: 14px; color: var(--ink); }
 .uh-select select {
   min-height: 32px;
   padding: 4px 8px;
@@ -143,9 +159,40 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--surface);
   color: var(--ink);
 }
-.uh-zoom { font: 12px var(--font-mono); color: var(--muted); min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; }
-.uh-result { font: 500 12px var(--font-mono); white-space: nowrap; color: var(--muted); }
+.uh-zoom {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 6ch; padding: 0 6px;
+  font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.uh-result { display: inline-block; min-width: 20ch; font: 500 12px var(--font-mono); white-space: nowrap; color: var(--muted); }
 .uh-result[data-bad] { color: var(--warn); }
+/* Popovers: the View menu (narrow windows) and the shortcuts list. */
+.uh-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 16px;
+  z-index: 5;
+  max-width: calc(100% - 32px);
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+}
+/* At full width the View menu is display: contents; nothing of the popover applies. */
+.uh-view-menu.uh-pop { overflow: visible; }
+.uh-keys { width: 34ch; }
+.uh-keys h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.uh-keys dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 12px; }
+.uh-keys dt { color: var(--muted); }
+.uh-keys dd { margin: 0; }
+.uh-keys-note { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+.uh-keys kbd {
+  padding: 0 4px; border: 1px solid var(--line); border-radius: 4px;
+  font: 11px var(--font-mono); white-space: nowrap;
+}
 body.uh-space .uh-stage { cursor: grab; }
 body.uh-space .uh-host, body.uh-panning .uh-host { pointer-events: none; }
 body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: none !important; }
@@ -396,9 +443,59 @@ body.uh-dragging .uh-host { pointer-events: none; }
 }
 .uh-error strong { color: var(--warn); }
 
-@media (max-width: 560px) {
-  .uh-bar { gap: 8px 12px; padding: 8px 16px; }
-  .uh-tools { margin-left: 0; }
+/* Below 1024px wide: one row (~48px) of Size, W × H, View, zoom and help. The size-class
+   chips hide (their text is in the W field's title) and the title is read, not shown. */
+@media (max-width: 1023px) {
+  .uh-bar { flex-wrap: nowrap; gap: 8px; padding: 8px 16px; }
+  .uh-id {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .uh-presets { flex: 1 1 auto; min-width: 9ch; }
+  .uh-presets select { width: 100%; }
+  .uh-readout { flex: none; flex-wrap: nowrap; position: static; }
+  .uh-chip { display: none; }
+  /* The limit flag floats just under the bar, so it never moves the row. */
+  .uh-flag {
+    position: absolute; top: calc(100% + 6px); left: 16px; min-width: 0;
+    padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+  }
+  .uh-flag:empty { display: none; }
+  .uh-tools { flex: none; flex-wrap: nowrap; gap: 6px; margin-left: 0; }
+  .uh-view { display: block; }
+  .uh-view-btn { display: inline-flex; }
+  .uh-view-menu { display: none; }
+  .uh-view-menu.uh-pop { width: 280px; overflow: auto; }
+  .uh-view[data-open] .uh-view-menu { display: grid; gap: 10px; justify-items: start; }
+  .uh-view-head { display: grid; gap: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--line); width: 100%; }
+  .uh-view-head strong { font-size: 14px; font-weight: 600; }
+}
+/* Below 1280px the hit-target result floats under the bar on the right while the overlay
+   is on, so turning it on never adds a row. */
+@media (max-width: 1279px) {
+  .uh-result {
+    position: absolute; top: calc(100% + 6px); right: 16px; min-width: 0;
+    padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+  }
+}
+/* Between the one-row bar and a wide window the second row is tight; tighten spacing so it
+   stays two rows at 1024px. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .uh-tools { gap: 4px; }
+  .uh-tools .uh-btn { padding: 6px 8px; }
+  .uh-tools .uh-select { gap: 4px; }
+  .uh-tools .uh-select select { padding: 4px; }
+}
+@media (max-width: 639px) {
+  .uh-presets .uh-lbl { display: none; }
+  .uh-dim { gap: 2px; }
+  .uh-times { display: none; }
+  .uh-tools .uh-zoomgroup [data-zoom="1"] { padding: 6px 7px; }
+}
+/* Too narrow for one row: Size and W × H on the first, View, zoom and help on the second. */
+@media (max-width: 559px) {
+  .uh-bar { flex-wrap: wrap; row-gap: 6px; }
+  .uh-tools { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .uh-toast { transition: none; }
@@ -411,39 +508,64 @@ body.uh-dragging .uh-host { pointer-events: none; }
     <span class="uh-eyebrow" id="uh-platform">Canvas</span>
     <h1 id="uh-title">Untitled screen</h1>
   </div>
-  <label class="uh-select uh-presets" id="uh-presets-wrap" for="uh-presets">Size <select id="uh-presets"></select></label>
+  <label class="uh-select uh-presets" id="uh-presets-wrap" for="uh-presets"><span class="uh-lbl">Size</span> <select id="uh-presets" aria-label="Size"></select></label>
   <div class="uh-readout" role="group" aria-label="Screen size">
-    <label class="uh-dim" for="uh-w">W <input id="uh-w" type="number" inputmode="numeric" step="1"></label>
+    <label class="uh-dim" for="uh-w">W <input id="uh-w" type="number" inputmode="numeric" step="1" aria-label="Width"></label>
     <span class="uh-times" aria-hidden="true">×</span>
-    <label class="uh-dim" for="uh-h">H <input id="uh-h" type="number" inputmode="numeric" step="1"></label>
+    <label class="uh-dim" for="uh-h">H <input id="uh-h" type="number" inputmode="numeric" step="1" aria-label="Height"></label>
     <span class="uh-chip" id="uh-wclass" title="Width size class"></span>
     <span class="uh-chip quiet" id="uh-hclass" title="Height size class"></span>
     <span class="uh-flag" id="uh-flag" role="status"></span>
   </div>
   <div class="uh-tools">
-    <label class="uh-select" id="uh-nav-wrap" for="uh-nav" hidden>Screen <select id="uh-nav"></select></label>
-    <label class="uh-select" id="uh-state-wrap" for="uh-state" hidden>State <select id="uh-state"></select></label>
-    <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
-    <div class="uh-seg" role="group" aria-label="Screen appearance">
-      <button class="uh-btn" type="button" data-scheme="light" title="Show the screen in light mode">Light</button>
-      <button class="uh-btn" type="button" data-scheme="dark" title="Show the screen in dark mode">Dark</button>
+    <div class="uh-view" id="uh-view">
+      <button class="uh-btn uh-view-btn" type="button" id="uh-view-btn" aria-expanded="false" aria-controls="uh-view-menu" title="Screen, state, text size, hit targets and canvas colours">View <span aria-hidden="true">▾</span></button>
+      <div class="uh-view-menu uh-pop" id="uh-view-menu" role="group" aria-label="View">
+        <div class="uh-view-head" aria-hidden="true"><span class="uh-eyebrow" id="uh-view-platform"></span><strong id="uh-view-title"></strong></div>
+        <label class="uh-select" id="uh-nav-wrap" for="uh-nav" hidden>Go to <select id="uh-nav"></select></label>
+        <label class="uh-select" id="uh-state-wrap" for="uh-state" hidden>State <select id="uh-state"></select></label>
+        <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
+        <span class="uh-select"><span id="uh-scheme-label">Screen</span>
+          <span class="uh-seg" role="group" aria-labelledby="uh-scheme-label">
+            <button class="uh-btn" type="button" data-scheme="light" title="Show the screen in light mode">Light</button>
+            <button class="uh-btn" type="button" data-scheme="dark" title="Show the screen in dark mode">Dark</button>
+          </span>
+        </span>
+        <div class="uh-seg" role="group" aria-label="Text size">
+          <button class="uh-btn" type="button" data-text="1" title="Text at its normal size">Text 100%</button>
+          <button class="uh-btn" type="button" data-text="2" title="Text at 200% (WCAG 1.4.4)">200%</button>
+        </div>
+        <label class="uh-select uh-themepick" for="uh-theme" title="Colours of this canvas, not of the screen">Canvas <select id="uh-theme">
+          <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
+        </select></label>
+        <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
+      </div>
     </div>
-    <div class="uh-seg" role="group" aria-label="Text size">
-      <button class="uh-btn" type="button" data-text="1" title="Text at its normal size">Text 100%</button>
-      <button class="uh-btn" type="button" data-text="2" title="Text at 200% (WCAG 1.4.4)">200%</button>
-    </div>
-    <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
     <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
-    <div class="uh-seg" role="group" aria-label="Zoom">
+    <div class="uh-seg uh-zoomgroup" role="group" aria-label="Zoom">
       <button class="uh-btn" type="button" id="uh-zoom-out" aria-label="Zoom out" title="Zoom out (Ctrl or ⌘ −)">−</button>
+      <span class="uh-zoom" id="uh-zoom" title="Current zoom. Ctrl or ⌘ and scroll, or pinch, zooms at the pointer; Space and drag pans"></span>
       <button class="uh-btn" type="button" id="uh-zoom-in" aria-label="Zoom in" title="Zoom in (Ctrl or ⌘ =)">+</button>
       <button class="uh-btn" type="button" data-zoom="fit" title="Fit the frame in view (Ctrl or ⌘ Shift 1)">Fit</button>
       <button class="uh-btn" type="button" data-zoom="1" title="Actual size (Ctrl or ⌘ 0)">100%</button>
     </div>
-    <span class="uh-zoom" id="uh-zoom" title="Current zoom. Ctrl or ⌘ and scroll, or pinch, to zoom at the pointer"></span>
-    <label class="uh-select" for="uh-theme" title="Colours of this canvas, not of the screen">Canvas <select id="uh-theme">
-      <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
-    </select></label>
+    <div class="uh-help">
+      <button class="uh-btn" type="button" id="uh-help-btn" aria-expanded="false" aria-controls="uh-keys" aria-label="Keyboard and pointer shortcuts" title="Shortcuts (?)">?</button>
+      <div class="uh-keys uh-pop" id="uh-keys" role="group" aria-labelledby="uh-keys-title" hidden>
+        <h2 id="uh-keys-title">Shortcuts</h2>
+        <dl>
+          <dt>Pan</dt><dd><kbd>Space</kbd> + drag, or drag with the middle button</dd>
+          <dt>Zoom</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + scroll, or pinch, over the canvas</dd>
+          <dt>Zoom step</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>=</kbd> and <kbd>−</kbd></dd>
+          <dt>100%</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>0</kbd></dd>
+          <dt>Fit</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>1</kbd></dd>
+          <dt>Grips</dt><dd><kbd>→</kbd> <kbd>↑</kbd> +1px, <kbd>←</kbd> <kbd>↓</kbd> −1px (<kbd>Shift</kbd> 10px), <kbd>PgUp</kbd> <kbd>PgDn</kbd> ±100px, <kbd>Home</kbd> <kbd>End</kbd> to the limits</dd>
+          <dt>Drag</dt><dd><kbd>Esc</kbd> cancels</dd>
+          <dt>This list</dt><dd><kbd>?</kbd></dd>
+        </dl>
+        <p class="uh-keys-note">Zoom keys act on the canvas while the pointer or focus is on it; elsewhere they zoom the page.</p>
+      </div>
+    </div>
   </div>
 </header>
 <main class="uh-stage" id="uh-stage">
@@ -786,7 +908,10 @@ window.ultrahandSetup = function (canvas) {
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
     divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'), wincaps: byId('uh-wincaps'),
     toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets'),
-    targetsResult: byId('uh-targets-result'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme')
+    targetsResult: byId('uh-targets-result'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme'),
+    view: byId('uh-view'), viewBtn: byId('uh-view-btn'), viewMenu: byId('uh-view-menu'),
+    viewTitle: byId('uh-view-title'), viewPlatform: byId('uh-view-platform'),
+    help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys')
   };
   var errors = [];
   function report(msg) {
@@ -809,7 +934,11 @@ window.ultrahandSetup = function (canvas) {
   ];
   var HEIGHT_CLASSES = [{ name: 'compact', min: 0 }, { name: 'medium', min: 480 }, { name: 'expanded', min: 900 }];
   var FRAMES = ['phone', 'tablet', 'window', 'none'];
-  var GUTTER = 36; /* room around the frame for the handles, in logical px */
+  /* Room around the frame at Fit, in screen px: the grips sit 30px outside the frame, so
+     this keeps them inside the visible stage and clear of its scrollbars at any zoom. */
+  var MARGIN = 48;
+  /* W/H fields holding an edit not yet applied (set on input, cleared on change or Esc). */
+  var dirty = { w: false, h: false };
 
   var cfg = {};
   try {
@@ -835,8 +964,10 @@ window.ultrahandSetup = function (canvas) {
     if (!ok) report('Preset ' + (i + 1) + ' needs an id, a width and a height.');
     return ok;
   });
+  function capital(t) { t = String(t); return t.charAt(0).toUpperCase() + t.slice(1); }
   var states = (Array.isArray(cfg.states) ? cfg.states : []).map(function (s) {
-    return typeof s === 'string' ? { id: s, label: s.charAt(0).toUpperCase() + s.slice(1) } : s;
+    if (typeof s === 'string') return { id: s, label: capital(s) };
+    return s && s.id ? Object.assign({}, s, { label: capital(s.label || s.id) }) : s;
   }).filter(function (s) { return s && s.id; });
 
   var st = {
@@ -848,8 +979,8 @@ window.ultrahandSetup = function (canvas) {
     zoom: 'fit', s: 1, flags: [], dragging: false, recenter: true
   };
 
-  el.title.textContent = cfg.title || 'Untitled screen';
-  el.platform.textContent = cfg.platform || (cfg.device ? cfg.device : 'Canvas');
+  el.title.textContent = el.viewTitle.textContent = cfg.title || 'Untitled screen';
+  el.platform.textContent = el.viewPlatform.textContent = cfg.platform || (cfg.device ? cfg.device : 'Canvas');
   el.wintitle.textContent = cfg.title || '';
 
   /* ---------- Screen mount ---------- */
@@ -1194,13 +1325,16 @@ window.ultrahandSetup = function (canvas) {
     el.area.style.setProperty('--uh-toast-bottom', (sa.bottom || 0) + 'px');
 
     /* readout */
-    if (document.activeElement !== el.w) el.w.value = st.w;
-    if (document.activeElement !== el.h) el.h.value = st.h;
+    /* A focused field keeps its text only while it holds an edit not yet applied. */
+    if (!(dirty.w && document.activeElement === el.w)) el.w.value = st.w;
+    if (!(dirty.h && document.activeElement === el.h)) el.h.value = st.h;
     el.h.disabled = !!sp;
     var bd = bounds();
     el.w.min = bd.minW; el.w.max = bd.maxW;
     el.h.min = bd.minH; el.h.max = bd.maxH;
-    el.w.title = 'Width in px, ' + bd.minW + '–' + bd.maxW + '. Enter applies, Esc reverts.';
+    /* Below 1024px the size-class chips hide, so their text is here too. */
+    el.w.title = 'Width in px, ' + bd.minW + '–' + bd.maxW + '; ' + info.widthClass + ' width, ' +
+      info.heightClass + ' height. Enter applies, Esc reverts.';
     el.h.title = sp ? 'Height is fixed by the split view' : 'Height in px, ' + bd.minH + '–' + bd.maxH + '. Enter applies, Esc reverts.';
     el.wclass.textContent = info.widthClass + ' width';
     el.hclass.textContent = info.heightClass + ' height';
@@ -1254,10 +1388,18 @@ window.ultrahandSetup = function (canvas) {
      set (start, preset, rotate, zoom buttons). Reading it from the scroll position
      inside fit() would drift, since the stage may already have changed size. */
   var view = { x: 0.5, y: 0.5 };
+  /* The frame's box in stage scroll coordinates (the scaler less its margin). */
+  function frameBox() {
+    return {
+      l: el.scaler.offsetLeft + MARGIN, t: el.scaler.offsetTop + MARGIN,
+      w: el.scaler.offsetWidth - 2 * MARGIN, h: el.scaler.offsetHeight - 2 * MARGIN
+    };
+  }
   el.stage.addEventListener('scroll', function () {
-    if (!el.scaler.offsetWidth || !el.scaler.offsetHeight) return;
-    view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - el.scaler.offsetLeft) / el.scaler.offsetWidth;
-    view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - el.scaler.offsetTop) / el.scaler.offsetHeight;
+    var f = frameBox();
+    if (f.w <= 0 || f.h <= 0) return;
+    view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - f.l) / f.w;
+    view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - f.t) / f.h;
   }, { passive: true });
   /* opts.scale holds the zoom (during a drag). opts.anchor = { fx, fy, cx, cy } keeps the
      point at fraction fx, fy of the frame area at stage pixel cx, cy: a drag anchors the
@@ -1275,27 +1417,27 @@ window.ultrahandSetup = function (canvas) {
     var inner = stageInner();
     var s;
     if (opts.scale) s = opts.scale;
-    else if (st.zoom === 'fit') s = Math.min(1, inner.w / (rw + 2 * GUTTER), inner.h / (rh + 2 * GUTTER));
+    else if (st.zoom === 'fit') s = Math.min(1, (inner.w - 2 * MARGIN) / rw, (inner.h - 2 * MARGIN) / rh);
     else s = Number(st.zoom) || 1;
     s = Math.min(ZMAX, Math.max(ZMIN, s));
     st.s = s;
     el.rig.style.width = rw + 'px';
     el.rig.style.height = rh + 'px';
     el.rig.style.setProperty('--s', s);
-    el.rig.style.transform = 'translate(' + GUTTER * s + 'px, ' + GUTTER * s + 'px) scale(' + s + ')';
-    el.scaler.style.width = (rw + 2 * GUTTER) * s + 'px';
-    el.scaler.style.height = (rh + 2 * GUTTER) * s + 'px';
-    var mx = Math.max(stage.clientWidth, (rw + 2 * GUTTER) * s) / 2;
-    var my = Math.max(stage.clientHeight, (rh + 2 * GUTTER) * s) / 2;
-    el.scaler.style.margin = my + 'px ' + mx + 'px';
-    stage.scrollLeft = el.scaler.offsetLeft + a.fx * el.scaler.offsetWidth - a.cx;
-    stage.scrollTop = el.scaler.offsetTop + a.fy * el.scaler.offsetHeight - a.cy;
+    el.rig.style.transform = 'translate(' + MARGIN + 'px, ' + MARGIN + 'px) scale(' + s + ')';
+    var sw = rw * s + 2 * MARGIN, sh = rh * s + 2 * MARGIN;
+    el.scaler.style.width = sw + 'px';
+    el.scaler.style.height = sh + 'px';
+    el.scaler.style.margin = Math.max(stage.clientHeight, sh) / 2 + 'px ' + Math.max(stage.clientWidth, sw) / 2 + 'px';
+    var f = frameBox();
+    stage.scrollLeft = f.l + a.fx * f.w - a.cx;
+    stage.scrollTop = f.t + a.fy * f.h - a.cy;
     el.zoom.textContent = Math.round(s * 100) + '%';
     Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.zoom === 'fit' ? st.zoom === 'fit' : st.zoom !== 'fit' && Math.abs(s - Number(b.dataset.zoom)) < 0.001));
     });
-    el.zoomOut.disabled = s <= ZMIN + 0.001;
-    el.zoomIn.disabled = s >= ZMAX - 0.001;
+    el.zoomOut.setAttribute('aria-disabled', String(s <= ZMIN + 0.001));
+    el.zoomIn.setAttribute('aria-disabled', String(s >= ZMAX - 0.001));
     rovingTabs();
   }
   function setZoom(z, anchor) {
@@ -1314,11 +1456,8 @@ window.ultrahandSetup = function (canvas) {
   function anchorAt(clientX, clientY) {
     var r = el.stage.getBoundingClientRect();
     var cx = clientX - r.left - el.stage.clientLeft, cy = clientY - r.top - el.stage.clientTop;
-    return {
-      fx: (el.stage.scrollLeft + cx - el.scaler.offsetLeft) / el.scaler.offsetWidth,
-      fy: (el.stage.scrollTop + cy - el.scaler.offsetTop) / el.scaler.offsetHeight,
-      cx: cx, cy: cy
-    };
+    var f = frameBox();
+    return { fx: (el.stage.scrollLeft + cx - f.l) / f.w, fy: (el.stage.scrollTop + cy - f.t) / f.h, cx: cx, cy: cy };
   }
   /* Ctrl or ⌘ + wheel, and trackpad pinch (which arrives as a ctrlKey wheel), zoom at the pointer. */
   el.stage.addEventListener('wheel', function (e) {
@@ -1339,6 +1478,11 @@ window.ultrahandSetup = function (canvas) {
     var hd = e.target.closest('[data-edge]');
     if (!hd || e.button > 0 || document.body.classList.contains('uh-space')) return;
     e.preventDefault();
+    /* preventDefault stops the browser focusing the grip, so focus it here: its arrow
+       keys then carry on from the drag. A W/H field holding an unapplied edit keeps
+       focus, so the edit isn't applied or lost by grabbing a grip. */
+    var ae = document.activeElement;
+    if (!((ae === el.w && dirty.w) || (ae === el.h && dirty.h))) hd.focus({ preventScroll: true });
     hd.setPointerCapture(e.pointerId);
     hd.classList.add('active');
     var edge = hd.dataset.edge;
@@ -1411,18 +1555,23 @@ window.ultrahandSetup = function (canvas) {
     }
     var b = bounds();
     var tall = edge === 's';
+    /* ARIA APG slider keys: Up and Right add, Down and Left take away (Shift ×10),
+       PageUp/PageDown ±100, Home/End go to the limits. A trailing divider's Left and
+       Right follow its direction on screen instead. */
     var flip = edge === 'divider' && st.split.side === 'trailing' ? -1 : 1;
-    /* Arrows move the edge (Right and Down grow); PageUp/PageDown step 100; Home/End go to the limits. */
-    if (e.key === 'ArrowRight' && !tall) w += step * flip;
-    else if (e.key === 'ArrowLeft' && !tall) w -= step * flip;
-    else if (e.key === 'ArrowDown' && tall) h += step;
-    else if (e.key === 'ArrowUp' && tall) h -= step;
-    else if (e.key === 'PageUp') { if (tall) h += 100; else w += 100; }
-    else if (e.key === 'PageDown') { if (tall) h -= 100; else w -= 100; }
-    else if (e.key === 'Home') { if (tall) h = b.minH; else w = b.minW; }
-    else if (e.key === 'End') { if (tall) h = b.maxH; else w = b.maxW; }
+    var d = 0;
+    if (e.key === 'ArrowUp') d = step;
+    else if (e.key === 'ArrowDown') d = -step;
+    else if (e.key === 'ArrowRight') d = step * flip;
+    else if (e.key === 'ArrowLeft') d = -step * flip;
+    else if (e.key === 'PageUp') d = 100;
+    else if (e.key === 'PageDown') d = -100;
+    else if (e.key === 'Home') d = -Infinity;
+    else if (e.key === 'End') d = Infinity;
     else return;
     e.preventDefault();
+    if (tall) h = d === -Infinity ? b.minH : d === Infinity ? b.maxH : h + d;
+    else w = d === -Infinity ? b.minW : d === Infinity ? b.maxW : w + d;
     setSize(w, h, 'key');
   });
 
@@ -1481,7 +1630,7 @@ window.ultrahandSetup = function (canvas) {
   states.forEach(function (s) {
     var opt = document.createElement('option');
     opt.value = s.id;
-    opt.textContent = s.label || s.id;
+    opt.textContent = s.label;
     el.state.append(opt);
   });
   el.stateWrap.hidden = states.length < 2;
@@ -1493,8 +1642,9 @@ window.ultrahandSetup = function (canvas) {
 
   /* An empty or invalid entry reverts; a value past the limits is clamped, and the field
      always shows the size the screen is really at afterwards. Esc reverts an edit. */
-  function writeBack() { el.w.value = st.w; el.h.value = st.h; }
+  function writeBack() { dirty.w = dirty.h = false; el.w.value = st.w; el.h.value = st.h; }
   function applyInput(input) {
+    dirty[input === el.w ? 'w' : 'h'] = false;
     var raw = input.value.trim();
     var n = Number(raw);
     if (raw !== '' && isFinite(n) && n > 0) {
@@ -1504,6 +1654,7 @@ window.ultrahandSetup = function (canvas) {
   }
   [el.w, el.h].forEach(function (input) {
     input.setAttribute('aria-describedby', 'uh-flag');
+    input.addEventListener('input', function () { dirty[input === el.w ? 'w' : 'h'] = true; });
     input.addEventListener('change', function () { applyInput(input); });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { e.preventDefault(); writeBack(); input.select(); }
@@ -1516,11 +1667,29 @@ window.ultrahandSetup = function (canvas) {
   Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
     b.addEventListener('click', function () { setZoom(b.dataset.zoom === 'fit' ? 'fit' : Number(b.dataset.zoom)); });
   });
-  el.zoomIn.addEventListener('click', function () { zoomStep(1); });
-  el.zoomOut.addEventListener('click', function () { zoomStep(-1); });
-  /* Zoom shortcuts take a modifier, so they never fire while typing (WCAG 2.1.4). */
+  [[el.zoomIn, 1], [el.zoomOut, -1]].forEach(function (z) {
+    z[0].addEventListener('click', function () {
+      if (z[0].getAttribute('aria-disabled') !== 'true') zoomStep(z[1]);
+    });
+  });
+  /* Zoom shortcuts take a modifier, so they never fire while typing (WCAG 2.1.4). They
+     act on the canvas only while the pointer is over the stage or focus is in it (the
+     screen included); elsewhere they are the browser's page zoom, which is the way to
+     enlarge the toolbar. */
+  /* The last pointer position, hit-tested at key time: enter/leave events are skipped
+     while a grip holds pointer capture. */
+  var pointerAt = null;
+  document.addEventListener('pointermove', function (e) { pointerAt = { x: e.clientX, y: e.clientY }; }, true);
+  document.addEventListener('pointerdown', function (e) { pointerAt = { x: e.clientX, y: e.clientY }; }, true);
+  document.documentElement.addEventListener('pointerleave', function () { pointerAt = null; });
+  function overStage() {
+    if (!pointerAt) return false;
+    var t = document.elementFromPoint(pointerAt.x, pointerAt.y);
+    return !!t && el.stage.contains(t);
+  }
   document.addEventListener('keydown', function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (!overStage() && !el.stage.contains(document.activeElement)) return;
     if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomStep(1); }
     else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(-1); }
     else if (e.code === 'Digit0' && !e.shiftKey) { e.preventDefault(); setZoom(1); }
@@ -1592,6 +1761,49 @@ window.ultrahandSetup = function (canvas) {
       bs.forEach(function (b) { b.tabIndex = b === next ? 0 : -1; });
       next.focus();
     });
+  });
+
+  /* ---------- View menu and shortcuts list ---------- */
+  /* Disclosure buttons (APG disclosure pattern): the button toggles its panel; Esc or a
+     press outside closes it, and Esc puts focus back on the button. The View menu only
+     exists below 1024px; above that its controls sit in the toolbar. */
+  function disclosure(wrap, btn, isOpen, setOpen) {
+    function close(refocus) {
+      if (!isOpen()) return;
+      setOpen(false);
+      btn.setAttribute('aria-expanded', 'false');
+      if (refocus) btn.focus();
+    }
+    btn.addEventListener('click', function () {
+      var open = !isOpen();
+      setOpen(open);
+      btn.setAttribute('aria-expanded', String(open));
+    });
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) { e.preventDefault(); e.stopPropagation(); close(true); }
+    });
+    document.addEventListener('pointerdown', function (e) { if (!wrap.contains(e.target)) close(false); });
+    wrap.addEventListener('focusout', function (e) {
+      if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(false);
+    });
+    return { open: function () { if (!isOpen()) btn.click(); }, close: close };
+  }
+  disclosure(el.view, el.viewBtn,
+    function () { return el.view.hasAttribute('data-open'); },
+    function (v) { if (v) el.view.setAttribute('data-open', ''); else el.view.removeAttribute('data-open'); });
+  var help = disclosure(el.help, el.helpBtn,
+    function () { return !el.keys.hidden; },
+    function (v) { el.keys.hidden = !v; });
+  /* "?" opens the list, except while typing or in the screen, whose keys are its own. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || drag) return;
+    var path = e.composedPath ? e.composedPath() : [];
+    if (path.indexOf(el.host) >= 0) return;
+    var t = path[0] || e.target;
+    if (t && t.closest && t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+    e.preventDefault();
+    help.open();
+    el.helpBtn.focus();
   });
 
   /* ---------- Canvas theme ---------- */
