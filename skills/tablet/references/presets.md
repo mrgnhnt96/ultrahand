@@ -93,7 +93,9 @@ Safe areas are typical values: the iPad status bar is about 24 pt and the home i
 about 20 pt. On Android tablets, the bottom inset grows to about 48 dp when the taskbar is
 pinned or 3-button navigation is on. In a window that isn't full screen, iPadOS puts window
 controls at the top-leading edge of the toolbar row, so leading toolbar buttons need to
-move inward [HIG-WINDOWS]. Lay out against insets, never hard-coded numbers. On the web, use
+move inward [HIG-WINDOWS]. The canvas draws them on the iPad *Split view* presets, where
+the app is a window. With Tap targets on, the result also counts controls under them. Indent
+the toolbar's leading items by `var(--uh-window-controls-width)`; it is `0px` full screen. Lay out against insets, never hard-coded numbers. On the web, use
 `env(safe-area-inset-*)`.
 
 ## Why these sizes

@@ -4,14 +4,14 @@ The canvas is the resizable harness that every ultrahand design skill renders it
 
 The page gives the viewer:
 
-- **A device frame.** Phone, tablet (with split view), desktop window, or bare. Every edge and corner resizes it: each edge is a hit strip along its full length, with a grip in the middle. The frame grows evenly about its centre and the zoom holds while you drag, so the edge you hold follows the pointer; at Fit it re-fits once you let go. Esc cancels a drag. From the keyboard, the Width and Height grips are sliders: arrows move 1px (10px with Shift), PageUp/PageDown 100px, Home/End go to the limits.
+- **A device frame.** Phone, tablet (with split view and the iPad window controls), desktop window, or bare. Every edge and corner resizes it: each edge is a hit strip along its full length, with a grip in the middle. The frame grows evenly about its centre and the zoom holds while you drag, so the edge you hold follows the pointer; at Fit it re-fits once you let go. Esc cancels a drag. From the keyboard, the Width and Height grips are sliders: arrows move 1px (10px with Shift), PageUp/PageDown 100px, Home/End go to the limits.
 - **A readout.** It shows the width and height and their size classes ("large width", "medium height"). The fields are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
 - **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so. Rotate swaps the orientation, including safe areas.
 - **Review toggles:**
   - Light / Dark
   - Text 100% / 200%
   - a State picker (default, loading, empty, error…)
-  - Tap targets (Hit targets for windows), which outlines every interactive element and marks any under the platform minimum. While it's on, the result shows beside it: "all ≥ 44px" or "3 targets under 44px".
+  - Tap targets (Hit targets for windows), which outlines every interactive element and marks any under the platform minimum. While it's on, the result shows beside it: "all ≥ 44px" or "3 targets under 44px", plus "1 under window controls" when a control overlaps the drawn iPad window controls, which it then outlines.
   - Zoom: − and + step through 10–400%; Fit; 100%. Ctrl or ⌘ with the wheel, or a trackpad pinch, zooms at the pointer. Shortcuts: Ctrl or ⌘ `=` and `−`, Ctrl or ⌘ `0` for 100%, Ctrl or ⌘ Shift `1` for Fit.
   - Panning: the stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Scroll, hold Space and drag, or drag with the middle button. Wheel scrolling over the screen scrolls the screen first. Fit, 100%, Rotate and a new preset recentre it.
   - Canvas: Auto / Light / Dark for the canvas's own colours, separate from the screen's Light / Dark.
@@ -82,6 +82,7 @@ All fields are optional except `presets`.
 | `radius` | The screen corner radius. |
 | `window` | Window chrome for `frame: "window"`: `mac`, `windows` or `plain`. |
 | `split` | Split view: `{ width, height?, divider?, side?, snaps?, minWidth?, minOther? }`. `width` is the whole device and must be larger than the preset `width`, which is the app's share. Drag the divider, or focus it and use the arrow keys to step between `snaps`. `side` is `leading` or `trailing`. |
+| `windowControls` | The iPadOS window controls, drawn over the app's top-leading corner in the toolbar row below the status bar. `true`, `false`, or `{ width, height }` for the area they take (default 96 × 44). Defaults to on for a `tablet` frame with `platform: "ios"` and a `split`, because iPadOS 26 shows them in a window but not full screen. |
 | `minTarget` | The tap-target minimum for this preset. |
 
 ### Default size classes
@@ -138,10 +139,10 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 - **Size text in `rem`.** The Text 200% toggle doubles the root font size, so only `rem` text scales with it. The canvas chrome uses px, so it stays the same size.
 - **Size controls in px, text in `rem`.** Give hit areas, icons and gutters px sizes so 200% text grows the words, not the controls, and let rows wrap instead of truncating.
 - **Breakpoints:** keep window-class breakpoints (600, 840, 1200) in px. Write content-fit breakpoints (which table columns show, labels beside or above fields) in `rem`, such as `@container screen (width < 52.5rem)`, so they also fire at 200% text.
-- **Safe areas:** pad edges with `var(--uh-safe-top|right|bottom|left)`. These follow the preset and its rotation. `:host` sits outside the viewport that defines them, so declare tokens that use `--uh-safe-*` or `cqw`/`cqh` on `[data-screen]`, not on `:host`.
+- **Safe areas:** pad edges with `var(--uh-safe-top|right|bottom|left)`. These follow the preset and its rotation. Where the preset draws iPad window controls, `--uh-window-controls-width` and `--uh-window-controls-height` give the area they take below the top inset (both `0px` otherwise): indent the leading items of the first toolbar row by the width, such as `padding-inline-start: max(16px, var(--uh-window-controls-width))`, rather than pushing the whole toolbar down. `:host` sits outside the viewport that defines them, so declare tokens that use `--uh-safe-*` or `cqw`/`cqh` on `[data-screen]`, not on `:host`.
 - **Scrolling:** each `[data-screen]` is its own scroll container. With a sticky header or bottom bar, set `scroll-padding-top`/`scroll-padding-bottom` on it so focused controls scroll clear of the bar (WCAG 2.4.11). At short heights or 200% text, let sticky bars go static so they never cover most of the screen. Stack all bottom-fixed parts (tab bar, FAB, snackbar) in one container so they can't overlap.
 - **Colour:** use `light-dark(light, dark)` or the system colours (`Canvas`, `CanvasText`). The Light/Dark toggle sets `color-scheme` on the viewport, so both follow it. The viewport also carries `data-scheme="light|dark"` for selectors. Don't use `prefers-color-scheme`, which follows the viewer's OS instead of the toggle.
-- **Viewport attributes for selectors:** `data-width-class`, `data-height-class`, `data-orientation`, `data-frame`, `data-platform`, `data-scheme`, `data-state`, `data-text-scale`.
+- **Viewport attributes for selectors:** `data-width-class`, `data-height-class`, `data-orientation`, `data-frame`, `data-platform`, `data-scheme`, `data-state`, `data-text-scale`, and `data-window-controls` while the iPad window controls show.
 
 ### Behaviour
 
@@ -162,7 +163,7 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 | --- | --- |
 | `$(sel)`, `$$(sel)` | Query inside the screen. |
 | `root`, `viewport` | The shadow root and the element that holds the screen. |
-| `size` | `{ width, height, widthClass, heightClass, orientation, preset, resized, frame, split, scheme, platform, textScale, state, safeArea }`. |
+| `size` | `{ width, height, widthClass, heightClass, orientation, preset, resized, frame, split, scheme, platform, textScale, state, safeArea, windowControls }`. `windowControls` is `{ top, left, width, height }` in screen px, or `null` when none are drawn. |
 | `onResize(fn)` | Called now and on every size change. Returns an unsubscribe function. Change callbacks run on the next animation frame, so after `usePreset` or `setSize` wait two frames before reading the layout. |
 | `screen`, `navigate(id, {replace})`, `back()`, `onNavigate(fn)` | Navigation. `fn` gets `{ screen, from, depth }`. |
 | `state`, `setState(id)`, `onState(fn)` | Screen states. `onState` is called now and on every change. |
@@ -208,6 +209,7 @@ An artifact is one HTML file served with a strict Content Security Policy:
 - **Width and height classes:** Material Design 3, *Window size classes*, <https://m3.material.io/foundations/layout/applying-layout/window-size-classes>. Android Developers, *Use window size classes*, <https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes>.
 - **Apple size classes and safe areas:** Apple Human Interface Guidelines, *Layout*, <https://developer.apple.com/design/human-interface-guidelines/layout>.
 - **Split view:** Apple HIG, *Multitasking*, <https://developer.apple.com/design/human-interface-guidelines/multitasking>.
+- **iPad window controls:** Apple HIG, *Windows* (window controls at the toolbar's leading edge), <https://developer.apple.com/design/human-interface-guidelines/windows>. Apple publishes no frame for them; UIKit only offers corner-adapted margin guides, which are zero full screen (Apple Developer Forums, *How to get the frame or insets of the new iPadOS 26 window control buttons*, <https://developer.apple.com/forums/thread/790994>). So the drawn size is a typical value, like the safe areas: override it with `windowControls: { width, height }`.
 - **44pt minimum hit target:** Apple HIG, *Accessibility* ("a minimum tappable area of 44x44 pt"), <https://developer.apple.com/design/human-interface-guidelines/accessibility>.
 - **48dp minimum touch target:** Android Accessibility Help, *Touch target size*, <https://support.google.com/accessibility/android/answer/7101858>.
 - **Target size in WCAG:** W3C, *Understanding SC 2.5.8 Target Size (Minimum)*, AA, 24px with spacing and inline exceptions, <https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html>. W3C, *Understanding SC 2.5.5 Target Size (Enhanced)*, AAA, 44px, <https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html>. The canvas defaults to the stricter platform minimums.

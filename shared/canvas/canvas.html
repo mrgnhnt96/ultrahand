@@ -268,6 +268,29 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 .uh-statusbar[data-tone="light"] { color: #fff; }
 .uh-frame[data-kind="tablet"] .uh-statusbar { font-size: 12px; padding: 0 20px; }
 .uh-statusbar svg { height: 12px; width: auto; fill: currentColor; }
+/* iPadOS window controls: drawn over the app's top-leading corner, in the toolbar row
+   below the status bar, so a design can be checked for buttons that collide with them. */
+.uh-wincaps {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+.uh-wincaps span {
+  display: inline-flex;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgb(120 120 128 / 0.16);
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.12);
+}
+.uh-wincaps i { width: 11px; height: 11px; border-radius: 50%; }
+.uh-wincaps i:nth-child(1) { background: #ff5f57; }
+.uh-wincaps i:nth-child(2) { background: #febc2e; }
+.uh-wincaps i:nth-child(3) { background: #28c840; }
+.uh-wincaps[data-targets] { outline: 2px dashed #e5484d; outline-offset: -2px; }
 .uh-homebar {
   position: absolute;
   left: 50%; bottom: 8px;
@@ -449,6 +472,7 @@ body.uh-dragging .uh-host { pointer-events: none; }
             <span>9:41</span>
             <svg viewBox="0 0 46 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="22.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="24.5" y="2.5" width="14" height="7" rx="1.5"/><rect x="43.5" y="4" width="2" height="4" rx="1"/></svg>
           </div>
+          <div class="uh-wincaps" id="uh-wincaps" aria-hidden="true" hidden><span><i></i><i></i><i></i></span></div>
           <div class="uh-homebar" id="uh-homebar" aria-hidden="true"></div>
           <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
         </div>
@@ -471,7 +495,7 @@ body.uh-dragging .uh-host { pointer-events: none; }
     { "id": "phone-l", "label": "Large phone", "group": "Phone", "width": 430, "height": 932, "platform": "ios",
       "safeArea": { "top": 59, "bottom": 34, "landscapeSide": 59, "landscapeBottom": 21 } },
     { "id": "tablet", "label": "Tablet", "group": "Tablet", "width": 820, "height": 1180, "frame": "tablet", "safeArea": { "top": 24, "bottom": 20 } },
-    { "id": "tablet-half", "label": "Half split", "group": "Tablet", "width": 585, "height": 820, "frame": "tablet", "safeArea": { "top": 24, "bottom": 20 },
+    { "id": "tablet-half", "label": "Half split", "group": "Tablet", "width": 585, "height": 820, "frame": "tablet", "safeArea": { "top": 24, "bottom": 20 }, "platform": "ios",
       "split": { "width": 1180, "snaps": [375, 585, 795] } },
     { "id": "window", "label": "Window", "group": "Desktop", "width": 1024, "height": 700, "frame": "window", "window": "mac" }
   ],
@@ -585,7 +609,8 @@ body.uh-dragging .uh-host { pointer-events: none; }
     .app { grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "tabs main"; }
     .tabs {
       flex-direction: column;
-      padding: calc(16px + var(--uh-safe-top)) 8px 16px calc(8px + var(--uh-safe-left));
+      /* A rail starts below the iPad window controls, which take its top-leading corner. */
+      padding: calc(16px + var(--uh-safe-top) + var(--uh-window-controls-height)) 8px 16px calc(8px + var(--uh-safe-left));
       border-top: 0; border-right: 1px solid var(--rule);
     }
     .tab { flex: none; min-height: 56px; }
@@ -759,7 +784,7 @@ window.ultrahandSetup = function (canvas) {
     navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
-    divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'),
+    divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'), wincaps: byId('uh-wincaps'),
     toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets'),
     targetsResult: byId('uh-targets-result'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme')
   };
@@ -816,10 +841,10 @@ window.ultrahandSetup = function (canvas) {
 
   var st = {
     w: 390, h: 844, preset: null, resized: false, kind: defaultFrame,
-    baseSafe: { top: 0, right: 0, bottom: 0, left: 0 }, landscapeSafe: null, statusBar: false, homeBar: false,
+    baseSafe: { top: 0, right: 0, bottom: 0, left: 0 }, landscapeSafe: null, statusBar: false, homeBar: false, winControls: null,
     radius: null, windowStyle: 'plain', split: null, landscape: false, platform: '',
     scheme: cfg.scheme === 'dark' ? 'dark' : 'light', statusTone: 'auto',
-    textScale: 1, state: states.length ? states[0].id : null, showTargets: false, smallTargets: 0, minTarget: 44,
+    textScale: 1, state: states.length ? states[0].id : null, showTargets: false, smallTargets: 0, underControls: 0, minTarget: 44,
     zoom: 'fit', s: 1, flags: [], dragging: false, recenter: true
   };
 
@@ -1015,6 +1040,10 @@ window.ultrahandSetup = function (canvas) {
       if (p.split) report('Preset "' + p.id + '": split.width must be larger than width.');
       st.split = null;
     }
+    /* iPadOS 26 draws window controls in a window but not full screen, so they default
+       on for an iOS tablet in split view. Apple publishes no frame: the size is typical. */
+    var wc = p.windowControls != null ? p.windowControls : st.kind === 'tablet' && !!st.split && st.platform === 'ios';
+    st.winControls = wc ? Object.assign({ width: 96, height: 44 }, typeof wc === 'object' ? wc : {}) : null;
     setSize(p.width, st.split ? st.split.deviceH : p.height, 'preset');
   }
   function rotate() {
@@ -1045,7 +1074,10 @@ window.ultrahandSetup = function (canvas) {
       orientation: st.w > st.h ? 'landscape' : 'portrait',
       preset: st.preset ? st.preset.id : null, resized: st.resized,
       frame: st.kind, split: !!st.split, scheme: st.scheme, platform: st.platform,
-      textScale: st.textScale, state: st.state, safeArea: Object.assign({}, safe())
+      textScale: st.textScale, state: st.state, safeArea: Object.assign({}, safe()),
+      windowControls: st.winControls
+        ? { top: safe().top, left: 0, width: st.winControls.width, height: st.winControls.height }
+        : null
     };
   }
   /* Count hit areas under the minimum, in screen px (undo the zoom). */
@@ -1057,15 +1089,18 @@ window.ultrahandSetup = function (canvas) {
     targetsQueued = true;
     requestAnimationFrame(function () {
       targetsQueued = false;
-      var n = 0;
+      var n = 0, under = 0;
+      var caps = el.wincaps.hidden ? null : el.wincaps.getBoundingClientRect();
       Array.prototype.forEach.call(viewport.querySelectorAll(TARGETS), function (t) {
         var r = t.getBoundingClientRect();
+        if (caps && r.width > 0 && r.height > 0 && r.left < caps.right && r.right > caps.left && r.top < caps.bottom && r.bottom > caps.top) under++;
         var w = r.width / st.s, h = r.height / st.s;
         var small = w > 0 && h > 0 && !t.hasAttribute('data-uh-ignore-target') && (w < st.minTarget - 0.5 || h < st.minTarget - 0.5);
         if (small && st.showTargets) t.setAttribute('data-uh-small', ''); else t.removeAttribute('data-uh-small');
         if (small) n++;
       });
       st.smallTargets = n;
+      st.underControls = under;
       showFlags();
     });
   }
@@ -1077,7 +1112,9 @@ window.ultrahandSetup = function (canvas) {
     el.targetsResult.textContent = n
       ? n + (n === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px'
       : 'all ≥ ' + st.minTarget + 'px';
-    if (n) el.targetsResult.dataset.bad = ''; else delete el.targetsResult.dataset.bad;
+    var u = st.underControls;
+    if (u) el.targetsResult.textContent += ', ' + u + ' under window controls';
+    if (n || u) el.targetsResult.dataset.bad = ''; else delete el.targetsResult.dataset.bad;
   }
   function notify() {
     if (notifyQueued) return;
@@ -1139,6 +1176,19 @@ window.ultrahandSetup = function (canvas) {
     el.statusbar.hidden = !showStatus;
     el.statusbar.dataset.tone = tone;
     el.statusbar.style.height = sa.top + 'px';
+    var wcr = info.windowControls;
+    el.wincaps.hidden = !wcr;
+    if (wcr) {
+      /* The app's leading edge: the device's left, or past the other app and divider. */
+      el.wincaps.style.left = (sp && sp.side === 'trailing' ? sp.deviceW - st.w : 0) + 'px';
+      el.wincaps.style.top = wcr.top + 'px';
+      el.wincaps.style.width = wcr.width + 'px';
+      el.wincaps.style.height = wcr.height + 'px';
+    }
+    if (st.showTargets && wcr) el.wincaps.dataset.targets = ''; else delete el.wincaps.dataset.targets;
+    viewport.style.setProperty('--uh-window-controls-width', (wcr ? wcr.width : 0) + 'px');
+    viewport.style.setProperty('--uh-window-controls-height', (wcr ? wcr.height : 0) + 'px');
+    if (wcr) viewport.dataset.windowControls = ''; else delete viewport.dataset.windowControls;
     el.homebar.hidden = !st.homeBar;
     el.homebar.dataset.tone = tone;
     el.area.style.setProperty('--uh-toast-bottom', (sa.bottom || 0) + 'px');
