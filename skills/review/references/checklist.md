@@ -73,6 +73,14 @@ A composition finding names the section (or the screen), what the eye or the aud
 the rule, and a concrete reorganisation: which groups, in what order, which members move
 to a menu, which emphasis stays. "Clean it up" is not a fix.
 
+**Report the surface, not the pieces.** When several of these checks fail on the same
+surface (too many groups, no spacing rhythm, emphasis everywhere, mixed styles, a fact
+shown twice), the problem people feel is that the surface is disorganised. Write one
+finding for that surface, rate it by the combined effect (see the severity guide: a
+primary surface is 3 Major), list each failed check as evidence under it, and give one
+reorganisation that fixes them together. Report a check separately only when it stands
+alone.
+
 ## Pass 3: Control by control
 
 Every control in the inventory:

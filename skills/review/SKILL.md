@@ -143,7 +143,9 @@ Don't report 0s. A WCAG AA failure is never below 2.
 ## 6. Report
 
 Lead with a one-paragraph verdict: the platform, the sizes reviewed, the evidence you had,
-the counts by severity, and the top problem. Then list the findings, highest severity first
+the first impression (what the blurred screen shows, and whether the screen reads as
+organised or cluttered), the counts by severity, and the top problem. Weigh a disorganised
+primary surface against bugs on equal terms: it slows every use, not just one path. Then list the findings, highest severity first
 and in flow order within a severity, using the template in the checklist:
 
 - **ID and severity**, e.g. `R3 · 3 Major`
