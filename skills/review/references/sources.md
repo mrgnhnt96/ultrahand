@@ -68,3 +68,14 @@ All W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*. Each key links to it
 | --- | --- |
 | HIG-MACOS | Apple, *HIG: Designing for macOS* (large displays: more content, fewer nested levels, less modality; resizable windows and full screen; every command in the menu bar; keyboard shortcuts; precise pointer). https://developer.apple.com/design/human-interface-guidelines/designing-for-macos |
 | MS-KBD | Microsoft, *Keyboard interactions*, Windows apps, updated September 2026 (logical tab order, initial focus never on a destructive action, arrow keys inside groups, Esc cancels transient UI, F6 between panes, accelerators and access keys, common shortcuts). https://learn.microsoft.com/en-us/windows/apps/develop/input/keyboard-interactions |
+
+## Controls, scrolling and panning
+
+| Key | Source |
+| --- | --- |
+| HIG-SEGMENTED | Apple, *HIG: Segmented controls* ("Limit the number of segments in a control. Too many segments can be hard to parse and time-consuming to navigate. Aim for no more than about five to seven segments in a wide interface and no more than about five segments on iPhone"). https://developer.apple.com/design/human-interface-guidelines/segmented-controls |
+| AND-SEGMENTED | Android Developers, *Segmented button* (Compose, Material 3): a multi-select segmented button holds two to five items; for more, use chips. https://developer.android.com/develop/ui/compose/components/segmented-button |
+| NNG-LISTBOX | Anna Kaley, *Listboxes vs. Dropdown Lists*, Nielsen Norman Group, 2020 (radio buttons for small sets of about five or fewer; with many options a listbox, or a dropdown where space is limited). https://www.nngroup.com/articles/listbox-dropdown/ |
+| NNG-DROPDOWN | Angie Li, *Dropdowns: Design Guidelines*, Nielsen Norman Group, 2017 (a dropdown hides its options; very long ones that scroll can't be scanned at a glance; don't use one where typing is faster). https://www.nngroup.com/articles/drop-down-menus/ |
+| HIG-SCROLL | Apple, *HIG: Scroll views* ("Avoid putting a scroll view inside another scroll view with the same orientation"; support the default scrolling gestures and keyboard shortcuts, which people expect to work everywhere; set maximum and minimum zoom scales). https://developer.apple.com/design/human-interface-guidelines/scroll-views |
+| MDN-OVERSCROLL | MDN, *overscroll-behavior* (scroll chaining: at a scroller's boundary the scroll passes to the one beneath; `contain` stops it, for dialogs and overlays whose background shouldn't move). Specified in W3C, *CSS Overscroll Behavior Module Level 1*. https://developer.mozilla.org/en-US/docs/Web/CSS/overscroll-behavior |
