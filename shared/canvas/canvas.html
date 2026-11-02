@@ -257,6 +257,8 @@ button, input, select { font: inherit; color: inherit; }
 .uh-area[data-split] .uh-divider { display: block; }
 .uh-area[data-split] .uh-other { display: grid; }
 
+/* Chrome toggled with the hidden attribute must stay hidden despite its display rule. */
+.uh-statusbar[hidden], .uh-homebar[hidden] { display: none; }
 .uh-statusbar {
   position: absolute;
   left: 0; right: 0; top: 0;
