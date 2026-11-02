@@ -31,7 +31,26 @@ Ask only for what you can't infer. Settle these before drawing:
 Read `references/principles.md` and `references/presets.md` before you design. Use the
 platform's own patterns (tab bar, navigation stack, sheets) rather than inventing new ones.
 
-## 3. Build the canvas artifact
+## 3. Compose the screen
+
+Components that each pass their checks can still add up to a messy screen. Before you
+build, plan how they form sections and how the sections form the screen, using the
+plugin's composition rules in
+[shared/composition/principles.md](../../shared/composition/principles.md):
+
+- **Write the section map.** For each screen list its sections (a navigation bar, the content, a primary action and a tab bar), each one's single
+  job, its members ordered by how often they're used, and its one emphasis. Say what is
+  primary content and what is chrome: the content dominates and the chrome recedes.
+- **Group with space.** Gaps inside a group are clearly smaller than gaps between groups;
+  add a container only when space can't show the group.
+- **One look per role, one emphasis per section.** Same role, same style; status and labels
+  never look like buttons; the strong accent goes to one thing per section, and selected
+  states use a quieter treatment.
+- **Keep it small.** About three type sizes, one fact in one place, frequent members in
+  view and rare ones behind a menu. When a change adds something, reorganise first and
+  add only what earns its place.
+
+## 4. Build the canvas artifact
 
 Build on the plugin's shared resizable canvas (`shared/canvas/`; its `README.md` has the full
 contract). Write the screen as `screen.html` and the design's own settings as `config.json`
@@ -73,7 +92,7 @@ Checks.
 - Make the main flow clickable: tabs switch, rows push, and sheets open and close. Draw
   sheets and dialogs in the screen; never use `alert`, `confirm` or `prompt`.
 
-## 4. Design every preset
+## 5. Design every preset
 
 For each screen, work through `small`, then `medium`, then `large`, then each in
 landscape. Fix each problem at the size where it appears:
@@ -86,9 +105,27 @@ landscape. Fix each problem at the size where it appears:
 
 Then do a quick pass at the 320-wide reflow check.
 
-## 5. Self-check before you present
+## 6. Self-check before you present
 
 Go through every item. Fix any failure, or name it and say why it's acceptable.
+
+**Composition** (run the composition audit,
+`node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs" do "${CLAUDE_PLUGIN_ROOT}/shared/composition/audit.mjs"`,
+at the largest and smallest size, or check by eye):
+
+- [ ] Blurred, the screen shows the intended sections, and the primary content draws the eye
+      first. No unintended bright spot.
+- [ ] Each section has one job, its members grouped by function and frequency, with gaps
+      between groups clearly larger than gaps within them.
+- [ ] Each section has at most one strongly emphasised element; selected states are quiet.
+- [ ] One style per role: count the control styles in each section and justify any extra.
+      No label or status looks like a button.
+- [ ] Rows and sections align to shared edges; about three type sizes on the screen.
+- [ ] No fact shown twice, and nothing on screen that doesn't serve a task here.
+- [ ] After a round of changes: list what it added; the screen is no busier than it needs
+      to be.
+
+**Components and platform:**
 
 - [ ] Tap targets are at least 44 × 44 pt (iOS) or 48 × 48 dp (Android), with spacing, and
       never below 24 × 24.
@@ -115,8 +152,8 @@ Go through every item. Fix any failure, or name it and say why it's acceptable.
       indicator for its duration.
 - [ ] The design works at 320 wide without horizontal scrolling, and in landscape.
 
-## 6. Present
+## 7. Present
 
-Share the artifact link. In a few lines, state the key decisions and the principle behind
-each (cite the source key), any self-check item you accepted with a reason, and any open
-questions.
+Share the artifact link. In a few lines, state the section map (each section's job and
+emphasis), the key decisions and the principle behind each (cite the source key), any
+self-check item you accepted with a reason, and any open questions.

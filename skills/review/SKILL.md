@@ -59,9 +59,9 @@ Write these down before you judge anything; a finding only makes sense against t
   can't infer it; a review without a task becomes a list of opinions.
 - **Product or tool:** a design for end users, or a tool built for the owner (the canvas
   itself, an editor, a viewer). A tool is a desktop app used in a browser window of any
-  size: review it with the desktop rules and pass 7. Its chrome gets the pass 6 checks
-  that pass 7 lists (window sizes, browser zoom, its own themes), not the design's
-  presets.
+  size: review it with the desktop rules and pass 8. Its chrome gets the pass 7 checks
+  that pass 8 lists (window sizes, browser zoom, its own themes), not the design's
+  presets, and the composition pass like any screen.
 
 Pick the platform rules by **window size class and input**, not by device name: compact
 touch → mobile principles; medium and expanded touch, or any split → tablet; a pointer and
@@ -69,10 +69,15 @@ keyboard window → desktop. A responsive design gets all the sets its sizes cov
 
 ## 3. Inventory the design
 
-List every screen and state, every flow between screens, and every interactive control on
-each screen (buttons, links, fields, toggles, tabs, menus, gestures, drag targets). The
-inventory is the review's coverage: a control you didn't list is a control you didn't
-check.
+List every screen and state, every flow between screens, the **sections** of each screen
+(toolbars and their groups, panes, pane headers, form groups, cards, lists, bars), and
+every interactive control in each section (buttons, links, fields, toggles, tabs, menus,
+gestures, drag targets). The inventory is the review's coverage: a section or control you
+didn't list is one you didn't check.
+
+**Review at three levels:** the whole screen, each section, and each component. A screen
+whose every control passes can still be cluttered, unordered and confusing; that is a
+finding in its own right, not polish.
 
 ## 4. Inspect in passes
 
@@ -102,14 +107,19 @@ clicks and keys. Script is only for setting up a view and reading state afterwar
 
 1. **Task walkthrough:** for each flow, ask the four cognitive walkthrough questions at
    every step.
-2. **Control by control:** every control in the inventory against the control checks.
-3. **Heuristics:** each screen against Nielsen's 10.
-4. **Accessibility:** WCAG 2.2 AA. Compute contrast; don't eyeball it.
-5. **Platform:** the rules for the platform and size class from step 2.
-6. **Resize and variants:** every preset, the split widths, 320-wide reflow, 200% text,
+2. **Composition:** each screen as a whole, then each section, against the composition
+   rules ([shared/composition/principles.md](../../shared/composition/principles.md)).
+   Run its audit at the largest and smallest size and read the blurred screenshot first,
+   before you look at any one control. When reviewing a revision, also compare it with
+   the previous version: what did the round add, and is the screen busier for it?
+3. **Control by control:** every control in the inventory against the control checks.
+4. **Heuristics:** each screen against Nielsen's 10.
+5. **Accessibility:** WCAG 2.2 AA. Compute contrast; don't eyeball it.
+6. **Platform:** the rules for the platform and size class from step 2.
+7. **Resize and variants:** every preset, the split widths, 320-wide reflow, 200% text,
    dark mode, each data state, and on touch devices both orientations and the keyboard up
    (desktop windows don't rotate: check the minimum, maximum and short window instead).
-7. **Tools:** for a tool built for the owner, the work stays in view at every window size,
+8. **Tools:** for a tool built for the owner, the work stays in view at every window size,
    the stage pans past its edges, zoom has limits, and shortcuts and drags behave.
 
 Record a problem the moment you see it, with where you saw it (screen › element, plus the
@@ -133,11 +143,14 @@ Don't report 0s. A WCAG AA failure is never below 2.
 ## 6. Report
 
 Lead with a one-paragraph verdict: the platform, the sizes reviewed, the evidence you had,
-the counts by severity, and the top problem. Then list the findings, highest severity first
+the first impression (what the blurred screen shows, and whether the screen reads as
+organised or cluttered), the counts by severity, and the top problem. Weigh a disorganised
+primary surface against bugs on equal terms: it slows every use, not just one path. Then list the findings, highest severity first
 and in flow order within a severity, using the template in the checklist:
 
 - **ID and severity**, e.g. `R3 · 3 Major`
-- **Element:** screen › element, and the size, scheme or state where it shows
+- **Element:** screen › section › element (or screen › section, or the whole screen, for
+  a composition finding), and the size, scheme or state where it shows
 - **Evidence:** Confirmed or Likely
 - **Problem:** what goes wrong for the user, in one or two sentences
 - **Principle:** the rule it breaks, with its source key (`WCAG 1.4.3`, `NNG-H4`,
