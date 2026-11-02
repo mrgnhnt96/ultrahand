@@ -59,7 +59,9 @@ Write these down before you judge anything; a finding only makes sense against t
   can't infer it; a review without a task becomes a list of opinions.
 - **Product or tool:** a design for end users, or a tool built for the owner (the canvas
   itself, an editor, a viewer). A tool is a desktop app used in a browser window of any
-  size: review it with the desktop rules and pass 7.
+  size: review it with the desktop rules and pass 7. Its chrome gets the pass 6 checks
+  that pass 7 lists (window sizes, browser zoom, its own themes), not the design's
+  presets.
 
 Pick the platform rules by **window size class and input**, not by device name: compact
 touch → mobile principles; medium and expanded touch, or any split → tablet; a pointer and
@@ -91,6 +93,9 @@ clicks and keys. Script is only for setting up a view and reading state afterwar
 - At each size, list the controls (`controls`), then use every one as its kind is meant to
   be used: click or tap, type, drag and cancel with Esc, right-click, open and close with
   the keyboard, and wheel or swipe over every scroller past its end.
+- A few native controls can't be driven with trusted input headless: a select's popup,
+  file pickers, and colour and date pickers. Choose a select's option with the driver's
+  `choose` step, and list the rest under *Not checked*.
 - Read each result: a control that is `covered`, out of view with no way to reach it, or
   missing at one size; a `scrolled` that shows the wheel trapped; focus lost to `body`;
   page errors. Each is a finding at that size.

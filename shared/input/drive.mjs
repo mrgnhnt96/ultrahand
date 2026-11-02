@@ -4,21 +4,39 @@
 // scroll chaining, unlike synthetic dispatchEvent calls. Zero dependencies; Node 22+.
 //
 //   node drive.mjs open <url> [--size 1280x800] [--port 9333] [--headed] [--chrome <path>]
-//   node drive.mjs do <steps.json | '<json>' | -> [--port 9333] [--out <dir>]
+//   node drive.mjs do <steps.json | steps.mjs | '<json>' | -> [--port 9333] [--out <dir>]
 //   node drive.mjs close [--port 9333]
-//   node drive.mjs run <url> <steps.json | '<json>'> [--size 1280x800] [--out <dir>]
+//   node drive.mjs run <url> <steps.json | steps.mjs | '<json>'> [--size 1280x800] [--out <dir>]
 //
 // See README.md for the step list and what each result reports.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
-const VERSION = 3;
-const MODS = { Alt: 1, Ctrl: 2, Control: 2, Meta: 4, Cmd: 4, Shift: 8 };
+const VERSION = 4;
+const MAC = process.platform === 'darwin';
+// Mod is the platform's command key: Cmd on macOS, Ctrl elsewhere.
+const MODS = { Alt: 1, Option: 1, Ctrl: 2, Control: 2, Meta: 4, Cmd: 4, Shift: 8, Mod: MAC ? 4 : 2 };
+// On macOS, Chrome turns editing shortcuts into editor commands in the browser process, so
+// a raw CDP key event with Cmd held does nothing to a text field. Send the command with the
+// key, as the real keyboard does. Keyed by modifier bits (Alt 1, Ctrl 2, Cmd 4, Shift 8).
+const MAC_COMMANDS = {
+  '4+a': 'selectAll', '4+c': 'copy', '4+x': 'cut', '4+v': 'paste', '4+z': 'undo',
+  '12+z': 'redo', '4+ArrowLeft': 'moveToBeginningOfLine', '4+ArrowRight': 'moveToEndOfLine',
+  '12+ArrowLeft': 'moveToBeginningOfLineAndModifySelection',
+  '12+ArrowRight': 'moveToEndOfLineAndModifySelection',
+  '4+ArrowUp': 'moveToBeginningOfDocument', '4+ArrowDown': 'moveToEndOfDocument',
+  '12+ArrowUp': 'moveToBeginningOfDocumentAndModifySelection',
+  '12+ArrowDown': 'moveToEndOfDocumentAndModifySelection',
+  '1+ArrowLeft': 'moveWordLeft', '1+ArrowRight': 'moveWordRight',
+  '9+ArrowLeft': 'moveWordLeftAndModifySelection', '9+ArrowRight': 'moveWordRightAndModifySelection',
+  '4+Backspace': 'deleteToBeginningOfLine', '1+Backspace': 'deleteWordBackward',
+  '1+Delete': 'deleteWordForward',
+};
 const BUTTONS = { none: 0, left: 1, right: 2, middle: 4 };
 const NAMED_KEYS = {
   Tab: [9, 'Tab'], Enter: [13, 'Enter', '\r'], Escape: [27, 'Escape'], Esc: [27, 'Escape'],
@@ -27,7 +45,8 @@ const NAMED_KEYS = {
   ArrowDown: [40, 'ArrowDown'], Home: [36, 'Home'], End: [35, 'End'], PageUp: [33, 'PageUp'],
   PageDown: [34, 'PageDown'], ContextMenu: [93, 'ContextMenu'], Shift: [16, 'ShiftLeft'],
   Control: [17, 'ControlLeft'], Ctrl: [17, 'ControlLeft'], Alt: [18, 'AltLeft'],
-  Meta: [91, 'MetaLeft'], Cmd: [91, 'MetaLeft'],
+  Option: [18, 'AltLeft'], Meta: [91, 'MetaLeft'], Cmd: [91, 'MetaLeft'],
+  Mod: MAC ? [91, 'MetaLeft'] : [17, 'ControlLeft'],
 };
 for (let n = 1; n <= 12; n++) NAMED_KEYS[`F${n}`] = [111 + n, `F${n}`];
 const PUNCT = {
@@ -169,15 +188,80 @@ async function launch(url, opts) {
   const child = spawn(findChrome(opts.chrome), args, { detached: true, stdio: 'ignore' });
   child.unref();
   await waitForPort(port);
+  rmSync(stateFile(port), { force: true });
   const cdp = await Cdp.connect(await pageSocket(port));
-  await setViewport(cdp, w, h);
+  const sized = await applySize(cdp, port, w, h);
   await navigate(cdp, toUrl(url));
   cdp.close();
-  return { port, pid: child.pid, url: toUrl(url), size: [w, h] };
+  return { port, pid: child.pid, url: toUrl(url), ...sized };
 }
 
-// Sizes the real browser window so the viewport is width x height. A device-metrics
-// override would end with this connection; window bounds stay for the next `do`.
+// Per-port state shared by `do` calls: the size a `hold` process is keeping.
+const stateFile = (port) => join(tmpdir(), `ultrahand-drive-${port}.json`);
+
+function readState(port) {
+  try {
+    return JSON.parse(readFileSync(stateFile(port), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+// Ends a held size: the hold process sees its token gone and disconnects, which drops its
+// device-metrics override.
+async function releaseSize(port) {
+  if (!readState(port).token) return;
+  rmSync(stateFile(port), { force: true });
+  await sleep(300);
+}
+
+// Sizes the viewport. The real window is used when it can reach the size, and it stays for
+// later `do` calls. Below the window's minimum (about 500px wide headless) a device-metrics
+// override is needed, and CDP drops an override when its connection closes, so a small
+// `hold` process keeps one open until the next size step or `close`.
+async function applySize(cdp, port, width, height) {
+  await releaseSize(port);
+  const actual = await setViewport(cdp, width, height);
+  if (actual[0] === width && actual[1] === height) return { size: actual };
+  const token = `${process.pid}-${Date.now()}`;
+  writeFileSync(stateFile(port), JSON.stringify({ token, size: [width, height] }));
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'hold', `${width}x${height}`,
+    '--port', String(port), '--token', token], { detached: true, stdio: 'ignore' });
+  child.unref();
+  const end = Date.now() + 5000;
+  while (Date.now() < end) {
+    await sleep(100);
+    const [iw, ih] = await viewportSize(cdp);
+    if (iw === width && ih === height) {
+      return { size: [width, height], emulated: `the window stops at ${actual.join('x')}, so this `
+        + 'size is a device-metrics override. It holds across do calls until the next size step or close.' };
+    }
+  }
+  await releaseSize(port);
+  throw new Error(`Could not emulate ${width}x${height}; the window stops at ${actual.join('x')}`);
+}
+
+async function hold(port, size, token) {
+  const [width, height] = parseSize(size);
+  const cdp = await Cdp.connect(await pageSocket(port));
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  cdp.ws.addEventListener('close', () => process.exit(0));
+  setInterval(() => {
+    if (readState(port).token !== token) {
+      cdp.close();
+      process.exit(0);
+    }
+  }, 100);
+}
+
+async function viewportSize(cdp) {
+  const { result } = await cdp.send('Runtime.evaluate', {
+    expression: '[innerWidth, innerHeight]', returnByValue: true,
+  });
+  return result.value;
+}
+
+// Sizes the real browser window so the viewport is width x height, as near as it can.
 async function setViewport(cdp, width, height) {
   const { windowId } = await cdp.send('Browser.getWindowForTarget');
   await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } });
@@ -185,17 +269,11 @@ async function setViewport(cdp, width, height) {
   for (let i = 0; i < 3; i++) {
     await cdp.send('Browser.setWindowBounds', { windowId, bounds: outer });
     await sleep(100);
-    const { result } = await cdp.send('Runtime.evaluate', {
-      expression: '[innerWidth, innerHeight]', returnByValue: true,
-    });
-    const [iw, ih] = result.value;
+    const [iw, ih] = await viewportSize(cdp);
     if (iw === width && ih === height) return [iw, ih];
     outer = { width: outer.width + width - iw, height: outer.height + height - ih };
   }
-  const { result } = await cdp.send('Runtime.evaluate', {
-    expression: '[innerWidth, innerHeight]', returnByValue: true,
-  });
-  return result.value;
+  return viewportSize(cdp);
 }
 
 async function navigate(cdp, url) {
@@ -306,7 +384,7 @@ const PAGE_HELPERS = `(() => {
   window.__uhDrive = {
     version: ${VERSION},
     refs: window.__uhDrive?.refs || [],
-    desc, deepActive, deepHit,
+    desc, deepActive, deepHit, resolve,
     point(target) {
       const el = resolve(target);
       let box = clipRect(el);
@@ -324,6 +402,30 @@ const PAGE_HELPERS = `(() => {
         hit: !!top && contains(el, top), topmost: desc(top), scrolledIntoView: scrolled };
     },
     at(x, y) { return desc(deepHit(x, y)); },
+    selectInfo(target, by, want) {
+      const el = resolve(target);
+      if (el.localName !== 'select') {
+        throw new Error('choose needs a native <select>, and ' + desc(el) + ' is not one: drive a custom listbox with click and key steps');
+      }
+      const opts = [...el.options];
+      const w = clean(want).toLowerCase();
+      const i = by === 'value' ? opts.findIndex((o) => o.value === want)
+        : [(o) => clean(o.text).toLowerCase() === w, (o) => clean(o.text).toLowerCase().includes(w)]
+          .map((f) => opts.findIndex(f)).find((n) => n >= 0) ?? -1;
+      return { target: desc(el), index: i, text: i >= 0 ? clean(opts[i].text) : null,
+        value: i >= 0 ? opts[i].value : null, current: el.selectedIndex,
+        focused: deepActive() === el, multiple: el.multiple,
+        disabled: el.disabled || (i >= 0 && opts[i].disabled),
+        options: opts.slice(0, 40).map((o) => clean(o.text)) };
+    },
+    focusEl(target) { resolve(target).focus(); },
+    selectedIndex(target) { return resolve(target).selectedIndex; },
+    forceSelect(target, i) {
+      const el = resolve(target);
+      el.selectedIndex = i;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    },
     focus() { return desc(deepActive()); },
     scrollSnapshot() {
       return scrollers().map((el) => ({ el, top: el.scrollTop, left: el.scrollLeft }));
@@ -348,9 +450,10 @@ const PAGE_HELPERS = `(() => {
 })()`;
 
 class Driver {
-  constructor(cdp, outDir) {
+  constructor(cdp, outDir, port) {
     this.cdp = cdp;
     this.outDir = outDir;
+    this.port = port;
     this.errors = [];
     this.mouse = { x: 0, y: 0 };
     cdp.on((method, p) => {
@@ -369,9 +472,12 @@ class Driver {
 
   async js(expr, arg) {
     await this.cdp.send('Runtime.evaluate', { expression: PAGE_HELPERS });
-    const expression = `(${expr})(${arg === undefined ? '' : JSON.stringify(arg)})`;
+    return this.evaluate(`(${expr})(${arg === undefined ? '' : JSON.stringify(arg)})`);
+  }
+
+  async evaluate(expression, extra = {}) {
     const res = await this.cdp.send('Runtime.evaluate', {
-      expression, returnByValue: true, awaitPromise: true,
+      expression, returnByValue: true, awaitPromise: true, ...extra,
     });
     if (res.exceptionDetails) {
       throw new Error(res.exceptionDetails.exception?.description?.split('\n')[0] || res.exceptionDetails.text);
@@ -404,6 +510,7 @@ class Driver {
     const { key, mods } = parseCombo(combo);
     const modifiers = mods.reduce((m, k) => m | MODS[k], 0);
     const [code, keyName, codeName, text] = keyInfo(key, mods.includes('Shift'));
+    const command = macCommand(modifiers, key);
     for (let i = 0; i < repeat; i++) {
       if (down) {
         for (const m of mods) await this.cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...modKey(m), modifiers });
@@ -411,6 +518,7 @@ class Driver {
         await this.cdp.send('Input.dispatchKeyEvent', {
           type: sendsText ? 'keyDown' : 'rawKeyDown', key: keyName, code: codeName,
           windowsVirtualKeyCode: code, modifiers, ...(sendsText ? { text, unmodifiedText: text } : {}),
+          ...(command ? { commands: [command] } : {}),
         });
       }
       if (up) {
@@ -425,7 +533,7 @@ class Driver {
   async step(step) {
     const verb = Object.keys(step).find((k) => VERBS.includes(k));
     if (!verb) throw new Error(`Unknown step ${JSON.stringify(step)}. Steps: ${VERBS.join(', ')}`);
-    const before = ['wheel', 'drag', 'key', 'touchScroll', 'click'].includes(verb)
+    const before = ['wheel', 'drag', 'key', 'touchScroll', 'click', 'choose'].includes(verb)
       ? await this.js('() => { const s = __uhDrive.scrollSnapshot(); window.__uhSnap = s; return s.length; }')
       : null;
     const result = await this[`do_${verb}`](step[verb], step);
@@ -444,15 +552,9 @@ class Driver {
   }
 
   async do_size([width, height]) {
-    const actual = await setViewport(this.cdp, width, height);
+    const result = await applySize(this.cdp, this.port, width, height);
     await sleep(150);
-    if (actual[0] === width && actual[1] === height) return { size: actual };
-    await this.cdp.send('Emulation.setDeviceMetricsOverride', {
-      width, height, deviceScaleFactor: 1, mobile: false,
-    });
-    await sleep(150);
-    return { size: [width, height], warning: `the window stops at ${actual.join('x')}, so `
-      + `${width}x${height} is emulated and lasts only for this do call: put the steps for this size in it` };
+    return result;
   }
 
   async do_goto(url) {
@@ -517,7 +619,9 @@ class Driver {
   async do_key(combo, step) {
     await this.key(combo, { repeat: step.repeat || 1 });
     await sleep(30);
-    return { key: combo };
+    const { key, mods } = parseCombo(combo);
+    const command = macCommand(mods.reduce((m, k) => m | MODS[k], 0), key);
+    return command ? { key: combo, command } : { key: combo };
   }
 
   async do_type(text) {
@@ -577,8 +681,56 @@ class Driver {
     return { count: controls.length, controls };
   }
 
-  async do_eval(expr) {
-    return { value: await this.js(`async () => (${expr})`) };
+  // An expression, or statements like the console: the value is the last statement's
+  // (top-level await works, and so does an explicit return).
+  async do_eval(code) {
+    await this.cdp.send('Runtime.evaluate', { expression: PAGE_HELPERS });
+    const asExpr = `(async () => (${code}))()`;
+    const compiled = await this.cdp.send('Runtime.compileScript', {
+      expression: asExpr, sourceURL: 'eval', persistScript: false,
+    });
+    if (!compiled.exceptionDetails) return { value: await this.evaluate(asExpr) };
+    try {
+      return { value: await this.evaluate(code, { replMode: true }) };
+    } catch (err) {
+      if (!/Illegal return/.test(err.message)) throw err;
+      return { value: await this.evaluate(`(async () => {\n${code}\n})()`) };
+    }
+  }
+
+  // Picks an option of a native <select>. It types the option's text into the focused,
+  // closed select (type-ahead, real key events), which works headless on every platform,
+  // unlike the arrow keys and the popup. If that doesn't select it, it sets the value and
+  // fires input and change, and says so: that part is not real input.
+  async do_choose(target, step) {
+    const by = step.value !== undefined ? 'value' : 'text';
+    const want = String(step.value ?? step.text ?? '');
+    if (step.value === undefined && step.text === undefined) throw new Error('choose needs "value" or "text"');
+    const info = await this.js('(a) => __uhDrive.selectInfo(...a)', [target, by, want]);
+    const out = { target: info.target, chose: info.text, value: info.value };
+    if (info.index < 0) throw new Error(`No option with ${by} ${JSON.stringify(want)} in ${info.target}. Options: ${info.options.join(' | ')}`);
+    if (info.disabled) throw new Error(`${info.target} or its option ${JSON.stringify(info.text)} is disabled`);
+    if (info.index === info.current) return { ...out, input: 'none', note: 'already selected' };
+    if (!info.multiple) {
+      if (!info.focused) {
+        await this.js('(t) => __uhDrive.focusEl(t)', target);
+        out.focusedBy = 'script';
+      }
+      // Type-ahead joins keys less than a second apart, so pause after the last choose.
+      await sleep(Math.max(0, (this.typedAheadAt ?? 0) + 1100 - Date.now()));
+      for (const ch of info.text) {
+        await this.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', text: ch, unmodifiedText: ch, key: ch });
+        await this.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: ch });
+      }
+      this.typedAheadAt = Date.now();
+      await sleep(50);
+      if (await this.js('(t) => __uhDrive.selectedIndex(t)', target) === info.index) {
+        return { ...out, input: 'keyboard' };
+      }
+    }
+    await this.js('(a) => __uhDrive.forceSelect(...a)', [target, info.index]);
+    return { ...out, input: 'script', warning: 'not real input: type-ahead did not select it, so the '
+      + 'value was set by script with input and change events. Check the select by hand.' };
   }
 
   async do_wait(ms) {
@@ -608,7 +760,7 @@ class Driver {
   }
 }
 
-const VERBS = ['size', 'goto', 'click', 'hover', 'drag', 'wheel', 'key', 'type', 'tap',
+const VERBS = ['size', 'goto', 'click', 'hover', 'drag', 'wheel', 'key', 'type', 'choose', 'tap',
   'touchScroll', 'pinch', 'controls', 'eval', 'wait', 'shot'];
 
 function parseCombo(combo) {
@@ -619,9 +771,14 @@ function parseCombo(combo) {
   return { key, mods: parts };
 }
 
+function macCommand(modifiers, key) {
+  return MAC ? MAC_COMMANDS[`${modifiers}+${/^[a-z]$/i.test(key) ? key.toLowerCase() : key}`] : undefined;
+}
+
 function modKey(m) {
   const [code, codeName] = NAMED_KEYS[m];
-  return { key: m === 'Ctrl' ? 'Control' : m === 'Cmd' ? 'Meta' : m, code: codeName, windowsVirtualKeyCode: code };
+  const key = { Ctrl: 'Control', Cmd: 'Meta', Option: 'Alt', Mod: MAC ? 'Meta' : 'Control' }[m] || m;
+  return { key, code: codeName, windowsVirtualKeyCode: code };
 }
 
 function keyInfo(key, shift) {
@@ -640,8 +797,17 @@ function keyInfo(key, shift) {
   return [code, key === '−' ? '-' : key, codeName, key === '−' ? '-' : key];
 }
 
-function readSteps(arg) {
+// Steps are JSON (a file, inline, or `-` for stdin), or a .mjs/.js file whose default
+// export is an array of steps or an async function given one method per verb.
+async function readSteps(arg) {
   if (!arg) fail('No steps given');
+  if (/\.m?js$/.test(arg)) {
+    if (!existsSync(arg)) fail(`No such file: ${arg}`);
+    const mod = await import(pathToFileURL(resolve(arg)).href);
+    const steps = mod.default ?? mod.steps;
+    if (typeof steps === 'function' || Array.isArray(steps)) return steps;
+    fail(`${arg} must export default an array of steps or an async function`);
+  }
   let text = arg;
   if (arg === '-') text = readFileSync(0, 'utf8');
   else if (!/^\s*[[{]/.test(arg)) text = readFileSync(resolve(arg), 'utf8');
@@ -654,13 +820,16 @@ function readSteps(arg) {
   return Array.isArray(steps) ? steps : [steps];
 }
 
+class StepFailed extends Error {}
+
 async function runSteps(port, steps, outDir) {
   const cdp = await Cdp.connect(await pageSocket(port));
-  const driver = new Driver(cdp, outDir && resolve(outDir));
+  const driver = new Driver(cdp, outDir && resolve(outDir), port);
   await driver.init();
   let failed = 0;
-  for (const [i, step] of steps.entries()) {
-    const line = { i, step };
+  let i = 0;
+  const run = async (step) => {
+    const line = { i: i++, step };
     try {
       Object.assign(line, { ok: true }, await driver.step(step));
       if (line.hit === false) line.warning = `covered by ${line.topmost}: a user's click lands there, not on the target`;
@@ -670,7 +839,32 @@ async function runSteps(port, steps, outDir) {
     }
     if (driver.errors.length) line.pageErrors = driver.errors.splice(0);
     console.log(JSON.stringify(line));
-    if (!line.ok && step.optional !== true) break;
+    return line;
+  };
+  if (typeof steps === 'function') {
+    // ui.click('@3', { button: 'right' }) runs {"click":"@3","button":"right"} and returns
+    // its result line. A failed step throws and ends the script, unless it is optional.
+    const ui = {
+      async step(step) {
+        const line = await run(step);
+        if (!line.ok && step.optional !== true) throw new StepFailed(line.error);
+        return line;
+      },
+    };
+    for (const verb of VERBS) ui[verb] = (arg = true, opts = {}) => ui.step({ [verb]: arg, ...opts });
+    try {
+      await steps(ui);
+    } catch (err) {
+      if (!(err instanceof StepFailed)) {
+        console.log(JSON.stringify({ i, ok: false, error: `steps script: ${err.message}` }));
+        failed++;
+      }
+    }
+  } else {
+    for (const step of steps) {
+      const line = await run(step);
+      if (!line.ok && step.optional !== true) break;
+    }
   }
   cdp.close();
   return failed;
@@ -689,20 +883,26 @@ async function main() {
     if (!a) fail('open needs a url or file');
     console.log(JSON.stringify(await launch(a, opts)));
   } else if (cmd === 'do') {
-    process.exitCode = (await runSteps(port, readSteps(a), opts.out)) ? 1 : 0;
+    process.exitCode = (await runSteps(port, await readSteps(a), opts.out)) ? 1 : 0;
+  } else if (cmd === 'hold') {
+    await hold(port, a, opts.token);
   } else if (cmd === 'close') {
+    rmSync(stateFile(port), { force: true });
     const { webSocketDebuggerUrl } = await getJson(port, '/json/version').catch(() => fail(`No browser on port ${port}`));
     const cdp = await Cdp.connect(webSocketDebuggerUrl);
     await cdp.send('Browser.close').catch(() => {});
     cdp.close();
+    // Wait for the port to free, so an open straight after this one works.
+    for (let t = 0; t < 50 && await getJson(port, '/json/version').then(() => true, () => false); t++) await sleep(100);
     console.log(JSON.stringify({ closed: port }));
   } else if (cmd === 'run') {
     if (!a || !b) fail('run needs a url and steps');
-    const steps = readSteps(b);
+    const steps = await readSteps(b);
     await launch(a, opts);
     try {
       process.exitCode = (await runSteps(port, steps, opts.out)) ? 1 : 0;
     } finally {
+      rmSync(stateFile(port), { force: true });
       const { webSocketDebuggerUrl } = await getJson(port, '/json/version');
       const cdp = await Cdp.connect(webSocketDebuggerUrl);
       await cdp.send('Browser.close').catch(() => {});
