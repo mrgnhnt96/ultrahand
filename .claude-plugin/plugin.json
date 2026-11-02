@@ -1,0 +1,8 @@
+{
+  "name": "ultrahand",
+  "version": "0.1.0",
+  "description": "Research-backed UX design skills for mobile, tablet and desktop, built as interactive resizable Claude artifacts, plus a UX review skill.",
+  "author": { "name": "mrgnhnt96" },
+  "license": "MIT",
+  "keywords": ["ux", "ui-design", "mobile", "tablet", "desktop", "review"]
+}
