@@ -25,18 +25,16 @@ you can confirm.
 
 - **ultrahand canvas artifact** (a claude.ai artifact link): read its HTML. It holds the
   markup, labels, colours and every screen and state. If a browser tool is available, open
-  the artifact and drive it through `window.ultrahandCanvas` (see the canvas README in
+  the artifact. Set up each view through `window.ultrahandCanvas` (see the canvas README in
   `shared/canvas/`): `usePreset(id)`, `setSize(w, h)`, `setScheme('dark')`,
   `setTextScale(2)`, `setState('error')`, `navigate(id)`. Turn on **show tap targets** and
-  read the canvas readout (`#uh-flag`), which flags targets under the platform minimum.
+  read its result (`#uh-targets-result`), which counts targets under the platform minimum.
   Call `refresh()` after opening a sheet or menu so the count includes it. The canvas
-  README lists the toolbar's element ids for scripted checks. A prototype's stubs (no real
-  network, no on-screen keyboard) go under *Not checked*, not in the findings. The
-  hardware keyboard is real: drive every flow with it.
-- **Local canvas build** (an `index.html` from `build.mjs`): treat it like the artifact.
-  Open it in a headless browser if one is available, and drive keys, right-click and drags
-  with real input (for example Playwright's `page.keyboard` and `page.mouse`), not
-  synthetic `dispatchEvent` calls, which skip focus and default actions.
+  README lists the toolbar's element ids. A prototype's stubs (no real network, no
+  on-screen keyboard) go under *Not checked*, not in the findings. The hardware keyboard
+  is real: drive every flow with it.
+- **Local canvas build** (an `index.html` from `build.mjs`) or any page you can open:
+  treat it like the artifact, and use it with the input driver (step 4).
 - **Code** (HTML, SwiftUI, Compose, Flutter and so on): you can check labels, roles, focus
   order, colours and breakpoints, but not how it looks unless you can run it.
 - **Screenshot or mockup:** you can judge layout, hierarchy, wording and approximate
@@ -59,6 +57,9 @@ Write these down before you judge anything; a finding only makes sense against t
   three.
 - **Users and primary task:** who uses each screen, and the one thing it's for. Ask if you
   can't infer it; a review without a task becomes a list of opinions.
+- **Product or tool:** a design for end users, or a tool built for the owner (the canvas
+  itself, an editor, a viewer). A tool is a desktop app used in a browser window of any
+  size: review it with the desktop rules and pass 7.
 
 Pick the platform rules by **window size class and input**, not by device name: compact
 touch → mobile principles; medium and expanded touch, or any split → tablet; a pointer and
@@ -76,6 +77,24 @@ check.
 Work through the passes in [references/checklist.md](references/checklist.md) in order.
 Go through the design twice: once to learn it, once to find problems.
 
+**Use every control with real input, at several sizes.** Reading the markup, or calling
+`el.click()`, `dispatchEvent` or a setter, skips hit testing, focus, default actions and
+scroll chaining, so a covered button or a trapped wheel still looks fine. Use the page the
+way a person does: trusted mouse, wheel, key and touch events from
+`node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs"` (its
+[README](../../shared/input/README.md) has the steps and recipes), or a browser tool's real
+clicks and keys. Script is only for setting up a view and reading state afterwards.
+
+- Do it at three sizes or more: the largest, a middle one and the smallest supported (for
+  a design, its presets; for a tool, browser windows such as 1440×900, 1024×700 and
+  640×480).
+- At each size, list the controls (`controls`), then use every one as its kind is meant to
+  be used: click or tap, type, drag and cancel with Esc, right-click, open and close with
+  the keyboard, and wheel or swipe over every scroller past its end.
+- Read each result: a control that is `covered`, out of view with no way to reach it, or
+  missing at one size; a `scrolled` that shows the wheel trapped; focus lost to `body`;
+  page errors. Each is a finding at that size.
+
 1. **Task walkthrough:** for each flow, ask the four cognitive walkthrough questions at
    every step.
 2. **Control by control:** every control in the inventory against the control checks.
@@ -85,6 +104,8 @@ Go through the design twice: once to learn it, once to find problems.
 6. **Resize and variants:** every preset, the split widths, 320-wide reflow, 200% text,
    dark mode, each data state, and on touch devices both orientations and the keyboard up
    (desktop windows don't rotate: check the minimum, maximum and short window instead).
+7. **Tools:** for a tool built for the owner, the work stays in view at every window size,
+   the stage pans past its edges, zoom has limits, and shortcuts and drags behave.
 
 Record a problem the moment you see it, with where you saw it (screen › element, plus the
 size, scheme and state). One problem that shows up in several places is one finding with

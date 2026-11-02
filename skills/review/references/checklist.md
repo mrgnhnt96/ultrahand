@@ -66,6 +66,16 @@ Every control in the inventory:
 - [ ] **Context menus have a touch route:** where touch is likely, touch-and-hold opens the
       same menu as right-click, and its commands also exist elsewhere [tablet:HIG-CONTEXT]
       [WCAG 2.5.1].
+- [ ] **Option count fits the control:** a segmented control or row of option buttons
+      holds about five options on a phone and five to seven in a wide window
+      [HIG-SEGMENTED] [AND-SEGMENTED]. Check it at the narrowest supported width: a row that
+      fits at 1440 can wrap, truncate or scroll at 640. More options than that, or a row
+      that doesn't fit, becomes a select or menu, grouped when the list is long. The other
+      way round, a dropdown for two or three options hides choices a visible row would
+      show [NNG-LISTBOX] [NNG-DROPDOWN].
+- [ ] **Used with real input:** every control was used the way a person would, with real
+      pointer, keyboard, wheel and touch events, at each size you reviewed (SKILL.md,
+      step 4). A control you only read or triggered by script is *Not checked*.
 
 Fields and forms:
 
@@ -80,6 +90,20 @@ Fields and forms:
       work [WCAG 3.3.8].
 - [ ] Formats and constraints are stated before the user types, not only after an error
       [NNG-H5].
+
+Scrolling (every scroller: page, panes, lists, sheets, previews):
+
+- [ ] **No same-direction nesting:** a scroller doesn't sit inside another that scrolls
+      the same way. Where one must (a list in a scrolling page), the inner one is clearly
+      bounded and hands off at its ends [HIG-SCROLL].
+- [ ] **Scroll chains out:** scroll an inner scroller past its end with the wheel and a
+      touch swipe; the next scroll moves its parent. `overscroll-behavior: contain` (or
+      `none`) belongs on modal dialogs, sheets and overlays, whose background shouldn't
+      move. On an inline pane or an embedded preview it traps the wheel, and the page
+      around it can't be scrolled from there [MDN-OVERSCROLL] [HIG-SCROLL].
+- [ ] **Scrolling works everywhere:** wheel, trackpad, touch and keys (arrows, Page Up and
+      Down, Space) scroll whatever is under the pointer or focused [HIG-SCROLL]
+      [WCAG 2.1.1].
 
 ## Pass 3: Nielsen's 10 heuristics
 
@@ -256,6 +280,35 @@ queries. From a screenshot, say which sizes you couldn't see.
 - [ ] **Short height × 200% text together:** the sticky header plus footer stay well under
       the screen height. Overflow detectors miss content covered by sticky layers, so
       look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].
+
+## Pass 7: Tools
+
+For a tool built for the owner rather than for end users: the ultrahand canvas, an editor,
+a viewer, a dashboard. Review it as a desktop pointer-and-keyboard app (pass 5, desktop),
+used in a browser window of any size, then add these checks.
+
+- [ ] **The work stays the biggest thing:** at every browser window size, from the
+      smallest the tool supports up to a full large display, toolbars and panels leave most
+      of the window to the work and never cover it [NNG-H8] [HIG-MACOS].
+- [ ] **Every control at every size:** at each window size, every toolbar control is
+      visible or in an overflow menu, none covers another, and a row of options that no
+      longer fits turns into a select (pass 2, option count) [NNG-H6].
+- [ ] **Canvas overscroll:** a pan-and-zoom stage pans past every edge of the content, by
+      at least half the view, so each edge and corner can be brought to the middle and
+      isn't pinned under a toolbar or the window edge [NNG-FITTS] [NNG-H3]. (Half the
+      view is this skill's convention; design tools do the same.) Wheel, trackpad, touch
+      and Space-drag all pan it, and scrolling over the content pans the stage rather than
+      stopping at a nested scroller (pass 2, scrolling) [HIG-SCROLL].
+- [ ] **Zoom has limits and a way back:** zoom has a minimum and a maximum, zooms about the
+      pointer, and Fit and 100% commands recentre the content, each with a shortcut
+      [HIG-SCROLL] [NNG-H3] [NNG-H7].
+- [ ] **Shortcuts behave:** each works wherever focus is in the tool, doesn't fire while
+      typing in a field, is shown in a tooltip or menu, and doesn't take keys the browser
+      keeps [MS-KBD] [NNG-H7].
+- [ ] **Drags can be cancelled:** Esc during a drag (resize, pan, move) puts things back,
+      and every drag has a typed or keyboard alternative [NNG-H3] [WCAG 2.5.7].
+- [ ] **Readouts tell the truth:** size, zoom and count readouts update after every input
+      path (typing, dragging, wheel, pinch, shortcuts, presets), not only some [NNG-H1].
 
 ## Severity guide
 
