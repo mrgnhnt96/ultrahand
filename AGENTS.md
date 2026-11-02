@@ -14,3 +14,4 @@ Public Claude Code plugin (`ultrahand@mrgnhnt96`). Anything committed here is pu
 - Designs are produced as interactive Claude artifacts that resize (mobile presets, tablet split view, desktop free resize with min/max).
 - Keep skills concise; put long reference material in separate files the skill links to.
 - Branches: `<type>/<short-slug>`. Conventional commits.
+- Releases: cut with `tb release cut <version>`, which runs `scripts/release.sh` from main. It bumps `.claude-plugin/plugin.json`, tags `v<version>`, pushes, and updates the installed plugin on the machine that cut it. Don't bump the version by hand: an installed plugin only updates when the version changes.
