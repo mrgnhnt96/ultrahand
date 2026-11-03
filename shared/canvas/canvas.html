@@ -51,7 +51,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   /* minmax(0, …) keeps a wide toolbar from widening the page, which pushed the frame off-centre. */
   grid-template-columns: minmax(0, 1fr);
   background: var(--bg);
@@ -61,33 +61,46 @@ body {
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Toolbar */
+/* Toolbar. Three groups, in the same order on screen and for Tab (composition SEC-3):
+   Frame size (preset, W × H, size classes), Zoom (with the shortcuts and canvas settings
+   behind ?), and Preview (the screen's own settings, used less: the second row at full
+   width, a menu below 1024px). Selected states are a quiet fill; the accent marks only
+   Hit targets while its overlay is on (SEC-5). One UI font, 12px labels and 14px controls,
+   all 32px high (SCR-3, SEC-6). */
 .uh-bar {
-  display: flex;
-  flex-wrap: wrap;
+  --quiet: color-mix(in srgb, var(--ink) 11%, var(--surface));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "frame . zoom" "preview preview preview";
   align-items: center;
-  gap: 10px 20px;
-  padding: 10px 16px;
+  gap: 8px 32px;
+  padding: 8px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   position: relative;
   z-index: 2;
+  font-variant-numeric: tabular-nums;
 }
-.uh-id { display: grid; gap: 1px; min-width: 0; }
-.uh-eyebrow {
-  font: 500 11px/1.2 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+.uh-vh {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
 }
-.uh-id h1 { margin: 0; font-size: 15px; font-weight: 600; text-wrap: balance; }
-.uh-presets select { width: 30ch; max-width: 100%; font-size: 13px; text-overflow: ellipsis; }
+.uh-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.uh-g-frame { grid-area: frame; }
+.uh-g-zoom { grid-area: zoom; }
+.uh-g-preview { grid-area: preview; }
+/* A fold is its group's controls; on narrow screens it becomes a popover behind its button. */
+.uh-fold { display: contents; }
+.uh-btn.uh-fold-btn { display: none; }
+.uh-lbl { font-size: 12px; color: var(--muted); }
+.uh-field { display: inline-flex; align-items: center; gap: 6px; }
 .uh-btn {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 6px 10px;
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -95,78 +108,61 @@ button, input, select { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 .uh-btn:hover { border-color: var(--muted); }
-.uh-btn small { font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
-.uh-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.uh-btn[aria-pressed="true"] small { color: inherit; opacity: 0.8; }
-/* On the accent fill the accent focus ring would vanish, so a pressed button also gets an
-   inner ring in the ink colour (WCAG 2.4.7; aiming at the 3:1 of 2.4.13). */
-.uh-btn[aria-pressed="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.uh-btn[aria-pressed="true"] { background: var(--quiet); }
+#uh-targets[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* On the accent fill the accent focus ring would vanish, so it also gets an inner ring in
+   the ink colour (WCAG 2.4.7; aiming at the 3:1 of 2.4.13). */
+#uh-targets[aria-pressed="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ink); }
 /* At a zoom limit − or + stays focusable (aria-disabled), so focus isn't dropped; presses are ignored. */
 .uh-btn[aria-disabled="true"] { color: color-mix(in srgb, var(--ink) 40%, transparent); cursor: not-allowed; }
 .uh-btn[aria-disabled="true"]:hover { border-color: var(--line); }
-
-.uh-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-.uh-dim { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--font-mono); color: var(--muted); }
-.uh-dim input {
-  width: 6.5ch;
-  padding: 3px 6px;
-  border: 1px solid var(--field-line);
-  border-radius: 6px;
+.uh-caret { font-size: 12px; color: var(--muted); }
+.uh-field select, .uh-dim input {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--field-line); /* 3.3:1 on --surface: a field's edge must read as one (WCAG 1.4.11) */
+  border-radius: 8px;
   background: var(--surface);
-  font: 500 15px var(--font-mono);
-  font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+.uh-field select:hover, .uh-dim input:hover { border-color: var(--muted); }
+.uh-presets select { width: 30ch; max-width: 100%; text-overflow: ellipsis; }
+.uh-dims { display: inline-flex; align-items: center; gap: 6px; }
+.uh-dim { display: inline-flex; align-items: center; gap: 4px; }
+.uh-dim input {
+  width: 7ch;
+  font-variant-numeric: tabular-nums;
   text-align: right;
   -moz-appearance: textfield;
   appearance: textfield;
 }
 .uh-dim input::-webkit-inner-spin-button, .uh-dim input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.uh-dim input:hover { border-color: var(--muted); }
 .uh-dim input:disabled { color: var(--muted); }
 .uh-times { color: var(--muted); }
-.uh-chip {
-  padding: 3px 9px;
-  border-radius: 999px;
-  font: 500 12px var(--font-mono);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
-  white-space: nowrap;
-}
-.uh-chip.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-.uh-flag { display: inline-block; min-width: 22ch; font: 500 12px var(--font-mono); color: var(--warn); white-space: nowrap; }
-
-.uh-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
-/* Toolbar order, the same on screen as for Tab: the View items (Tap targets last), the
-   hit-target result beside its toggle, zoom, then help. Below 1024px the View items fold
-   into a menu. */
-.uh-view, .uh-view-menu { display: contents; }
-.uh-view-btn, .uh-view-head { display: none; }
-/* No overflow clip here: it would cut off the focus ring. The end buttons round instead. */
-.uh-seg { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; }
-.uh-seg > * { border: 0; border-radius: 0; }
-.uh-seg > * + * { border-left: 1px solid var(--line); }
-.uh-seg > :first-child { border-radius: 7px 0 0 7px; }
-.uh-seg > :last-child { border-radius: 0 7px 7px 0; }
-.uh-seg .uh-btn:focus-visible { position: relative; z-index: 1; }
-.uh-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-/* A labelled button group keeps the buttons' own size and colour, not the label's. */
-.uh-select .uh-seg { font-size: 14px; color: var(--ink); }
-.uh-select select {
-  min-height: 32px;
-  padding: 4px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--ink);
-}
-.uh-zoom {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 6ch; padding: 0 6px;
-  font: 12px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums;
-}
-.uh-result { display: inline-block; min-width: 20ch; font: 500 12px var(--font-mono); white-space: nowrap; color: var(--muted); }
+/* Status is plain text: it never looks like something to press (SEC-4). */
+.uh-class { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.uh-flag { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
+.uh-flag:empty { display: none; }
+/* Toggle pairs and the zoom controls: each is one Tab stop, arrows move inside (APG toolbar). */
+.uh-seg { display: inline-flex; align-items: center; gap: 4px; }
+.uh-zoom { display: inline-block; min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; transition: color 0.2s; }
+.uh-zoomwrap { display: contents; }
+#uh-zoom-sum { transition: color 0.2s; }
+/* A zoom key flashes the readout, so the change is seen where it's reported. */
+.uh-g-zoom[data-flash] :is(.uh-zoom, #uh-zoom-sum) { color: var(--accent); transition: none; }
+/* The result keeps its place while the overlay is off, so toggling it moves nothing. */
+.uh-result { display: inline-block; font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--muted); }
+.uh-result[hidden] { visibility: hidden; }
 .uh-result[data-bad] { color: var(--warn); }
-/* Popovers: the View menu (narrow windows) and the shortcuts list. */
+/* A copy of the result under its toggle in the Preview menu (below 1024px only). */
+.uh-result-echo { display: none; }
+.uh-targets-row { display: contents; }
+.uh-preview-btn { display: none; }
+.uh-preview-sum { overflow: hidden; text-overflow: ellipsis; }
+.uh-preview-menu { display: contents; }
+.uh-problems { display: none; color: var(--warn); }
+body[data-problems] .uh-problems { display: inline-flex; }
+/* Popovers: the Preview menu and folds (narrow windows) and the help panel. */
 .uh-pop {
   position: absolute;
   top: calc(100% + 6px);
@@ -181,24 +177,24 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--surface);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
 }
-/* At full width the View menu is display: contents; nothing of the popover applies. */
-.uh-view-menu.uh-pop { overflow: visible; }
-.uh-keys { width: 34ch; }
-.uh-keys h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+/* At full width the Preview menu and folds are display: contents; nothing of the popover applies. */
+.uh-preview-menu.uh-pop, .uh-fold.uh-pop { overflow: visible; }
+.uh-keys { width: 36ch; }
+.uh-keys h2 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .uh-keys dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 12px; }
 .uh-keys dt { color: var(--muted); }
 .uh-keys dd { margin: 0; }
 .uh-keys-note { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
-.uh-keys kbd {
-  padding: 0 4px; border: 1px solid var(--line); border-radius: 4px;
-  font: 11px var(--font-mono); white-space: nowrap;
-}
+.uh-keys kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; font: 12px var(--font-ui); white-space: nowrap; }
+.uh-keys-canvas { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 body.uh-space .uh-stage { cursor: grab; }
 body.uh-space .uh-host, body.uh-panning .uh-host { pointer-events: none; }
 body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: none !important; }
 
 /* Stage */
+.uh-bar { grid-row: 1; }
 .uh-stage {
+  grid-row: 3;
   position: relative;
   min-height: 0;
   overflow: auto;
@@ -427,147 +423,170 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 body.uh-dragging, body.uh-dragging * { user-select: none !important; }
 body.uh-dragging .uh-host { pointer-events: none; }
 
+/* Errors sit in the page flow between the toolbar and the stage, so they cover nothing. */
 .uh-error {
-  position: fixed;
-  left: 16px; right: 16px; bottom: 16px;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--warn);
-  background: var(--surface);
+  grid-row: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 9%, var(--surface));
   color: var(--ink);
-  font: 13px/1.45 var(--font-mono);
-  white-space: pre-wrap;
-  z-index: 10;
+}
+.uh-error[hidden] { display: none; }
+.uh-error-text {
+  flex: 1; min-width: 0; max-height: 30vh; overflow: auto;
+  font: 13px/1.45 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .uh-error strong { color: var(--warn); }
+/* A config that doesn't parse leaves nothing to show but the problem. */
+body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-error-dismiss { display: none; }
 
-/* Below 1024px wide: one row (~48px) of Size, W × H, View, zoom and help. The size-class
-   chips hide (their text is in the W field's title) and the title is read, not shown. */
+/* Below 1024px: one row (48px) of Frame size, Zoom and help, and the Preview menu, whose
+   button names the settings that differ from the defaults. Status that would add a row
+   (the size limit, the hit-target result) hangs from the bar's lower edge instead. */
 @media (max-width: 1023px) {
-  .uh-bar { flex-wrap: nowrap; gap: 8px; padding: 8px 16px; }
-  .uh-id {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip-path: inset(50%); white-space: nowrap;
-  }
+  .uh-bar { display: flex; gap: 16px; }
+  .uh-g-frame { flex: 1 1 auto; }
   .uh-presets { flex: 1 1 auto; min-width: 9ch; }
   .uh-presets select { width: 100%; }
-  .uh-readout { flex: none; flex-wrap: nowrap; position: static; }
-  .uh-chip { display: none; }
-  /* The limit flag floats just under the bar, so it never moves the row. */
-  .uh-flag {
-    position: absolute; top: calc(100% + 6px); left: 16px; min-width: 0;
-    padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+  .uh-class { display: none; }
+  .uh-flag, .uh-result {
+    position: absolute; top: 100%; z-index: 1;
+    padding: 3px 8px; border: 1px solid var(--line); border-top: 0; background: var(--surface);
   }
-  .uh-flag:empty { display: none; }
-  .uh-tools { flex: none; flex-wrap: nowrap; gap: 6px; margin-left: 0; }
-  .uh-view { display: block; }
-  .uh-view-btn { display: inline-flex; }
-  .uh-view-menu { display: none; }
-  .uh-view-menu.uh-pop { width: 280px; overflow: auto; }
-  .uh-view[data-open] .uh-view-menu { display: grid; gap: 10px; justify-items: start; }
-  .uh-view-head { display: grid; gap: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--line); width: 100%; }
-  .uh-view-head strong { font-size: 14px; font-weight: 600; }
+  .uh-flag { left: 16px; }
+  .uh-result { right: 16px; }
+  .uh-result[hidden] { display: none; }
+  .uh-g-zoom { flex: none; }
+  .uh-g-preview { flex: 0 1 auto; }
+  .uh-preview-btn { display: inline-flex; min-width: 6.5em; max-width: 26ch; }
+  .uh-preview-menu { display: none; }
+  .uh-preview-menu.uh-pop { width: 280px; overflow: auto; }
+  .uh-g-preview[data-open] .uh-preview-menu { display: grid; gap: 10px; justify-items: start; }
+  /* An open menu covers the hanging result, so the menu shows a copy under the toggle;
+     the original stays the live region. The menu never moves when the result appears. */
+  .uh-targets-row { display: flex; align-items: center; gap: 8px; }
+  .uh-result.uh-result-echo { position: static; padding: 0; border: 0; background: none; }
+  .uh-g-preview[data-open] .uh-result-echo:not([hidden]) { display: inline-block; }
+  .uh-g-preview[data-open] > .uh-result { opacity: 0; }
 }
-/* Below 1280px the hit-target result floats under the bar on the right while the overlay
-   is on, so turning it on never adds a row. */
-@media (max-width: 1279px) {
-  .uh-result {
-    position: absolute; top: calc(100% + 6px); right: 16px; min-width: 0;
-    padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
-  }
+@media (max-width: 799px) {
+  .uh-presets .uh-lbl, .uh-dim .uh-lbl { display: none; }
+  .uh-dims { gap: 4px; }
 }
-/* Between the one-row bar and a wide window the second row is tight; tighten spacing so it
-   stays two rows at 1024px. */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .uh-tools { gap: 4px; }
-  .uh-tools .uh-btn { padding: 6px 8px; }
-  .uh-tools .uh-select { gap: 4px; }
-  .uh-tools .uh-select select { padding: 4px; }
+/* Narrower: the zoom controls fold behind a button that shows the zoom. */
+@media (max-width: 719px) {
+  .uh-g-zoom .uh-btn.uh-fold-btn { display: inline-flex; }
+  .uh-g-zoom .uh-fold { display: none; }
+  .uh-zoomwrap[data-open] .uh-fold { display: flex; }
 }
-@media (max-width: 639px) {
-  .uh-presets .uh-lbl { display: none; }
-  .uh-dim { gap: 2px; }
-  .uh-times { display: none; }
-  .uh-tools .uh-zoomgroup [data-zoom="1"] { padding: 6px 7px; }
-}
-/* Too narrow for one row: Size and W × H on the first, View, zoom and help on the second. */
-@media (max-width: 559px) {
-  .uh-bar { flex-wrap: wrap; row-gap: 6px; }
-  .uh-tools { flex-basis: 100%; }
+/* Narrowest (to 320px, a 1280px window at 400% page zoom): one 44px row. The frame size
+   folds behind a button that shows it; the hit-target result still hangs below the bar. */
+@media (max-width: 519px) {
+  .uh-bar { gap: 6px; padding: 6px 8px; }
+  .uh-g-frame { flex: none; }
+  .uh-g-frame .uh-btn.uh-fold-btn { display: inline-flex; }
+  .uh-g-frame .uh-fold { display: none; }
+  .uh-g-frame[data-open] .uh-fold { display: grid; gap: 10px; justify-items: start; left: 8px; right: auto; width: 280px; }
+  .uh-g-frame[data-open] .uh-presets { width: 100%; }
+  .uh-g-frame[data-open] .uh-class { display: inline; }
+  .uh-group { gap: 6px; }
+  .uh-g-preview { flex: 1 1 auto; justify-content: flex-end; }
+  .uh-preview-btn { padding: 0 8px; }
+  .uh-pop { right: 8px; max-width: calc(100% - 16px); }
+  .uh-flag { left: 8px; }
+  .uh-result { right: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .uh-toast { transition: none; }
+  .uh-toast, .uh-zoom { transition: none; }
 }
 </style>
 </head>
 <body>
-<header class="uh-bar">
-  <div class="uh-id">
-    <span class="uh-eyebrow" id="uh-platform">Canvas</span>
+<header class="uh-bar" id="uh-bar" aria-label="Canvas">
+  <div class="uh-id uh-vh">
+    <span id="uh-platform">Canvas</span>
     <h1 id="uh-title">Untitled screen</h1>
   </div>
-  <label class="uh-select uh-presets" id="uh-presets-wrap" for="uh-presets"><span class="uh-lbl">Size</span> <select id="uh-presets" aria-label="Size"></select></label>
-  <div class="uh-readout" role="group" aria-label="Screen size">
-    <label class="uh-dim" for="uh-w">W <input id="uh-w" type="number" inputmode="numeric" step="1" aria-label="Width"></label>
-    <span class="uh-times" aria-hidden="true">×</span>
-    <label class="uh-dim" for="uh-h">H <input id="uh-h" type="number" inputmode="numeric" step="1" aria-label="Height"></label>
-    <span class="uh-chip" id="uh-wclass" title="Width size class"></span>
-    <span class="uh-chip quiet" id="uh-hclass" title="Height size class"></span>
+  <div class="uh-group uh-g-frame" id="uh-g-frame">
+    <button class="uh-btn uh-fold-btn" type="button" id="uh-size-btn" aria-expanded="false" aria-controls="uh-size-fold"><span id="uh-size-sum"></span> <span class="uh-caret" aria-hidden="true">▾</span></button>
+    <div class="uh-fold uh-pop" id="uh-size-fold" role="group" aria-label="Frame size">
+      <label class="uh-field uh-presets" id="uh-presets-wrap" for="uh-presets"><span class="uh-lbl">Size</span><select id="uh-presets"></select></label>
+      <span class="uh-dims" role="group" aria-label="Screen size">
+        <label class="uh-dim" for="uh-w"><span class="uh-lbl">W</span><input id="uh-w" type="number" inputmode="numeric" step="1" aria-label="Width"></label>
+        <span class="uh-times" aria-hidden="true">×</span>
+        <label class="uh-dim" for="uh-h"><span class="uh-lbl">H</span><input id="uh-h" type="number" inputmode="numeric" step="1" aria-label="Height"></label>
+      </span>
+      <span class="uh-class" id="uh-class"></span>
+    </div>
     <span class="uh-flag" id="uh-flag" role="status"></span>
   </div>
-  <div class="uh-tools">
-    <div class="uh-view" id="uh-view">
-      <button class="uh-btn uh-view-btn" type="button" id="uh-view-btn" aria-expanded="false" aria-controls="uh-view-menu" title="Screen, state, text size, hit targets and canvas colours">View <span aria-hidden="true">▾</span></button>
-      <div class="uh-view-menu uh-pop" id="uh-view-menu" role="group" aria-label="View">
-        <div class="uh-view-head" aria-hidden="true"><span class="uh-eyebrow" id="uh-view-platform"></span><strong id="uh-view-title"></strong></div>
-        <label class="uh-select" id="uh-nav-wrap" for="uh-nav" hidden>Go to <select id="uh-nav"></select></label>
-        <label class="uh-select" id="uh-state-wrap" for="uh-state" hidden>State <select id="uh-state"></select></label>
-        <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
-        <span class="uh-select"><span id="uh-scheme-label">Screen</span>
-          <span class="uh-seg" role="group" aria-labelledby="uh-scheme-label">
-            <button class="uh-btn" type="button" data-scheme="light" title="Show the screen in light mode">Light</button>
-            <button class="uh-btn" type="button" data-scheme="dark" title="Show the screen in dark mode">Dark</button>
-          </span>
-        </span>
-        <div class="uh-seg" role="group" aria-label="Text size">
-          <button class="uh-btn" type="button" data-text="1" title="Text at its normal size">Text 100%</button>
-          <button class="uh-btn" type="button" data-text="2" title="Text at 200% (WCAG 1.4.4)">200%</button>
-        </div>
-        <label class="uh-select uh-themepick" for="uh-theme" title="Colours of this canvas, not of the screen">Canvas <select id="uh-theme">
-          <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
-        </select></label>
-        <button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
+  <div class="uh-group uh-g-zoom" id="uh-g-zoom">
+    <div class="uh-zoomwrap" id="uh-zoomwrap">
+    <button class="uh-btn uh-fold-btn" type="button" id="uh-zoom-btn" aria-expanded="false" aria-controls="uh-zoom-fold" title="Zoom"><span id="uh-zoom-sum"></span> <span class="uh-caret" aria-hidden="true">▾</span></button>
+    <div class="uh-fold uh-pop" id="uh-zoom-fold">
+      <div class="uh-seg uh-zoomgroup" role="group" aria-label="Zoom">
+        <button class="uh-btn" type="button" id="uh-zoom-out" aria-label="Zoom out" title="Zoom out (Ctrl or ⌘ −)">−</button>
+        <span class="uh-zoom" id="uh-zoom" aria-hidden="true" title="Current zoom. Ctrl or ⌘ and scroll, or pinch, zooms at the pointer; Space and drag pans"></span>
+        <button class="uh-btn" type="button" id="uh-zoom-in" aria-label="Zoom in" title="Zoom in (Ctrl or ⌘ =)">+</button>
+        <button class="uh-btn" type="button" data-zoom="fit" title="Fit the frame in view (Ctrl or ⌘ Shift 1)">Fit</button>
+        <button class="uh-btn" type="button" data-zoom="1" title="Actual size (Ctrl or ⌘ 0)">100%</button>
       </div>
     </div>
-    <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
-    <div class="uh-seg uh-zoomgroup" role="group" aria-label="Zoom">
-      <button class="uh-btn" type="button" id="uh-zoom-out" aria-label="Zoom out" title="Zoom out (Ctrl or ⌘ −)">−</button>
-      <span class="uh-zoom" id="uh-zoom" title="Current zoom. Ctrl or ⌘ and scroll, or pinch, zooms at the pointer; Space and drag pans"></span>
-      <button class="uh-btn" type="button" id="uh-zoom-in" aria-label="Zoom in" title="Zoom in (Ctrl or ⌘ =)">+</button>
-      <button class="uh-btn" type="button" data-zoom="fit" title="Fit the frame in view (Ctrl or ⌘ Shift 1)">Fit</button>
-      <button class="uh-btn" type="button" data-zoom="1" title="Actual size (Ctrl or ⌘ 0)">100%</button>
     </div>
+    <span class="uh-vh" id="uh-zoom-live" role="status"></span>
+    <button class="uh-btn uh-problems" type="button" id="uh-problems" title="Show the canvas problems again"></button>
     <div class="uh-help">
-      <button class="uh-btn" type="button" id="uh-help-btn" aria-expanded="false" aria-controls="uh-keys" aria-label="Keyboard and pointer shortcuts" title="Shortcuts (?)">?</button>
+      <button class="uh-btn" type="button" id="uh-help-btn" aria-expanded="false" aria-controls="uh-keys" aria-label="Shortcuts and canvas settings" title="Shortcuts and canvas settings (?)">?</button>
       <div class="uh-keys uh-pop" id="uh-keys" role="group" aria-labelledby="uh-keys-title" hidden>
         <h2 id="uh-keys-title">Shortcuts</h2>
         <dl>
-          <dt>Pan</dt><dd><kbd>Space</kbd> + drag, or drag with the middle button</dd>
+          <dt>Pan</dt><dd>Scroll (<kbd>Shift</kbd> + scroll goes sideways), <kbd>Space</kbd> + drag, or drag with the middle button</dd>
           <dt>Zoom</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + scroll, or pinch, over the canvas</dd>
           <dt>Zoom step</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>=</kbd> and <kbd>−</kbd></dd>
           <dt>100%</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>0</kbd></dd>
           <dt>Fit</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>1</kbd></dd>
           <dt>Grips</dt><dd><kbd>→</kbd> <kbd>↑</kbd> +1px, <kbd>←</kbd> <kbd>↓</kbd> −1px (<kbd>Shift</kbd> 10px), <kbd>PgUp</kbd> <kbd>PgDn</kbd> ±100px, <kbd>Home</kbd> <kbd>End</kbd> to the limits</dd>
-          <dt>Drag</dt><dd><kbd>Esc</kbd> cancels</dd>
+          <dt>Drag, pan</dt><dd><kbd>Esc</kbd> cancels</dd>
+          <dt>W, H</dt><dd><kbd>Enter</kbd> applies, <kbd>Esc</kbd> reverts</dd>
+          <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Light and Dark, text size)</dd>
           <dt>This list</dt><dd><kbd>?</kbd></dd>
         </dl>
         <p class="uh-keys-note">Zoom keys act on the canvas while the pointer or focus is on it; elsewhere they zoom the page.</p>
+        <label class="uh-field uh-keys-canvas" for="uh-theme" title="Colours of this canvas, not of the screen"><span class="uh-lbl">Canvas colours</span><select id="uh-theme">
+          <option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option>
+        </select></label>
       </div>
     </div>
   </div>
+  <div class="uh-group uh-g-preview" id="uh-g-preview">
+    <button class="uh-btn uh-preview-btn" type="button" id="uh-preview-btn" aria-expanded="false" aria-controls="uh-preview-menu" title="The screen's state, colour scheme, text size and hit targets"><span class="uh-preview-sum" id="uh-preview-sum">Preview</span><span class="uh-caret" aria-hidden="true">▾</span></button>
+    <div class="uh-preview-menu uh-pop" id="uh-preview-menu" role="group" aria-label="Preview">
+      <label class="uh-field" id="uh-nav-wrap" for="uh-nav" hidden><span class="uh-lbl">Go to</span><select id="uh-nav"></select></label>
+      <label class="uh-field" id="uh-state-wrap" for="uh-state" hidden><span class="uh-lbl">State</span><select id="uh-state"></select></label>
+      <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
+      <span class="uh-seg" role="group" aria-label="Screen colour scheme">
+        <button class="uh-btn" type="button" data-scheme="light" title="Show the screen in light mode">Light</button>
+        <button class="uh-btn" type="button" data-scheme="dark" title="Show the screen in dark mode">Dark</button>
+      </span>
+      <span class="uh-field"><span class="uh-lbl" id="uh-text-label">Text</span>
+        <span class="uh-seg" role="group" aria-labelledby="uh-text-label">
+          <button class="uh-btn" type="button" data-text="1" title="Text at its normal size">100%</button>
+          <button class="uh-btn" type="button" data-text="2" title="Text at 200% (WCAG 1.4.4)">200%</button>
+        </span>
+      </span>
+      <span class="uh-targets-row"><button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
+<span class="uh-result uh-result-echo" id="uh-targets-echo" aria-hidden="true" hidden></span></span>
+    </div>
+    <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
+  </div>
 </header>
+<div class="uh-error" id="uh-error" hidden>
+  <div class="uh-error-text" id="uh-error-text" role="alert"></div>
+  <button class="uh-btn uh-error-dismiss" type="button" id="uh-error-dismiss">Dismiss</button>
+</div>
 <main class="uh-stage" id="uh-stage">
   <div class="uh-scaler" id="uh-scaler">
     <div class="uh-rig" id="uh-rig">
@@ -602,7 +621,6 @@ body.uh-dragging .uh-host { pointer-events: none; }
     </div>
   </div>
 </main>
-<div class="uh-error" id="uh-error" role="alert" hidden></div>
 
 <!-- ULTRAHAND:CONFIG:BEGIN -->
 <script type="application/json" id="uh-config">
@@ -902,26 +920,38 @@ window.ultrahandSetup = function (canvas) {
   var byId = function (id) { return document.getElementById(id); };
   var el = {
     error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'), presetsWrap: byId('uh-presets-wrap'),
-    w: byId('uh-w'), h: byId('uh-h'), wclass: byId('uh-wclass'), hclass: byId('uh-hclass'), flag: byId('uh-flag'),
+    w: byId('uh-w'), h: byId('uh-h'), cls: byId('uh-class'), flag: byId('uh-flag'),
     navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
     divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'), wincaps: byId('uh-wincaps'),
     toast: byId('uh-toast'), stateWrap: byId('uh-state-wrap'), state: byId('uh-state'), targets: byId('uh-targets'),
-    targetsResult: byId('uh-targets-result'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme'),
-    view: byId('uh-view'), viewBtn: byId('uh-view-btn'), viewMenu: byId('uh-view-menu'),
-    viewTitle: byId('uh-view-title'), viewPlatform: byId('uh-view-platform'),
+    targetsResult: byId('uh-targets-result'), targetsEcho: byId('uh-targets-echo'), zoomIn: byId('uh-zoom-in'), zoomOut: byId('uh-zoom-out'), theme: byId('uh-theme'),
+    bar: byId('uh-bar'), errorText: byId('uh-error-text'), errorDismiss: byId('uh-error-dismiss'), problems: byId('uh-problems'),
+    gFrame: byId('uh-g-frame'), sizeBtn: byId('uh-size-btn'), sizeSum: byId('uh-size-sum'),
+    gZoom: byId('uh-g-zoom'), zoomWrap: byId('uh-zoomwrap'), zoomBtn: byId('uh-zoom-btn'), zoomSum: byId('uh-zoom-sum'), zoomLive: byId('uh-zoom-live'),
+    preview: byId('uh-g-preview'), previewBtn: byId('uh-preview-btn'), previewSum: byId('uh-preview-sum'),
     help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys')
   };
   var errors = [];
+  /* Problems show in a banner between the toolbar and the stage, so they cover nothing.
+     Dismiss leaves a "1 problem" button in the toolbar that brings the banner back. */
+  function problemCount() { return errors.length === 1 ? '1 problem' : errors.length + ' problems'; }
   function report(msg) {
     errors.push(msg);
-    el.error.hidden = false;
-    el.error.innerHTML = '';
+    el.errorText.innerHTML = '';
     var head = document.createElement('strong');
-    head.textContent = 'Canvas problem';
-    el.error.append(head, '\n' + errors.join('\n'));
+    head.textContent = errors.length === 1 ? 'Canvas problem' : 'Canvas problems (' + errors.length + ')';
+    el.errorText.append(head, '\n' + errors.join('\n'));
+    el.problems.textContent = problemCount();
+    showProblems(true);
   }
+  function showProblems(open) {
+    el.error.hidden = !open;
+    if (open) delete document.body.dataset.problems; else document.body.dataset.problems = '';
+  }
+  el.errorDismiss.addEventListener('click', function () { showProblems(false); el.problems.focus(); });
+  el.problems.addEventListener('click', function () { showProblems(true); el.errorDismiss.focus(); });
   window.addEventListener('error', function (e) {
     report('Script error: ' + e.message + (e.lineno ? ' (line ' + e.lineno + ')' : ''));
   });
@@ -944,6 +974,8 @@ window.ultrahandSetup = function (canvas) {
   try {
     cfg = JSON.parse(byId('uh-config').textContent) || {};
   } catch (err) {
+    /* Nothing below would be right, so the problem is all that shows. */
+    document.body.dataset.broken = '';
     report('The canvas config is not valid JSON: ' + err.message);
   }
   var limits = Object.assign({ minWidth: 200, minHeight: 200, maxWidth: 3840, maxHeight: 2400 }, cfg.limits || {});
@@ -970,6 +1002,7 @@ window.ultrahandSetup = function (canvas) {
     return s && s.id ? Object.assign({}, s, { label: capital(s.label || s.id) }) : s;
   }).filter(function (s) { return s && s.id; });
 
+  var defaultScheme = cfg.scheme === 'dark' ? 'dark' : 'light';
   var st = {
     w: 390, h: 844, preset: null, resized: false, kind: defaultFrame,
     baseSafe: { top: 0, right: 0, bottom: 0, left: 0 }, landscapeSafe: null, statusBar: false, homeBar: false, winControls: null,
@@ -979,8 +1012,8 @@ window.ultrahandSetup = function (canvas) {
     zoom: 'fit', s: 1, flags: [], dragging: false, recenter: true
   };
 
-  el.title.textContent = el.viewTitle.textContent = cfg.title || 'Untitled screen';
-  el.platform.textContent = el.viewPlatform.textContent = cfg.platform || (cfg.device ? cfg.device : 'Canvas');
+  el.title.textContent = cfg.title || 'Untitled screen';
+  el.platform.textContent = cfg.platform || (cfg.device ? cfg.device : 'Canvas');
   el.wintitle.textContent = cfg.title || '';
 
   /* ---------- Screen mount ---------- */
@@ -1138,8 +1171,23 @@ window.ultrahandSetup = function (canvas) {
     st.w = w;
     st.h = h;
     st.flags = flags;
-    if (source !== 'preset' && source !== 'rotate') st.resized = true;
+    /* Resized means the size differs from the preset's, whatever moved it: a cancelled
+       drag, or the preset's size typed back in, selects the preset again. */
+    if (st.preset) {
+      var e = presetSize();
+      st.resized = w !== e.w || h !== e.h;
+    } else {
+      st.resized = false;
+    }
     render();
+  }
+  /* The active preset's size as it stands now: turned, and in split view the app's share
+     of the turned device. */
+  function presetSize() {
+    var p = st.preset, b = bounds(), e;
+    if (st.split) e = { w: st.landscape ? Math.round(p.width * st.split.deviceW / p.split.width) : p.width, h: st.split.deviceH };
+    else e = st.landscape ? { w: p.height, h: p.width } : { w: p.width, h: p.height };
+    return { w: Math.min(b.maxW, Math.max(b.minW, e.w)), h: Math.min(b.maxH, Math.max(b.minH, e.h)) };
   }
   function usePreset(p) {
     st.recenter = true;
@@ -1185,11 +1233,13 @@ window.ultrahandSetup = function (canvas) {
       var sp = st.split;
       var ratio = sp.deviceH / sp.deviceW;
       var frac = st.w / sp.deviceW;
+      var exact = !st.resized;
       var dw = sp.deviceH;
       sp.deviceH = sp.deviceW;
       sp.deviceW = dw;
       sp.snaps = sp.snaps.map(function (v) { return Math.round(v * ratio); });
-      setSize(frac * sp.deviceW, sp.deviceH, 'rotate');
+      /* An unresized preset turns to the preset's own turned size, free of rounding. */
+      setSize(exact ? presetSize().w : frac * sp.deviceW, sp.deviceH, 'rotate');
     } else {
       setSize(st.h, st.w, 'rotate');
     }
@@ -1239,6 +1289,7 @@ window.ultrahandSetup = function (canvas) {
     el.flag.textContent = st.flags.length ? 'at ' + st.flags.join(', ') : '';
     /* The overlay's result sits beside its toggle and always says something while it's on. */
     el.targetsResult.hidden = !st.showTargets;
+    if (st.showTargets) el.bar.dataset.targets = ''; else delete el.bar.dataset.targets;
     var n = st.smallTargets;
     el.targetsResult.textContent = n
       ? n + (n === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px'
@@ -1246,6 +1297,9 @@ window.ultrahandSetup = function (canvas) {
     var u = st.underControls;
     if (u) el.targetsResult.textContent += ', ' + u + ' under window controls';
     if (n || u) el.targetsResult.dataset.bad = ''; else delete el.targetsResult.dataset.bad;
+    el.targetsEcho.hidden = el.targetsResult.hidden;
+    el.targetsEcho.textContent = el.targetsResult.textContent;
+    el.targetsEcho.toggleAttribute('data-bad', !!(n || u));
   }
   function notify() {
     if (notifyQueued) return;
@@ -1336,15 +1390,18 @@ window.ultrahandSetup = function (canvas) {
     el.w.title = 'Width in px, ' + bd.minW + '–' + bd.maxW + '; ' + info.widthClass + ' width, ' +
       info.heightClass + ' height. Enter applies, Esc reverts.';
     el.h.title = sp ? 'Height is fixed by the split view' : 'Height in px, ' + bd.minH + '–' + bd.maxH + '. Enter applies, Esc reverts.';
-    el.wclass.textContent = info.widthClass + ' width';
-    el.hclass.textContent = info.heightClass + ' height';
+    el.cls.textContent = info.widthClass + ' width · ' + info.heightClass + ' height';
+    /* The frame-size button (narrowest windows) shows the size its fold holds. */
+    el.sizeSum.textContent = st.w + '×' + st.h;
+    el.sizeBtn.setAttribute('aria-label', 'Frame size ' + st.w + '×' + st.h);
     showFlags();
     /* An exact preset selects its option; anything else shows in the "custom" option. */
     var exact = !!st.preset && !st.resized && !st.landscape;
     var custom = el.presets.querySelector('[data-custom]');
     custom.hidden = exact;
+    /* W × H beside it has the numbers, so a turned or resized preset gives only its name. */
     custom.textContent = st.preset
-      ? presetText(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '')
+      ? presetName(st.preset) + (st.landscape ? ' · landscape' : '') + (st.resized ? ' · resized' : '')
       : 'Custom size';
     el.presets.value = exact ? st.preset.id : '';
     /* Desktop windows and bare frames don't rotate, so Rotate isn't offered. */
@@ -1357,6 +1414,15 @@ window.ultrahandSetup = function (canvas) {
       b.setAttribute('aria-pressed', String(Number(b.dataset.text) === st.textScale));
     });
     el.targets.setAttribute('aria-pressed', String(st.showTargets));
+    /* Below 1024px the Preview button names whatever differs from the defaults. */
+    var changed = [];
+    if (st.state && states.length > 1 && st.state !== states[0].id) {
+      changed.push(states.filter(function (s) { return s.id === st.state; })[0].label);
+    }
+    if (st.scheme !== defaultScheme) changed.push(capital(st.scheme));
+    if (st.textScale !== 1) changed.push('Text ' + Math.round(st.textScale * 100) + '%');
+    if (st.showTargets) changed.push(el.targets.textContent);
+    el.previewSum.textContent = ['Preview'].concat(changed).join(' · ');
     if (st.state) el.state.value = st.state;
     Array.prototype.forEach.call(el.rig.querySelectorAll('.uh-handle[role="slider"]'), function (hd) {
       var tall = hd.dataset.edge === 's';
@@ -1406,6 +1472,7 @@ window.ultrahandSetup = function (canvas) {
      frame's centre, a pinch the point under the pointer. Default: the stage's centre. */
   var ZMIN = 0.1, ZMAX = 4;
   var ZSTEPS = [0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
+  var zoomLiveTimer = 0, flashTimer = 0;
   function fit(opts) {
     opts = opts || {};
     var stage = el.stage;
@@ -1432,7 +1499,13 @@ window.ultrahandSetup = function (canvas) {
     var f = frameBox();
     stage.scrollLeft = f.l + a.fx * f.w - a.cx;
     stage.scrollTop = f.t + a.fy * f.h - a.cy;
-    el.zoom.textContent = Math.round(s * 100) + '%';
+    var pct = Math.round(s * 100) + '%';
+    el.zoom.textContent = el.zoomSum.textContent = pct;
+    el.zoomBtn.setAttribute('aria-label', 'Zoom ' + pct);
+    /* The visible readout is hidden from screen readers; this polite status says the zoom
+       once it settles, not at every step of a pinch. */
+    clearTimeout(zoomLiveTimer);
+    zoomLiveTimer = setTimeout(function () { el.zoomLive.textContent = 'Zoom ' + pct; }, 500);
     Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'), function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.zoom === 'fit' ? st.zoom === 'fit' : st.zoom !== 'fit' && Math.abs(s - Number(b.dataset.zoom)) < 0.001));
     });
@@ -1447,10 +1520,13 @@ window.ultrahandSetup = function (canvas) {
   }
   function zoomStep(dir) {
     var s = st.s;
+    /* A step skips stops within 5% of the zoom (Fit at 74.7% steps in to 100%, not 75%),
+       so every press visibly changes it; past the last stop it goes to the limit. */
     var next = dir > 0
-      ? ZSTEPS.filter(function (v) { return v > s + 0.001; })[0]
-      : ZSTEPS.filter(function (v) { return v < s - 0.001; }).pop();
-    if (next != null) setZoom(next);
+      ? ZSTEPS.filter(function (v) { return v > s * 1.05; })[0]
+      : ZSTEPS.filter(function (v) { return v < s / 1.05; }).pop();
+    if (next == null) next = dir > 0 ? ZMAX : ZMIN;
+    if (Math.abs(next - s) > 0.001) setZoom(next);
   }
   /* The stage point under (clientX, clientY), as an anchor for fit(). */
   function anchorAt(clientX, clientY) {
@@ -1577,10 +1653,21 @@ window.ultrahandSetup = function (canvas) {
 
   /* ---------- Toolbar ---------- */
   /* Option text: the label without any size it ends with, then the full size once. */
-  function presetText(p) {
-    var label = String(p.label || p.id).replace(/\s*·\s*\d+(\s*[×x]\s*\d+)?\s*$/, '');
-    return label + ' · ' + p.width + '×' + p.height;
+  function presetName(p) {
+    return String(p.label || p.id).replace(/\s*·\s*\d+(\s*[×x]\s*\d+)?\s*$/, '');
   }
+  /* Below 800px the picker is narrow and W × H sits beside it, so options give names only. */
+  var shortNames = window.matchMedia("(max-width: 799px)");
+  function presetText(p) {
+    return shortNames.matches ? presetName(p) : presetName(p) + ' · ' + p.width + '×' + p.height;
+  }
+  function labelPresets() {
+    Array.prototype.forEach.call(el.presets.querySelectorAll('option:not([data-custom])'), function (o) {
+      var p = presets.filter(function (x) { return x.id === o.value; })[0];
+      if (p) o.textContent = presetText(p);
+    });
+  }
+  if (shortNames.addEventListener) shortNames.addEventListener('change', labelPresets);
   /* One grouped select: presets can run to a dozen, too many for a row of buttons. */
   function buildPresets() {
     var custom = document.createElement('option');
@@ -1690,11 +1777,19 @@ window.ultrahandSetup = function (canvas) {
   document.addEventListener('keydown', function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     if (!overStage() && !el.stage.contains(document.activeElement)) return;
-    if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomStep(1); }
-    else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(-1); }
-    else if (e.code === 'Digit0' && !e.shiftKey) { e.preventDefault(); setZoom(1); }
-    else if (e.code === 'Digit1' && e.shiftKey) { e.preventDefault(); setZoom('fit'); }
+    if (e.key === '=' || e.key === '+') zoomStep(1);
+    else if (e.key === '-' || e.key === '_') zoomStep(-1);
+    else if (e.code === 'Digit0' && !e.shiftKey) setZoom(1);
+    else if (e.code === 'Digit1' && e.shiftKey) setZoom('fit');
+    else return;
+    e.preventDefault();
+    flashZoom();
   });
+  function flashZoom() {
+    el.gZoom.dataset.flash = '';
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { delete el.gZoom.dataset.flash; }, 300);
+  }
 
   /* ---------- Panning ---------- */
   /* Hold Space and drag, or drag with the middle button, to pan the stage from anywhere,
@@ -1705,15 +1800,39 @@ window.ultrahandSetup = function (canvas) {
     var t = e.composedPath ? e.composedPath()[0] : e.target;
     return t && t.closest && t.closest(INTERACTIVE);
   }
+  /* A toolbar button or grip keeps focus after a click, where Space would press it. With
+     the pointer on the stage, Space pans instead: Space-drag is the canvas's own gesture. */
+  function panOverControl(t) {
+    return overStage() && t.matches('button, .uh-handle, .uh-divider') && (el.bar.contains(t) || el.rig.contains(t));
+  }
   document.addEventListener('keydown', function (e) {
+    /* Nothing reaches the screen while panning, so a held Space never types into it. */
+    if (pan && e.key.length === 1) { e.preventDefault(); return; }
     if (e.key !== ' ') return;
     if (document.body.classList.contains('uh-space')) { e.preventDefault(); return; }
-    if (e.repeat || typingTarget(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = typingTarget(e);
+    if (t && !panOverControl(t)) return;
     e.preventDefault();
     document.body.classList.add('uh-space');
-  });
-  function endSpace(e) { if (!e || e.key === ' ') document.body.classList.remove('uh-space'); }
-  document.addEventListener('keyup', endSpace);
+  }, true);
+  function endSpace(e) {
+    if (e && e.key !== ' ') return;
+    /* Releasing Space after a pan must not press the focused button (keyup activates it). */
+    if (e && document.body.classList.contains('uh-space')) e.preventDefault();
+    document.body.classList.remove('uh-space');
+  }
+  document.addEventListener('keyup', endSpace, true);
+  /* Esc during a pan puts the view back where the pan started. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !pan) return;
+    e.preventDefault();
+    e.stopPropagation();
+    el.stage.scrollLeft = pan.l;
+    el.stage.scrollTop = pan.t;
+    try { el.stage.releasePointerCapture(pan.id); } catch (err) { /* already released */ }
+    endPan();
+  }, true);
   window.addEventListener('blur', function () { endSpace(); });
   var pan = null;
   el.stage.addEventListener('pointerdown', function (e) {
@@ -1788,9 +1907,13 @@ window.ultrahandSetup = function (canvas) {
     });
     return { open: function () { if (!isOpen()) btn.click(); }, close: close };
   }
-  disclosure(el.view, el.viewBtn,
-    function () { return el.view.hasAttribute('data-open'); },
-    function (v) { if (v) el.view.setAttribute('data-open', ''); else el.view.removeAttribute('data-open'); });
+  /* The Preview menu (below 1024px) and the frame-size and zoom folds (narrowest windows). */
+  [[el.preview, el.previewBtn], [el.gFrame, el.sizeBtn], [el.zoomWrap, el.zoomBtn]].forEach(function (d) {
+    var wrap = d[0];
+    disclosure(wrap, d[1],
+      function () { return wrap.hasAttribute('data-open'); },
+      function (v) { if (v) wrap.setAttribute('data-open', ''); else wrap.removeAttribute('data-open'); });
+  });
   var help = disclosure(el.help, el.helpBtn,
     function () { return !el.keys.hidden; },
     function (v) { el.keys.hidden = !v; });
