@@ -17,6 +17,8 @@ design skills' own principles:
 [mobile](../mobile/references/principles.md),
 [tablet](../tablet/references/principles.md) and
 [desktop](../desktop/references/principles.md).
+For a project with a theme, check the design against it with the `theme-review` skill:
+token use, component reuse and consistency across screens are its job, not this one's.
 
 ## 1. Get the design and know what it can show
 

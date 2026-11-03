@@ -31,6 +31,15 @@ Ask only for what you can't infer. Settle these before drawing:
   Which commands are frequent enough to earn a shortcut?
 - **Windows:** one window, or several (documents, inspectors, detached panels)?
 - **Constraints:** brand colours, fonts, an existing design system or component library.
+- **Theme:** look for the project's theme (`design/THEME.md`, `*.tokens.json`; see
+  [shared/theme/README.md](../../shared/theme/README.md)) before choosing any colour, size
+  or spacing. If there is one, design with it: run `node
+  "${CLAUDE_PLUGIN_ROOT}/shared/theme/css.mjs" <tokens.json> --style --out theme.html`, pass
+  `--head theme.html` to the build, use only its custom properties (`var(--color-surface)`,
+  `var(--space-gap-group)`), and reuse the components in its inventory. When the design
+  needs something the theme lacks, use the nearest token and list the addition under open
+  questions; don't invent a value. With no theme, follow the non-negotiables in
+  [shared/theme/rules.md](../../shared/theme/rules.md) and offer the `theme` skill.
 
 ## 2. Read the references
 
@@ -128,6 +137,9 @@ at the largest and smallest size, or check by eye):
 - [ ] No fact shown twice, and nothing on screen that doesn't serve a task here.
 - [ ] After a round of changes: list what it added; the screen is no busier than it needs
       to be.
+- [ ] Only theme values: no raw colours, no spacing off the 8-point scale, no type sizes
+      outside the scale, and inventory components reused rather than rebuilt
+      ([shared/theme/rules.md](../../shared/theme/rules.md) NN-1, NN-2, NN-6, EV-4).
 
 **Components and platform:**
 
@@ -167,4 +179,5 @@ at the largest and smallest size, or check by eye):
 Share the artifact link. In a few lines, state the section map (each section's job and
 emphasis), the window limits and max content width, the key decisions and the principle
 behind each (cite the source key), how the layout changes at each width class, any
-self-check item you accepted with a reason, and any open questions.
+self-check item you accepted with a reason, and any
+proposed theme additions (for the `theme` skill), and any open questions.
