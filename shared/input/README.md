@@ -22,12 +22,16 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 
 | Command | Options |
 | --- | --- |
-| `open <url or file>` | `--size WxH` (default 1280x800), `--port` (default 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
+| `open <url or file>` | `--size WxH` (default 1280x800), `--zoom` (`2` or `200%`, as the `zoom` step), `--scheme light\|dark` (as the `scheme` step), `--port` (default 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
 | `do <steps>` | Steps as a JSON file, inline JSON, `-` for stdin, or a `.mjs` steps script (see [Steps files](#steps-files)). `--port`, `--out <dir>` for screenshots |
 | `close` | `--port` |
 | `run <url> <steps>` | All of the above |
 
 `open` starts Chrome headless with a throwaway profile. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
+
+Each line echoes its step. A string in it longer than 160 characters is cut to its start and its length, so a long `eval` doesn't fill the output. A step with `"quiet": true` prints only `i`, the step, `ok` and any `error`, `warning` or `pageErrors`; a steps script still gets the whole result back.
+
+Headless Chrome takes `prefers-color-scheme` from the OS appearance, so on a Mac set to Dark the page sees `dark`, and a page that follows the scheme renders dark. Set it with `--scheme` or the `scheme` step, and check both.
 
 ## Targets
 
@@ -46,16 +50,18 @@ Each step is an object whose first key is the verb.
 
 | Step | Example | Does |
 | --- | --- | --- |
-| `size` | `{"size":[1024,768]}` | Resizes the browser window so the viewport is that size. Headless windows stop at about 500px wide, so a smaller size is emulated: the result says `emulated`, and a small helper process keeps it for the rest of the session, across `do` calls, until the next `size` step or `close`. |
-| `goto` | `{"goto":"other.html"}` | Navigates. |
+| `size` | `{"size":[1024,768]}` | Resizes the browser window so the viewport is that size. Headless windows stop at about 500px wide, so a smaller size is emulated: the result says `emulated`, and a small helper process keeps it for the rest of the session, across `do` calls, until the next `size` step or `close`. The same process keeps `zoom` and `scheme`. |
+| `zoom` | `{"zoom":2}` or `{"zoom":"200%"}` | Browser page zoom, 25% to 500%. The window keeps its size and the CSS viewport shrinks to 1/zoom of it, with `devicePixelRatio` at the zoom, which is how Chrome lays out and draws a zoomed page: at 200% a 1280x800 window is a 640x400 CSS viewport, and at 400% it is 320x200. The result gives `cssViewport`. `shot` saves the window's size in device px, as a screenshot of the zoomed window would. Zoom stays across `size` steps and `do` calls, as browser zoom does, until a `{"zoom":1}` or `close`. |
+| `scheme` | `{"scheme":"light"}`, `"dark"` or `"none"` | Emulates `prefers-color-scheme`. `none` follows the OS again. It stays until changed or `close`. |
+| `goto` | `{"goto":"other.html"}` | Navigates. It waits up to 10s for the page's load event. |
 | `controls` | `{"controls":true}` | Lists every visible interactive element as `@n` refs, with name, centre, size, and whether it is in view, covered by something else, or disabled. |
 | `click` | `{"click":"@4","button":"right","count":2,"mods":["Shift"]}` | Moves the mouse there and presses. `button` is `left`, `right` or `middle`. |
 | `hover` | `{"hover":"text=Info"}` | Moves the mouse there. |
 | `drag` | `{"drag":"[aria-label=Width]","to":{"dx":-120,"dy":0},"cancel":"Escape"}` | Press, move in steps, release. `to` is a target or `{dx,dy}`. `hold` keeps a key down for the drag (`"Space"` to pan). `cancel` presses a key before release. `button` as for click. |
 | `wheel` | `{"wheel":"#list","dy":600,"mods":["Ctrl"]}` | Mouse wheel over the target, in 100px ticks (`ticks` to change). |
-| `key` | `{"key":"Shift+Tab","repeat":3}` | A key or combo: `Ctrl+=`, `Cmd+0`, `Escape`, `ArrowDown`, `F6`. `Mod` is Cmd on macOS and Ctrl elsewhere, and `Option` is Alt. On macOS, editing shortcuts in a text field run the editor command a person's keypress would (`Cmd+A` select all, `Cmd+C`/`X`/`V`, `Cmd+Z`, `Cmd+Shift+Z`, `Cmd`/`Option` + arrows, `Option+Backspace`), and the result names it as `command`. |
+| `key` | `{"key":"Shift+Tab","repeat":3}` | A key or combo: `Ctrl+=`, `Cmd+0`, `Escape`, `ArrowDown`, `F6`. `Mod` is Cmd on macOS and Ctrl elsewhere, and `Option` is Alt. On macOS, editing shortcuts in a text field run the editor command a person's keypress would (`Cmd+A` select all, `Cmd+C`/`X`/`V`, `Cmd+Z`, `Cmd+Shift+Z`, `Cmd`/`Option` + arrows, `Option+Backspace`), and the result names it as `command`. A shifted character is typed with Shift as on a US keyboard: `Shift+/` and `?` both press Shift and Slash and give `?`, `Shift+1` gives `!`, and `Ctrl++` is Ctrl+Shift+=. When the keydown's `key` differs from the combo as written, the result gives it as `eventKey`. On another layout, use `type` for text. |
 | `type` | `{"type":"Hello\n"}` | Types text into the focused element. `\n` presses Enter. |
-| `choose` | `{"choose":"#size","text":"Large"}` or `{"choose":"#size","value":"l"}` | Picks an option of a native `<select>`: it focuses the select and types the option's text, the keyboard type-ahead a person can use. `input` in the result says how it went: `keyboard`, or `script` with a `warning` when type-ahead couldn't reach the option (a multiple select, say) and the value was set by script with `input` and `change` events. That part is not real input. A custom listbox isn't a `<select>`: use click and key steps. |
+| `choose` | `{"choose":"#size","text":"Large"}` or `{"choose":"#size","value":"l"}` | Picks an option of a native `<select>`: it focuses the select and types the option's text, the keyboard type-ahead a person can use. `input` in the result says how it went: `keyboard`, or `script` with a `warning` when type-ahead couldn't reach the option (a multiple select, say) and the value was set by script with `input` and `change` events. That part is not real input. `text` matches the whole text first, then a part of it, and skips disabled options, options in a disabled `<optgroup>` and hidden ones, as a person can't pick those: `"Apple"` picks "Apple crumble" when "Apple" is disabled. Naming a disabled or hidden option exactly, or by `value`, fails and says so. A custom listbox isn't a `<select>`: use click and key steps. |
 | `tap` | `{"tap":"@2","hold":600}` | A touch tap. `hold` in ms makes it a long press. |
 | `touchScroll` | `{"touchScroll":"#list","dy":400}` | A touch swipe that scrolls the content by `dx`/`dy`. |
 | `pinch` | `{"pinch":"#stage","scale":1.5}` | A trackpad pinch at the target. |
@@ -159,3 +165,91 @@ Keyboard only:
 ```
 
 Each line's `focus` gives the tab order. Any line where focus lands on `body` mid-page is a lost focus.
+
+Page zoom and colour scheme. Zoom a 1280-wide window to 200% and 400% in each scheme:
+
+```json
+[{"scheme":"light"}, {"zoom":2}, {"controls":true}, {"shot":"light-200"}, {"zoom":4}, {"shot":"light-400"},
+ {"scheme":"dark"}, {"shot":"dark-400"}, {"zoom":2}, {"shot":"dark-200"}, {"zoom":1}, {"scheme":"none"}]
+```
+
+At 200% the page has a 640x400 CSS viewport and at 400% a 320x200 one. Look for content cut off, a toolbar that no longer fits, and controls `covered` or out of view.
+
+## Data-state fixtures
+
+A tool's data states are as much a part of it as its default one: nothing loaded, loading, each error, and a very large input. Make one page per state from a build, then open each with the driver. For a canvas page from `shared/canvas/build.mjs`, this script swaps the marked CONFIG and SCREEN regions of the built `index.html`. Save it in a scratch folder, not in the repository:
+
+```js
+// fixtures.mjs: node fixtures.mjs <built index.html> <out dir>
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const [src, out] = process.argv.slice(2);
+const page = readFileSync(src, 'utf8');
+// Replaces the body of a marked region; a function, so "$" in the body stays literal.
+const region = (html, name, body) => html.replace(
+  new RegExp(`(<!-- ULTRAHAND:${name}:BEGIN -->)[\\s\\S]*?(<!-- ULTRAHAND:${name}:END -->)`),
+  (_, begin, end) => `${begin}\n${body}\n${end}`);
+const screen = page.match(/<!-- ULTRAHAND:SCREEN:BEGIN -->([\s\S]*?)<!-- ULTRAHAND:SCREEN:END -->/)[1];
+const config = JSON.parse(page.match(/<script type="application\/json" id="uh-config">([\s\S]*?)<\/script>/)[1]);
+const configTag = (json) => `<script type="application/json" id="uh-config">\n${json.replace(/</g, '\\u003c')}\n</script>`;
+
+const rows = Array.from({ length: 2000 }, (_, i) =>
+  `<li>Row ${i + 1}: ${'a fairly long line of text '.repeat(4)}</li>`).join('');
+const presets = Array.from({ length: 60 }, (_, i) => ({ ...config.presets[i % config.presets.length],
+  id: `p${i}`, label: `Preset ${i + 1} with a long label to wrap` }));
+
+const fixtures = {
+  // Nothing loaded: an empty screen.
+  'empty.html': region(page, 'SCREEN', '<template id="uh-screen"></template>'),
+  // Error: the config isn't valid JSON.
+  'bad-config.html': region(page, 'CONFIG', configTag('{')),
+  // Error: the screen's setup throws. A later assignment replaces the screen's own setup.
+  'setup-error.html': region(page, 'SCREEN', `${screen}<script>window.ultrahandSetup = () => {
+    throw new Error('fixture: setup threw'); };</script>`),
+  // Error: no screen at all.
+  'no-screen.html': region(page, 'SCREEN', ''),
+  // Very large: 60 presets, 40 states, a 120-character title, 2000 rows and an unbroken
+  // 300-character word.
+  'large.html': region(region(page, 'CONFIG', configTag(JSON.stringify({ ...config, presets,
+    states: Array.from({ length: 40 }, (_, i) => `state-${i + 1}`), title: 'T'.repeat(120) }))),
+  'SCREEN', `<template id="uh-screen"><main><h1>${'W'.repeat(300)}</h1><ul>${rows}</ul></main></template>`),
+};
+mkdirSync(out, { recursive: true });
+for (const [name, html] of Object.entries(fixtures)) writeFileSync(join(out, name), html);
+console.log(Object.keys(fixtures).map((n) => join(out, n)).join('\n'));
+```
+
+```sh
+node fixtures.mjs index.html fx
+node shared/input/drive.mjs open fx/empty.html
+for f in empty bad-config setup-error no-screen large; do
+  node shared/input/drive.mjs do "[{\"goto\":\"$PWD/fx/$f.html\"},{\"controls\":true},{\"shot\":\"$f\"}]" --out shots
+done
+```
+
+Each error page shows the canvas's "Canvas problem" alert (`#uh-error`) with its message. Check that it says what went wrong and how to fix it, and that the toolbar still works around it.
+
+**Loading.** The canvas page fetches nothing, so its only loading state is the moment before its runtime script runs. A tool that fetches data has a longer one. Either way, serve the page so the end of it, or the data, arrives late. This server holds back each HTML page from its last `<script>` for 15 seconds:
+
+```js
+// slow.mjs: node slow.mjs <dir> [port] [seconds]
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { join, normalize } from 'node:path';
+
+const [dir, port = 8123, secs = 15] = process.argv.slice(2);
+createServer(async (req, res) => {
+  const path = join(dir, normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+  const body = await readFile(path).catch(() => null);
+  if (!body) return res.writeHead(404).end();
+  if (!path.endsWith('.html')) return res.end(body);
+  const text = body.toString('utf8');
+  const cut = text.lastIndexOf('<script');
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.write(text.slice(0, cut));
+  setTimeout(() => res.end(text.slice(cut)), secs * 1000);
+}).listen(port, () => console.log(`http://localhost:${port}/`));
+```
+
+Run it in the background with `node slow.mjs . 8123 15`, then `{"goto":"http://localhost:8123/index.html"}` and a `shot`. `goto` stops waiting for the load event after 10 seconds, so the shot shows the page still loading (`document.readyState` is `"loading"`). For a tool that fetches its data, delay the data's URL in the same way instead.

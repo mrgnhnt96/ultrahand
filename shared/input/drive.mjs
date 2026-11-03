@@ -3,7 +3,8 @@
 // wheel, keyboard and touch events that go through hit testing, focus, default actions and
 // scroll chaining, unlike synthetic dispatchEvent calls. Zero dependencies; Node 22+.
 //
-//   node drive.mjs open <url> [--size 1280x800] [--port 9333] [--headed] [--chrome <path>]
+//   node drive.mjs open <url> [--size 1280x800] [--zoom 200%] [--scheme dark] [--port 9333]
+//                           [--headed] [--chrome <path>]
 //   node drive.mjs do <steps.json | steps.mjs | '<json>' | -> [--port 9333] [--out <dir>]
 //   node drive.mjs close [--port 9333]
 //   node drive.mjs run <url> <steps.json | steps.mjs | '<json>'> [--size 1280x800] [--out <dir>]
@@ -17,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
-const VERSION = 4;
+const VERSION = 5;
 const MAC = process.platform === 'darwin';
 // Mod is the platform's command key: Cmd on macOS, Ctrl elsewhere.
 const MODS = { Alt: 1, Option: 1, Ctrl: 2, Control: 2, Meta: 4, Cmd: 4, Shift: 8, Mod: MAC ? 4 : 2 };
@@ -49,13 +50,18 @@ const NAMED_KEYS = {
   Mod: MAC ? [91, 'MetaLeft'] : [17, 'ControlLeft'],
 };
 for (let n = 1; n <= 12; n++) NAMED_KEYS[`F${n}`] = [111 + n, `F${n}`];
+// US layout: each unshifted key's windows code and code name, and the character Shift gives.
 const PUNCT = {
-  '=': [187, 'Equal'], '+': [187, 'Equal'], '-': [189, 'Minus'], '_': [189, 'Minus'],
-  '−': [189, 'Minus'], ',': [188, 'Comma'], '.': [190, 'Period'], '/': [191, 'Slash'],
-  '?': [191, 'Slash'], ';': [186, 'Semicolon'], "'": [222, 'Quote'], '[': [219, 'BracketLeft'],
+  '=': [187, 'Equal'], '-': [189, 'Minus'], ',': [188, 'Comma'], '.': [190, 'Period'],
+  '/': [191, 'Slash'], ';': [186, 'Semicolon'], "'": [222, 'Quote'], '[': [219, 'BracketLeft'],
   ']': [221, 'BracketRight'], '\\': [220, 'Backslash'], '`': [192, 'Backquote'],
-  '!': [49, 'Digit1'], '@': [50, 'Digit2'], '#': [51, 'Digit3'],
 };
+const SHIFTED = {
+  '`': '~', 1: '!', 2: '@', 3: '#', 4: '$', 5: '%', 6: '^', 7: '&', 8: '*', 9: '(', 0: ')',
+  '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|', ';': ':', "'": '"', ',': '<', '.': '>', '/': '?',
+};
+// A shifted character names the key that types it: "?" is Shift+/.
+const UNSHIFTED = Object.fromEntries(Object.entries(SHIFTED).map(([k, v]) => [v, k]));
 
 function fail(msg) {
   console.error(`drive: ${msg}`);
@@ -74,6 +80,12 @@ function parseArgs(argv) {
     } else out._.push(a);
   }
   return out;
+}
+
+function parseZoom(z) {
+  const n = typeof z === 'string' && z.endsWith('%') ? Number(z.slice(0, -1)) / 100 : Number(z);
+  if (!Number.isFinite(n)) throw new Error(`zoom wants a number or a percentage, got ${z}`);
+  return n;
 }
 
 function parseSize(text) {
@@ -190,13 +202,15 @@ async function launch(url, opts) {
   await waitForPort(port);
   rmSync(stateFile(port), { force: true });
   const cdp = await Cdp.connect(await pageSocket(port));
-  const sized = await applySize(cdp, port, w, h);
+  const sized = await emulate(cdp, port, { size: [w, h], zoom: parseZoom(opts.zoom ?? 1),
+    scheme: opts.scheme === 'none' ? undefined : opts.scheme });
   await navigate(cdp, toUrl(url));
   cdp.close();
   return { port, pid: child.pid, url: toUrl(url), ...sized };
 }
 
-// Per-port state shared by `do` calls: the size a `hold` process is keeping.
+// Per-port state shared by `do` calls: the window's viewport size, the page zoom and the
+// colour scheme, and the token of the `hold` process keeping any emulation.
 const stateFile = (port) => join(tmpdir(), `ultrahand-drive-${port}.json`);
 
 function readState(port) {
@@ -207,49 +221,111 @@ function readState(port) {
   }
 }
 
-// Ends a held size: the hold process sees its token gone and disconnects, which drops its
-// device-metrics override.
-async function releaseSize(port) {
-  if (!readState(port).token) return;
+// Ends a hold: the hold process sees its token gone and disconnects, which drops its overrides.
+async function releaseHold(port) {
+  const state = readState(port);
   rmSync(stateFile(port), { force: true });
-  await sleep(300);
+  if (state.token) await sleep(300);
 }
 
-// Sizes the viewport. The real window is used when it can reach the size, and it stays for
-// later `do` calls. Below the window's minimum (about 500px wide headless) a device-metrics
-// override is needed, and CDP drops an override when its connection closes, so a small
-// `hold` process keeps one open until the next size step or `close`.
-async function applySize(cdp, port, width, height) {
-  await releaseSize(port);
+// Sizes the viewport, zooms the page and sets the colour scheme. A change keeps the other
+// two as they were. The real window is used for the size when it can reach it, and it stays
+// for later `do` calls. Anything else needs an override: below the window's minimum (about
+// 500px wide headless) a device-metrics one, for zoom one with a CSS viewport 1/zoom the
+// size and a device scale factor of zoom, which lays out and draws as browser page zoom
+// does, and for the scheme an emulated media feature. CDP drops an override when its
+// connection closes, so a small `hold` process keeps them until the next change or `close`.
+async function emulate(cdp, port, change) {
+  const prev = readState(port);
+  const size = change.size || prev.size || await viewportSize(cdp);
+  const zoom = change.zoom ?? prev.zoom ?? 1;
+  const scheme = 'scheme' in change ? change.scheme : prev.scheme;
+  if (!(zoom >= 0.25 && zoom <= 5)) throw new Error(`zoom wants 0.25 to 5 (or 25% to 500%), got ${zoom}`);
+  if (scheme && !['light', 'dark'].includes(scheme)) throw new Error(`scheme wants light, dark or none, got ${scheme}`);
+  await releaseHold(port);
+  const [width, height] = size;
   const actual = await setViewport(cdp, width, height);
-  if (actual[0] === width && actual[1] === height) return { size: actual };
+  const metrics = actual[0] !== width || actual[1] !== height || zoom !== 1;
+  const state = { size, ...(zoom !== 1 ? { zoom } : {}), ...(scheme ? { scheme } : {}) };
+  const out = { size, ...(zoom !== 1 ? { zoom, cssViewport: cssSize(size, zoom) } : {}),
+    ...(scheme ? { scheme } : {}) };
+  if (!metrics && !scheme) {
+    writeFileSync(stateFile(port), JSON.stringify(state));
+    return out;
+  }
   const token = `${process.pid}-${Date.now()}`;
-  writeFileSync(stateFile(port), JSON.stringify({ token, size: [width, height] }));
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'hold', `${width}x${height}`,
+  writeFileSync(stateFile(port), JSON.stringify({ ...state, metrics, token }));
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'hold',
     '--port', String(port), '--token', token], { detached: true, stdio: 'ignore' });
   child.unref();
-  const end = Date.now() + 5000;
-  while (Date.now() < end) {
-    await sleep(100);
-    const [iw, ih] = await viewportSize(cdp);
-    if (iw === width && ih === height) {
-      return { size: [width, height], emulated: `the window stops at ${actual.join('x')}, so this `
-        + 'size is a device-metrics override. It holds across do calls until the next size step or close.' };
+  if (await emulated(cdp, { ...state, metrics }, 5000)) {
+    if (actual[0] !== width || actual[1] !== height) {
+      out.emulated = `the window stops at ${actual.join('x')}, so this size is a device-metrics `
+        + 'override. It holds across do calls until the next size step or close.';
     }
+    return out;
   }
-  await releaseSize(port);
-  throw new Error(`Could not emulate ${width}x${height}; the window stops at ${actual.join('x')}`);
+  await releaseHold(port);
+  throw new Error(`Could not emulate ${JSON.stringify(state)}; the window stops at ${actual.join('x')}`);
 }
 
-async function hold(port, size, token) {
-  const [width, height] = parseSize(size);
+// The CSS viewport of a window viewport at a page zoom, as Chrome rounds it.
+const cssSize = ([w, h], zoom) => [Math.round(w / zoom), Math.round(h / zoom)];
+
+// An expression that is true when the page shows the state's size, zoom and scheme.
+function emulationCheck({ size, zoom = 1, scheme, metrics }) {
+  const [w, h] = metrics ? cssSize(size, zoom) : size;
+  return `innerWidth === ${w} && innerHeight === ${h}` + (metrics ? ` && devicePixelRatio === ${zoom}` : '')
+    + (scheme ? ` && matchMedia('(prefers-color-scheme: ${scheme})').matches` : '');
+}
+
+// Waits up to `ms` for the page to show the state's emulation; true once it does.
+async function emulated(cdp, state, ms) {
+  const end = Date.now() + ms;
+  do {
+    const { result } = await cdp.send('Runtime.evaluate', { expression: emulationCheck(state), returnByValue: true })
+      .catch(() => ({ result: {} }));
+    if (result.value === true) return true;
+    await sleep(100);
+  } while (Date.now() < end);
+  return false;
+}
+
+// Keeps the state's overrides. Another connection that sets an override of its own (a shot
+// at a zoom does) clears this one's when it closes, so the hold puts them back when the page
+// stops matching.
+async function hold(port, token) {
+  const state = readState(port);
+  const { size, zoom = 1, scheme, metrics } = state;
   const cdp = await Cdp.connect(await pageSocket(port));
-  await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  const apply = async (again) => {
+    if (metrics) {
+      const [width, height] = cssSize(size, zoom);
+      // Chrome skips an override that equals this connection's last one, so clear it first.
+      if (again) await cdp.send('Emulation.clearDeviceMetricsOverride');
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: zoom, mobile: false });
+    }
+    if (scheme) {
+      await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
+    }
+  };
+  await apply();
   cdp.ws.addEventListener('close', () => process.exit(0));
-  setInterval(() => {
+  let busy = false;
+  setInterval(async () => {
     if (readState(port).token !== token) {
       cdp.close();
       process.exit(0);
+    }
+    if (busy) return;
+    busy = true;
+    try {
+      const { result } = await cdp.send('Runtime.evaluate', { expression: emulationCheck(state), returnByValue: true });
+      if (result.value === false) await apply(true);
+    } catch {
+      // The page is between documents; check again on the next tick.
+    } finally {
+      busy = false;
     }
   }, 100);
 }
@@ -409,13 +485,18 @@ const PAGE_HELPERS = `(() => {
       }
       const opts = [...el.options];
       const w = clean(want).toLowerCase();
-      const i = by === 'value' ? opts.findIndex((o) => o.value === want)
-        : [(o) => clean(o.text).toLowerCase() === w, (o) => clean(o.text).toLowerCase().includes(w)]
-          .map((f) => opts.findIndex(f)).find((n) => n >= 0) ?? -1;
+      /* By text, a person can only pick an option they can see and that is enabled, so a
+         disabled or hidden "Large, resized" never wins over "Large". */
+      const usable = (o) => !o.disabled && !o.closest('optgroup[disabled]') && !o.hidden && getComputedStyle(o).display !== 'none';
+      const byText = (ok) => [(o) => clean(o.text).toLowerCase() === w, (o) => clean(o.text).toLowerCase().includes(w)]
+        .map((f) => opts.findIndex((o) => ok(o) && f(o))).find((n) => n >= 0) ?? -1;
+      let i = by === 'value' ? opts.findIndex((o) => o.value === want) : byText(usable);
+      if (i < 0 && by !== 'value') i = byText(() => true);
       return { target: desc(el), index: i, text: i >= 0 ? clean(opts[i].text) : null,
         value: i >= 0 ? opts[i].value : null, current: el.selectedIndex,
         focused: deepActive() === el, multiple: el.multiple,
-        disabled: el.disabled || (i >= 0 && opts[i].disabled),
+        disabled: el.disabled || (i >= 0 && (opts[i].disabled || !!opts[i].closest('optgroup[disabled]'))),
+        hidden: i >= 0 && (opts[i].hidden || getComputedStyle(opts[i]).display === 'none'),
         options: opts.slice(0, 40).map((o) => clean(o.text)) };
     },
     focusEl(target) { resolve(target).focus(); },
@@ -552,9 +633,21 @@ class Driver {
   }
 
   async do_size([width, height]) {
-    const result = await applySize(this.cdp, this.port, width, height);
+    const result = await emulate(this.cdp, this.port, { size: [width, height] });
     await sleep(150);
     return result;
+  }
+
+  // Browser page zoom: 2 or "200%". The window keeps its size and the CSS viewport shrinks.
+  async do_zoom(zoom) {
+    const result = await emulate(this.cdp, this.port, { zoom: parseZoom(zoom) });
+    await sleep(150);
+    return result;
+  }
+
+  // prefers-color-scheme: "light", "dark", or "none" to follow the OS again.
+  async do_scheme(scheme) {
+    return emulate(this.cdp, this.port, { scheme: scheme === 'none' || !scheme ? undefined : scheme });
   }
 
   async do_goto(url) {
@@ -621,7 +714,9 @@ class Driver {
     await sleep(30);
     const { key, mods } = parseCombo(combo);
     const command = macCommand(mods.reduce((m, k) => m | MODS[k], 0), key);
-    return command ? { key: combo, command } : { key: combo };
+    // The keydown's event.key, when it isn't the key as written: "Shift+/" sends "?".
+    const eventKey = NAMED_KEYS[key] ? null : keyInfo(key, mods.includes('Shift'))[1];
+    return { key: combo, ...(eventKey && eventKey !== (combo.endsWith('+') ? '+' : combo.split('+').pop()) ? { eventKey } : {}), ...(command ? { command } : {}) };
   }
 
   async do_type(text) {
@@ -710,6 +805,7 @@ class Driver {
     const out = { target: info.target, chose: info.text, value: info.value };
     if (info.index < 0) throw new Error(`No option with ${by} ${JSON.stringify(want)} in ${info.target}. Options: ${info.options.join(' | ')}`);
     if (info.disabled) throw new Error(`${info.target} or its option ${JSON.stringify(info.text)} is disabled`);
+    if (info.hidden) throw new Error(`The option ${JSON.stringify(info.text)} of ${info.target} is hidden`);
     if (info.index === info.current) return { ...out, input: 'none', note: 'already selected' };
     if (!info.multiple) {
       if (!info.focused) {
@@ -753,6 +849,15 @@ class Driver {
   async do_shot(name) {
     if (!this.outDir) throw new Error('shot needs --out <dir>');
     mkdirSync(this.outDir, { recursive: true });
+    // At a page zoom the capture is the window's size in device px, as a screenshot of a
+    // zoomed browser window is. It is taken under this connection's own copy of the hold's
+    // override: Chrome captures at the scale factor of the connection asking, and a clip
+    // with a scale would reset the page's scale factor to 1 once the capture ends.
+    const { size, zoom = 1 } = readState(this.port);
+    if (zoom !== 1) {
+      const [width, height] = cssSize(size, zoom);
+      await this.cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: zoom, mobile: false });
+    }
     const { data } = await this.cdp.send('Page.captureScreenshot', { format: 'png' });
     const file = join(this.outDir, `${String(name).replace(/[^\w.-]+/g, '-')}.png`);
     writeFileSync(file, Buffer.from(data, 'base64'));
@@ -760,14 +865,20 @@ class Driver {
   }
 }
 
-const VERBS = ['size', 'goto', 'click', 'hover', 'drag', 'wheel', 'key', 'type', 'choose', 'tap',
+const VERBS = ['size', 'zoom', 'scheme', 'goto', 'click', 'hover', 'drag', 'wheel', 'key', 'type', 'choose', 'tap',
   'touchScroll', 'pinch', 'controls', 'eval', 'wait', 'shot'];
 
+// Splits "Ctrl+Shift+/" into its key and modifiers. A shifted character names the key that
+// types it, with Shift held as on a US keyboard: "?" is Shift+/, "Ctrl++" is Ctrl+Shift+=.
 function parseCombo(combo) {
-  if (combo === '+') return { key: '+', mods: [] };
-  const parts = combo.endsWith('++') ? [...combo.slice(0, -2).split('+'), '+'] : combo.split('+');
-  const key = parts.pop();
+  const parts = combo === '+' ? ['+'] : combo.endsWith('++') ? [...combo.slice(0, -2).split('+'), '+'] : combo.split('+');
+  let key = parts.pop();
   for (const m of parts) if (!(m in MODS)) fail(`Unknown modifier ${m} in ${combo}`);
+  if (key === '−') key = '-';
+  if (UNSHIFTED[key] !== undefined) {
+    key = UNSHIFTED[key];
+    if (!parts.includes('Shift')) parts.push('Shift');
+  }
   return { key, mods: parts };
 }
 
@@ -781,20 +892,24 @@ function modKey(m) {
   return { key, code: codeName, windowsVirtualKeyCode: code };
 }
 
+// [windows code, key, code name, text] for a key, with Shift applied to its character.
 function keyInfo(key, shift) {
   if (NAMED_KEYS[key]) {
     const [code, codeName, text] = NAMED_KEYS[key];
     return [code, key === 'Esc' ? 'Escape' : key === 'Space' ? ' ' : key, codeName, text];
   }
-  if (key.length !== 1 && !PUNCT[key]) fail(`Unknown key ${key}`);
   if (/^[a-z]$/i.test(key)) {
     const upper = key.toUpperCase();
     const text = shift ? upper : key.toLowerCase();
     return [upper.charCodeAt(0), text, `Key${upper}`, text];
   }
-  if (/^\d$/.test(key)) return [48 + Number(key), key, `Digit${key}`, key];
-  const [code, codeName] = PUNCT[key] || [0, ''];
-  return [code, key === '−' ? '-' : key, codeName, key === '−' ? '-' : key];
+  const [code, codeName] = /^\d$/.test(key) ? [48 + Number(key), `Digit${key}`] : PUNCT[key] || [];
+  if (code) {
+    const ch = shift ? SHIFTED[key] : key;
+    return [code, ch, codeName, ch];
+  }
+  if ([...key].length !== 1) fail(`Unknown key ${key}`);
+  return [0, key, '', key];
 }
 
 // Steps are JSON (a file, inline, or `-` for stdin), or a .mjs/.js file whose default
@@ -822,10 +937,23 @@ async function readSteps(arg) {
 
 class StepFailed extends Error {}
 
+// The line a step prints. A long string in the step (an eval's script) is cut to its start,
+// and a quiet step prints only how it went: a steps script still gets the whole result.
+function printed(line) {
+  const step = Object.fromEntries(Object.entries(line.step).map(([k, v]) => [k,
+    typeof v === 'string' && v.length > 160 ? `${v.slice(0, 60).replace(/\s+/g, ' ')}… (${v.length} chars)` : v]));
+  if (line.step.quiet !== true) return { ...line, step };
+  const keep = ['i', 'ok', 'error', 'warning', 'pageErrors'];
+  return { i: line.i, step, ...Object.fromEntries(keep.filter((k) => k in line).map((k) => [k, line[k]])) };
+}
+
 async function runSteps(port, steps, outDir) {
   const cdp = await Cdp.connect(await pageSocket(port));
   const driver = new Driver(cdp, outDir && resolve(outDir), port);
   await driver.init();
+  // A hold puts its overrides back within a moment of an earlier call clearing them.
+  const state = readState(port);
+  if (state.token) await emulated(cdp, state, 2000);
   let failed = 0;
   let i = 0;
   const run = async (step) => {
@@ -838,7 +966,7 @@ async function runSteps(port, steps, outDir) {
       failed++;
     }
     if (driver.errors.length) line.pageErrors = driver.errors.splice(0);
-    console.log(JSON.stringify(line));
+    console.log(JSON.stringify(printed(line)));
     return line;
   };
   if (typeof steps === 'function') {
@@ -874,7 +1002,7 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const [cmd, a, b] = opts._;
   if (opts.help || !cmd) {
-    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 11).join('\n').replace(/^\/\/ ?/gm, ''));
+    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 12).join('\n').replace(/^\/\/ ?/gm, ''));
     return;
   }
   if (typeof WebSocket === 'undefined') fail('Needs Node 22 or later (built-in WebSocket)');
@@ -885,7 +1013,7 @@ async function main() {
   } else if (cmd === 'do') {
     process.exitCode = (await runSteps(port, await readSteps(a), opts.out)) ? 1 : 0;
   } else if (cmd === 'hold') {
-    await hold(port, a, opts.token);
+    await hold(port, opts.token);
   } else if (cmd === 'close') {
     rmSync(stateFile(port), { force: true });
     const { webSocketDebuggerUrl } = await getJson(port, '/json/version').catch(() => fail(`No browser on port ${port}`));
