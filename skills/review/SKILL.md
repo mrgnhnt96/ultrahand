@@ -104,6 +104,12 @@ clicks and keys. Script is only for setting up a view and reading state afterwar
 - At each size, list the controls (`controls`), then use every one as its kind is meant to
   be used: click or tap, type, drag and cancel with Esc, right-click, open and close with
   the keyboard, and wheel or swipe over every scroller past its end.
+- **Measure, don't look.** At each size, at 200% text and in dark mode, run the driver's
+  `inspect` step (`{"inspect":".uh-viewport"}` on a canvas). It computes every text's
+  contrast and every control's size, and lists clipped, off-screen, covered and
+  overlapping text and the tab order. Passes 3, 5 and 7 read those numbers. Take one or two
+  screenshots per concept, for composition and for what `inspect` lists as unresolved; a
+  screenshot per size to check colours or sizes costs time and finds less.
 - A few native controls can't be driven with trusted input headless: a select's popup,
   file pickers, and colour and date pickers. Choose a select's option with the driver's
   `choose` step, and list the rest under *Not checked*.
@@ -120,7 +126,7 @@ clicks and keys. Script is only for setting up a view and reading state afterwar
    the previous version: what did the round add, and is the screen busier for it?
 3. **Control by control:** every control in the inventory against the control checks.
 4. **Heuristics:** each screen against Nielsen's 10.
-5. **Accessibility:** WCAG 2.2 AA. Compute contrast; don't eyeball it.
+5. **Accessibility:** WCAG 2.2 AA. Compute contrast with `inspect`; don't eyeball it.
 6. **Platform:** the rules for the platform and size class from step 2.
 7. **Resize and variants:** every preset, the split widths, 320-wide reflow, 200% text,
    dark mode, each data state, and on touch devices both orientations and the keyboard up

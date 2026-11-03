@@ -99,6 +99,8 @@ Every control in the inventory:
       [mobile:HIG-A11Y] [mobile:AND-A11Y]. Never below WCAG's 24 × 24 CSS px floor (or
       enough spacing), even for pointer-first desktop UI [WCAG 2.5.8]. Frequent and
       adjacent targets are larger and spaced so people don't hit the neighbour [NNG-FITTS].
+      `inspect` with `"min"` set to the platform size lists each one under it, with the
+      2.5.8 verdict.
 - [ ] **States:** default, hover (pointer), pressed, focused, selected, disabled and
       loading are each designed [NNG-H1].
 - [ ] **Feedback:** pressing it responds visibly. A slow action shows progress
@@ -195,19 +197,23 @@ Check these success criteria, in addition to the ones cited in pass 3 [WCAG22].
 
 - [ ] **Contrast (1.4.3):** text at least 4.5:1; large text (24 px, or 18.66 px bold) at
       least 3:1. Check every text colour on every background it sits on, in **both** light
-      and dark mode and in every state (disabled controls are exempt). Compute it with
-      the formula below.
+      and dark mode and in every state (disabled controls are exempt). `inspect` computes
+      it for every text, through opacity and gradients; use the formula below only for
+      what it lists as unresolved (text on an image or an overlay).
 - [ ] **Non-text contrast (1.4.11):** icons, control borders, focus indicators and chart
-      lines at least 3:1 against what's next to them.
+      lines at least 3:1 against what's next to them. `inspect` checks field edges
+      (`field-edge`); icons, focus rings and charts you still check yourself.
 - [ ] **Use of colour (1.4.1):** colour isn't the only signal: errors, required fields,
       selected items, links in text and chart series also differ in text, icon, shape or
       underline.
 - [ ] **Structure (1.3.1):** headings, lists, tables and groups are marked up as such;
       related fields are grouped.
 - [ ] **Resize text (1.4.4)** and **text spacing (1.4.12):** at 200% text nothing is cut
-      off, overlaps or is lost; containers grow instead of clipping.
+      off, overlaps or is lost; containers grow instead of clipping (`inspect`'s `cut`,
+      `overlap` and `covered`).
 - [ ] **Reflow (1.4.10):** at 320 CSS px wide, content reads without scrolling in two
-      directions (tables, maps and toolbars excepted).
+      directions (tables, maps and toolbars excepted). `inspect` flags `offscreen` text
+      and `pageOverflowX`.
 - [ ] **Orientation (1.3.4):** works in portrait and landscape unless one is essential.
 - [ ] **Hover and focus content (1.4.13):** tooltips and popovers can be dismissed (Esc),
       can be hovered without vanishing, and stay until dismissed.
@@ -217,7 +223,8 @@ Check these success criteria, in addition to the ones cited in pass 3 [WCAG22].
 - [ ] **Keyboard (2.1.1)** and **no keyboard trap (2.1.2):** every function works from the
       keyboard, and focus can always leave a component, including dialogs and embedded
       content.
-- [ ] **Focus order (2.4.3):** focus follows reading order. Opening a dialog moves focus
+- [ ] **Focus order (2.4.3):** focus follows reading order (`inspect`'s `focusOrder`,
+      with `focus-up` and positive `tabindex` flagged). Opening a dialog moves focus
       into it; closing it returns focus to what opened it. While a modal (dialog, sheet,
       menu) is open, focus stays inside it: the background is `inert` and Tab wraps
       [desktop:APG-DIALOG].
@@ -320,7 +327,10 @@ most often miss; the linked principles hold the rest.
 
 ## Pass 7: Resize and variants
 
-On a canvas, use the presets and the readout. From code, read the breakpoints and container
+On a canvas, use the presets and the readout, and `inspect` at each one: its `cut`,
+`offscreen`, `overlap`, `covered` and `target` issues are this pass's overlap, clipping and
+lost-control checks, and its contrast covers dark mode. One screenshot at the largest and
+the smallest size is enough for the look. From code, read the breakpoints and container
 queries. From a screenshot, say which sizes you couldn't see.
 
 - [ ] **Every preset** for the platform, in both orientations on touch devices, renders
@@ -383,7 +393,9 @@ used in a browser window of any size, then add these checks.
       to its chrome. With the input driver, a `zoom` step emulates page zoom (`{"zoom":2}`
       on a 1280x800 window gives a 640x400 CSS viewport, `{"zoom":4}` a 320x200 one), and a
       `scheme` step sets light or dark. Set the scheme for both runs: headless Chrome takes
-      it from the OS, so the default is not always light. Its README has a recipe for the
+      it from the OS, so the default is not always light. At each window size, zoom and
+      scheme, `{"inspect":true}` measures the chrome (contrast, cut-off and covered text,
+      targets) in place of a screenshot. Its README has a recipe for the
       data-state pages ([data-state fixtures](../../../shared/input/README.md#data-state-fixtures)).
 - [ ] **Readouts tell the truth:** size, zoom and count readouts update after every input
       path (typing, dragging, wheel, pinch, shortcuts, presets), not only some [NNG-H1].
