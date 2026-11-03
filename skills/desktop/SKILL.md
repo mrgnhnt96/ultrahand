@@ -180,11 +180,13 @@ at the largest and smallest size, or check by eye):
 
 ## 7. Review the round
 
-Every round ends with a review by a fresh agent, before you publish or tell the user the
-design is ready. A round is the first design and every later change the user asks for.
-Follow [shared/review/README.md](../../shared/review/README.md): keep each round in
-`rounds/<n>/`, review the first round whole and later rounds by their diff (whole again
-when something shared changed), fix what it finds, then publish.
+Every round ends with a review by a reviewer in its own headless session, before you
+publish or tell the user the design is ready. A round is the first design and every later
+change the user asks for. Follow [shared/review/README.md](../../shared/review/README.md):
+keep each round in `rounds/<n>/`, write the brief and run
+`node "${CLAUDE_PLUGIN_ROOT}/shared/review/run.mjs" --brief rounds/<n>/brief-<k>.md`,
+review the first round whole and later rounds by their diff (whole again when something
+shared changed), fix what it finds, then publish.
 
 ## 8. Present
 
