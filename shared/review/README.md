@@ -8,7 +8,8 @@ this round, and say in the presentation that you skipped it.
 A designer checking its own work tends to see what it meant to build, not what it built,
 and any one reviewer misses problems that another catches (`NNG-HE` in
 [the review skill's sources](../../skills/review/references/sources.md)). So the review
-goes to a fresh agent that has seen only the design, never to the designer.
+goes to a reviewer in its own session that has seen only the brief and the design, never
+to the designer.
 
 ## 1. Keep each round on disk
 
@@ -41,9 +42,30 @@ artifact's HTML as the baseline before you edit, and diff the new `index.html` a
 
 ## 3. Hand it to a fresh reviewer
 
-Build `index.html` and review that local file **before you publish**. Start a new agent
-with the Agent tool. Use a general-purpose agent, not a fork: a fork shares your context
-and inherits your blind spots.
+Build `index.html` and review that local file **before you publish**. The reviewer runs
+as its own headless Claude session, which has never seen this conversation, so it can't
+share your blind spots. Write the brief (below), then run:
+
+```sh
+node "${CLAUDE_PLUGIN_ROOT}/shared/review/run.mjs" --brief rounds/<n>/brief-<k>.md \
+  --add-dir <project root>
+```
+
+It writes the report to `rounds/<n>/review-<k>.md` and what the review cost to
+`review-<k>.json`, and prints a one-line summary. Pass `--add-dir` for each folder the
+brief points at outside the build folder, such as the project's `design/`. A review takes
+a few minutes, so run it in the background and wait for it to finish.
+
+The runner starts the reviewer lean (none of the user's settings, plugins or MCP servers,
+and only Read, Glob, Grep and Bash) and on the 5-minute prompt cache. Its system prompt
+is the review skill, the checklist and the drive.mjs reference, the same on every run, so
+a review that starts within five minutes of the last one reads them from the cache. Use
+`--model` and `--effort` only when the user asks for them; the default is Opus.
+
+If the runner can't start (no `claude` on the PATH, or it fails before the review
+begins), start a general-purpose agent with the Agent tool instead, not a fork: a fork
+shares your context. Send it the same brief with this line first: "Load the
+ultrahand:review skill with the Skill tool, then follow it."
 
 ### The brief carries facts, never your view
 
@@ -70,18 +92,18 @@ Never write into a brief:
 - Your self-check results, which concept you prefer, or how severe you think a problem
   is.
 
-Write the brief to `rounds/<n>/brief-<k>.md` (`k` counts the reviews in that round)
-before you start the agent, and send the same text. Save the reviewer's report beside
-it as `rounds/<n>/review-<k>.md`, so the next brief can point at it.
+Write the brief to `rounds/<n>/brief-<k>.md` (`k` counts the reviews in that round). The
+runner saves the report beside it as `rounds/<n>/review-<k>.md`, so the next brief can
+point at it. If you used the Agent tool, save the report there yourself.
 
 ### Template
 
 ```text
-Review a UI design with the ultrahand:review skill (load it with the Skill tool first and
-follow it). Don't edit any files.
+Review a UI design with the ultrahand review skill. Don't edit any files.
 
 Design: <absolute path to index.html>, an ultrahand canvas build. Drive it with
-<plugin root>/shared/input/drive.mjs.
+<plugin root>/shared/input/drive.mjs. Put screenshots under <absolute path to
+rounds/<n>/shots/>.
 Platform and sizes: <platform>, presets <ids>, limits <min/max>.
 Screens: <screen labels; which controls are review chrome, not part of the app>.
 Project records: <absolute paths to design/LESSONS.md and THEME.md, or "none">.
@@ -110,8 +132,9 @@ size and scheme those changes touch.
 The reviewer reads the findings in the last reviewer's words and the fix in the diff,
 so it judges the fix, not your account of it.
 
-If you can't start an agent, run the review skill yourself as a separate pass after the
-self-check, and say in the presentation that the review wasn't independent.
+If neither the runner nor an agent can start, run the review skill yourself as a separate
+pass after the self-check, and say in the presentation that the review wasn't
+independent.
 
 ## 4. Act on the findings
 
@@ -127,4 +150,5 @@ Then publish, save the round to `rounds/<n>/`, and present.
 
 In the presentation, add a short **Review** note: the scope and why (this round's changes,
 or the whole design because something shared changed), the findings by severity, what you
-fixed, and anything left open with the reason.
+fixed, anything left open with the reason, and what the reviews cost (from each
+`review-<k>.json`).
