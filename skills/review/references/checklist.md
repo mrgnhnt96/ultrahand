@@ -380,7 +380,11 @@ used in a browser window of any size, then add these checks.
       tool's own light and dark themes, for dark mode. Every data state of the tool
       (nothing loaded, loading, error, a very large file). The design's presets, split
       widths, orientations and on-screen keyboard apply to the design inside the tool, not
-      to its chrome.
+      to its chrome. With the input driver, a `zoom` step emulates page zoom (`{"zoom":2}`
+      on a 1280x800 window gives a 640x400 CSS viewport, `{"zoom":4}` a 320x200 one), and a
+      `scheme` step sets light or dark. Set the scheme for both runs: headless Chrome takes
+      it from the OS, so the default is not always light. Its README has a recipe for the
+      data-state pages ([data-state fixtures](../../../shared/input/README.md#data-state-fixtures)).
 - [ ] **Readouts tell the truth:** size, zoom and count readouts update after every input
       path (typing, dragging, wheel, pinch, shortcuts, presets), not only some [NNG-H1].
 
