@@ -43,8 +43,38 @@ artifact's HTML as the baseline before you edit, and diff the new `index.html` a
 
 Build `index.html` and review that local file **before you publish**. Start a new agent
 with the Agent tool. Use a general-purpose agent, not a fork: a fork shares your context
-and inherits your blind spots. Give it only what it needs, and none of your own
-self-check conclusions:
+and inherits your blind spots.
+
+### The brief carries facts, never your view
+
+The reviewer's independence lives in the brief. Whatever you put there, it reads as
+true, so a brief that explains or defends the design turns the review into a check of
+your claims. Fill in the template below and add nothing else. Each field takes only
+what its line says:
+
+- **The request** is the user's words, quoted. Don't summarise or restate it.
+- **Screens** names what's on the canvas and which parts are review chrome, as plain
+  labels. Don't describe what a screen is meant to achieve.
+- **Project records** are paths. Don't paraphrase the owner's preferences: the reviewer
+  reads `design/LESSONS.md` and `THEME.md` itself.
+- **Scope** is "the whole design" or a diff path. Don't say what the diff does.
+- **Still open** is finding IDs and titles copied from the last review's report, and
+  for each one you chose not to fix, the user's words that made you keep it.
+
+Never write into a brief:
+
+- Why you made a choice, or that you made one on purpose ("deliberately", "so that",
+  "to keep").
+- What you changed or fixed, in your words. The diff shows what changed.
+- What to look at "in particular", or what you expect the reviewer to find.
+- Your self-check results, which concept you prefer, or how severe you think a problem
+  is.
+
+Write the brief to `rounds/<n>/brief-<k>.md` (`k` counts the reviews in that round)
+before you start the agent, and send the same text. Save the reviewer's report beside
+it as `rounds/<n>/review-<k>.md`, so the next brief can point at it.
+
+### Template
 
 ```text
 Review a UI design with the ultrahand:review skill (load it with the Skill tool first and
@@ -53,15 +83,32 @@ follow it). Don't edit any files.
 Design: <absolute path to index.html>, an ultrahand canvas build. Drive it with
 <plugin root>/shared/input/drive.mjs.
 Platform and sizes: <platform>, presets <ids>, limits <min/max>.
+Screens: <screen labels; which controls are review chrome, not part of the app>.
+Project records: <absolute paths to design/LESSONS.md and THEME.md, or "none">.
 This round's request, in the user's words: "<prompt>"
 Scope: <"the whole design" | "the changes in <absolute path to round-n.diff> and every
 screen, state, size and scheme they touch">.
-Still open from the last round: <findings you reported but didn't fix, or "none">.
+Still open from the last round: <IDs and titles from the last report, each with the
+user's words if you kept it on purpose, or "none">.
 
 Return the review skill's report: verdict, findings with ID, severity, element, evidence,
 problem, principle and fix, then what you couldn't check. Name any problem outside the
 scope that you happened to see, but don't go looking for one.
 ```
+
+### Checking fixes
+
+When you send fixes back (step 4), the brief is the same template with this scope, and
+nothing that describes the fixes:
+
+```text
+Scope: check whether findings <IDs> in <absolute path to rounds/<n>/review-<k>.md> are
+resolved, using the changes in <absolute path to the fix diff>, and every screen, state,
+size and scheme those changes touch.
+```
+
+The reviewer reads the findings in the last reviewer's words and the fix in the diff,
+so it judges the fix, not your account of it.
 
 If you can't start an agent, run the review skill yourself as a separate pass after the
 self-check, and say in the presentation that the review wasn't independent.
