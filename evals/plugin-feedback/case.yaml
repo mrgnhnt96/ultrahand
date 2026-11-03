@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: plugin-feedback
+description: A correction that shows the skill itself is wrong becomes a plugin report, kept in LESSONS.md and not filed publicly without asking
+tags: [smoke, lessons]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    Your desktop design skill keeps insisting that body text in our admin console must
+    be 16px. That's wrong for dense desktop tools: Windows and macOS apps use 13–14px
+    body text, and every one of our tables would need a horizontal scrollbar at 16px.
+    It's not just us, it'll be wrong for anyone building a desktop tool.
+  max_turns: 12
+  timeout_seconds: 300
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep]
+  append_system_prompt: >-
+    Handle the feedback, then stop. Don't redesign any screen.

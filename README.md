@@ -35,7 +35,9 @@ Installs take whatever is on `main`.
 | `ultrahand:theme` | Creating, extracting or extending a project's theme (design tokens) |
 | `ultrahand:theme-review` | Auditing a theme, and the designs and code that use it, for consistency and component reuse |
 
-Skills only trigger on UI design, theme or UX review requests.
+Skills only trigger on UI design, theme or UX review requests (including corrections to a
+design). They load on their own when a request matches; to pick one yourself, call it by
+name: `/ultrahand:mobile design a checkout screen`.
 
 Each design skill builds its screen into the shared canvas in `shared/canvas/`
 (see its README): mobile size presets, tablet split view, and free desktop resize
@@ -56,6 +58,13 @@ Every skill works at three levels: each component, each section (a toolbar, a pa
 group) and the whole screen. The composition rules for sections and screens, and an audit
 that measures them, are in `shared/composition/`. The review skill uses real mouse, wheel,
 keyboard and touch input through the driver in `shared/input/`.
+
+The skills learn as they're used. Each one reads the project's `design/LESSONS.md` before
+it starts, and adds to it when you correct it ("we never use toggles for destructive
+settings"), so a correction is made once. A correction that shows a skill itself is
+wrong becomes a report for this repo. See `shared/learning/`. The eval suite in `evals/`
+(`scripts/eval.sh`) checks skill routing, the lessons loop and theme quality, and its
+quick cases gate every release.
 
 ## License
 

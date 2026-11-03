@@ -20,6 +20,10 @@ design skills' own principles:
 For a project with a theme, check the design against it with the `theme-review` skill:
 token use, component reuse and consistency across screens are its job, not this one's.
 
+**Lessons:** before step 1, read the project's `design/LESSONS.md` and apply the
+lessons for this skill. They record what the owner has already corrected, so don't repeat
+those mistakes. See [shared/learning/README.md](../../shared/learning/README.md).
+
 ## 1. Get the design and know what it can show
 
 Use the richest evidence the user can give. Say which kind you have, because it limits what
@@ -166,3 +170,11 @@ catch, so a second reviewer or a usability test is worth doing.
 
 If the report is going to someone else, offer to publish it as an artifact. Offer to apply
 the fixes with the matching ultrahand design skill.
+
+## 7. Learn
+
+When the owner corrects the result, states a lasting preference ("we never…") or
+dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
+shows that this skill, its rules or its scripts are wrong for any project, also write a
+plugin report, and always log it in LESSONS.md. Both are in
+[shared/learning/README.md](../../shared/learning/README.md).

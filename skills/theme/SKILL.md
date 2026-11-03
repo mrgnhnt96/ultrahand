@@ -20,6 +20,10 @@ products look the same. Read rules.md before you start.
 
 The scripts below live in `${CLAUDE_PLUGIN_ROOT}/shared/theme/`.
 
+**Lessons:** before step 1, read the project's `design/LESSONS.md` and apply the
+lessons for this skill. They record what the owner has already corrected, so don't repeat
+those mistakes. See [shared/learning/README.md](../../shared/learning/README.md).
+
 ## 1. Find what exists
 
 Look before you ask. For a design that exists only as a canvas artifact, list the
@@ -159,3 +163,11 @@ version, where the personality sits on the creative axes and why, what's locked 
 open, any snapping changes the owner needs to approve, the check result, and the next
 step: design with it (the `mobile`, `tablet` and `desktop` skills read it), or audit the
 code against it with `theme-review`.
+
+## 8. Learn
+
+When the owner corrects the result, states a lasting preference ("we never…") or
+dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
+shows that this skill, its rules or its scripts are wrong for any project, also write a
+plugin report, and always log it in LESSONS.md. Both are in
+[shared/learning/README.md](../../shared/learning/README.md).

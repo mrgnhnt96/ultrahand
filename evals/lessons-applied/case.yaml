@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: lessons-applied
+description: A design skill reads design/LESSONS.md first and follows the lessons that apply to it
+tags: [smoke, lessons]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    Design the confirmation dialog for deleting a ticket in our desktop helpdesk app
+    (a resizable window, used with mouse and keyboard).
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Skill, Read, Glob, Grep]
+  append_system_prompt: >-
+    This is a planning test. Follow the skill's steps up to the build, then reply with
+    the dialog's plan (layout, buttons and their labels, focus) in at most ten lines and
+    stop. Don't build, write or publish anything.
