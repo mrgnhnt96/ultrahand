@@ -17,6 +17,10 @@ A theme lives in the project it belongs to, never in this plugin. By default:
 | `design/theme.tokens.json` | The tokens, in the W3C design tokens format [DTCG-FORMAT]. The machine-readable source of truth. |
 | `design/THEME.md` | The record: version, personality, each decision and whether it's locked, the component inventory and the changelog. |
 
+A design that lives only as a canvas artifact, with no repository behind it, keeps its
+theme in the artifact: publish `design/theme.tokens.json` and `design/THEME.md` beside
+`index.html`, and the next session reads them back from the artifact's files.
+
 If the project already keeps tokens elsewhere (a `tokens/` folder, a Style Dictionary
 setup), use that location and note it at the top of `THEME.md`. To find an existing theme,
 look for `*.tokens.json`, `THEME.md`, `design-tokens`, `tokens/`, or a Style Dictionary

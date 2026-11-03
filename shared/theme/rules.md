@@ -41,7 +41,10 @@ decoration. But it never buys an exception to a non-negotiable.
   on hue alone: pair it with an icon or text [WCAG-1.4.1].
 - **NN-6 A real type scale.** Sizes come from one scale built on a ratio [MODULAR-SCALE],
   about 6 to 10 sizes in all, named by role (display, headline, title, body, label)
-  [M3-COMPOSE]. Body text at least 16 px (17 pt on iOS) [M3-COMPOSE] [HIG-TYPE]; body line
+  [M3-COMPOSE]. Body text at least the platform's default: 16 px on the web and
+  Android, 17 pt on iOS [M3-COMPOSE] [HIG-TYPE]. A dense desktop tool may set its interface
+  body smaller (13 pt is the macOS default [HIG-TYPE]; 14 px is Material's body medium
+  [M3-COMPOSE]), never below 13, and keeps 16 for anything people read at length. Body line
   height at least 1.3, and 1.5 for long reading [WCAG-1.4.8]. Sizes in `rem` on the web so
   text scales, and layouts survive text-spacing overrides [WCAG-1.4.12].
 - **NN-7 A short radius scale.** About five steps plus `full`, on the 4 grid [M3-SHAPE].

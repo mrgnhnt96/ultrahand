@@ -18,7 +18,8 @@ The file itself, from `check.mjs` and a read of THEME.md.
       in both schemes (NN-4) [WCAG-1.4.3] [WCAG-1.4.11].
 - [ ] The required roles exist (NN-5); status colours come with an icon or text in use
       [WCAG-1.4.1].
-- [ ] One type scale of about 6–10 sizes, by role; body at least 16 (NN-6)
+- [ ] One type scale of about 6–10 sizes, by role; body at the platform's default (16 web and
+      Android, 17 iOS; 13–14 for a dense desktop tool) (NN-6)
       [MODULAR-SCALE] [M3-COMPOSE].
 - [ ] A short radius scale and at most six elevation levels (NN-7, NN-8) [M3-SHAPE]
       [M3-ELEVATION].
