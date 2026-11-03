@@ -6,16 +6,20 @@
 #
 # 1. Checks the checkout: on main, clean, level with origin/main, the tag unused and
 #    the version newer than the current one.
-# 2. Sets the version in .claude-plugin/plugin.json, commits "chore(release): v<version>",
+# 2. Runs the smoke evals (scripts/eval.sh --tag smoke): skill routing and the lessons
+#    loop. Each case must pass 2 of its 3 runs, or the release stops before anything is
+#    changed. SKIP_EVALS=1 skips them (say why in the release notes).
+# 3. Sets the version in .claude-plugin/plugin.json, commits "chore(release): v<version>",
 #    tags v<version> and pushes both in one atomic push.
-# 3. Updates the installed plugin on this machine, when the `claude` CLI is here:
+# 4. Updates the installed plugin on this machine, when the `claude` CLI is here:
 #    refreshes the marketplace, updates the plugin (reinstalling if the update doesn't
 #    take) and checks the installed version. GitHub is fetched over HTTPS for these
 #    commands only, so it works without an SSH key. A failure here doesn't undo the
 #    release, which is already pushed; it's reported, and the exit code stays 0.
 #
 # Environment: RELEASE_REMOTE (default origin), ULTRAHAND_MARKETPLACE (default
-# mrgnhnt96), SKIP_LOCAL_PLUGIN=1 to leave the installed plugin alone.
+# mrgnhnt96), SKIP_LOCAL_PLUGIN=1 to leave the installed plugin alone, SKIP_EVALS=1 to skip
+# the smoke evals.
 set -euo pipefail
 
 remote="${RELEASE_REMOTE:-origin}"
@@ -53,7 +57,18 @@ node -e '
   process.exit(a[3] === b[3] ? 1 : !a[3] ? 0 : !b[3] ? 1 : a[3] > b[3] ? 0 : 1);
 ' "$version" "$current" || die "$version isn't newer than the current $current"
 
-# 2. Bump, commit, tag, push.
+# 2. Smoke evals.
+if [ "${SKIP_EVALS:-}" = 1 ]; then
+  say "SKIP_EVALS=1: skipped the smoke evals"
+elif ! command -v claude >/dev/null; then
+  die "needs the claude CLI for the smoke evals (or SKIP_EVALS=1)"
+else
+  say "running the smoke evals (a few minutes)"
+  scripts/eval.sh --tag smoke --ablation none --threshold 0.66 -j 4 --max-cost-usd 6 ||
+    die "smoke evals failed: see evals/results/ (nothing was changed)"
+fi
+
+# 3. Bump, commit, tag, push.
 node -e '
   const fs = require("fs");
   const [file, version] = process.argv.slice(1);
@@ -68,7 +83,7 @@ git tag -a "$tag" -m "ultrahand $tag"
 git push --quiet --atomic "$remote" main "$tag"
 say "pushed $tag ($current -> $version)"
 
-# 3. Update the installed plugin on this machine.
+# 4. Update the installed plugin on this machine.
 if [ "${SKIP_LOCAL_PLUGIN:-}" = 1 ]; then
   say "SKIP_LOCAL_PLUGIN=1: left the installed plugin alone"
   exit 0

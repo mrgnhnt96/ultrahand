@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: theme-extract
+description: Extracting a theme from drifting CSS yields a valid token file that keeps the product's look, snaps to the grid and records its decisions
+tags: [quality, theme]
+runs: 2
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Extract our web app's theme into design tokens so future screens stay consistent.
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    Treat every snapping change as approved by the owner. Skip showing the theme as an
+    artifact and don't publish anything; stop after the write-and-check step.

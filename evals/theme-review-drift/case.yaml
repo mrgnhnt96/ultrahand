@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: theme-review-drift
+description: A theme review finds raw values, off-grid spacing and a rebuilt component, and fixes them with the existing theme instead of a new one
+tags: [quality, theme]
+runs: 2
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: Review our app's CSS for consistency with our theme and tell me what's drifting.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Skill, Read, Glob, Grep, Bash]
+  append_system_prompt: Report the review in chat; don't change any file or publish anything.

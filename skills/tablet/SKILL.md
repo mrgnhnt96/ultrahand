@@ -1,6 +1,6 @@
 ---
 name: tablet
-description: Use only when the user asks to design a tablet UI screen or flow (split view, adaptive layouts, touch plus pointer). Do not use for phone, desktop, or non-UI work.
+description: Use only when the user asks to design a tablet UI screen or flow (split view, adaptive layouts, touch plus pointer), or corrects one or states a lasting design preference for a tablet app. Do not use for phone, desktop, or non-UI work.
 ---
 
 # ultrahand: tablet
@@ -11,6 +11,10 @@ and reflows live while you drag a window from full width down to 320. Every rule
 is in [references/principles.md](references/principles.md), and each rule cites
 [references/sources.md](references/sources.md). The sizes, splits and size classes are in
 [references/presets.md](references/presets.md).
+
+**Lessons:** before step 1, read the project's `design/LESSONS.md` and apply the
+lessons for this skill. They record what the owner has already corrected, so don't repeat
+those mistakes. See [shared/learning/README.md](../../shared/learning/README.md).
 
 ## 1. Gather requirements
 
@@ -193,3 +197,11 @@ Share the artifact link. In a few lines, state the section map (each section's j
 emphasis), the key decisions and the principle behind each (cite the source key), how the
 layout changes at each width class, any self-check item you accepted with a reason, and any
 proposed theme additions (for the `theme` skill), and any open questions.
+
+## 8. Learn
+
+When the owner corrects the result, states a lasting preference ("we never…") or
+dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
+shows that this skill, its rules or its scripts are wrong for any project, also write a
+plugin report, and always log it in LESSONS.md. Both are in
+[shared/learning/README.md](../../shared/learning/README.md).

@@ -1,0 +1,19 @@
+schema_version: "1.1"
+name: lessons-recorded
+description: An owner's lasting correction becomes a lesson in design/LESSONS.md, in the documented format
+tags: [smoke, lessons]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    About the settings screen you designed for our phone app: we never use a toggle for a
+    destructive setting like "Delete synced data". It always has to be a button that asks
+    for confirmation, because people flip toggles by accident while scrolling. Keep that
+    in mind for every design in this app from now on.
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep]
+  append_system_prompt: >-
+    The settings screen itself isn't in this workspace; don't redesign it. Do whatever the
+    request needs for future designs, then stop.

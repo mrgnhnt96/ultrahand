@@ -19,6 +19,10 @@ NN-n, creative axes CR-n, evolution rules EV-n); every check is in
 
 The scripts below live in `${CLAUDE_PLUGIN_ROOT}/shared/theme/`.
 
+**Lessons:** before step 1, read the project's `design/LESSONS.md` and apply the
+lessons for this skill. They record what the owner has already corrected, so don't repeat
+those mistakes. See [shared/learning/README.md](../../shared/learning/README.md).
+
 ## 1. Get the theme and the target
 
 - **The theme:** find `design/THEME.md` and the token file (search as the `theme` skill's
@@ -91,3 +95,11 @@ tokens already cover.>
 Keep fixes inside the theme: snap to an existing token first, propose a token second, and
 never suggest a value that breaks a non-negotiable. Offer to apply the code fixes, and to
 run the `theme` skill for the proposed changes.
+
+## 4. Learn
+
+When the owner corrects the result, states a lasting preference ("we never…") or
+dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
+shows that this skill, its rules or its scripts are wrong for any project, also write a
+plugin report, and always log it in LESSONS.md. Both are in
+[shared/learning/README.md](../../shared/learning/README.md).
