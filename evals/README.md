@@ -26,6 +26,7 @@ every release and stops when a case passes fewer than 2 of its 3 runs.
 | `lessons-applied` | smoke | A design skill reads `design/LESSONS.md` and follows the lessons for it. |
 | `lessons-recorded` | smoke | A lasting correction becomes a lesson in the documented format. |
 | `plugin-feedback` | smoke | A correction to the skill itself becomes a plugin report, kept in LESSONS.md, with no public issue opened unasked. |
+| `lessons-compacted` | quality | Over-limit LESSONS.md and THEME.md are compacted: superseded and closed items archived, overlapping lessons merged, a theme value promoted, the old changelog moved out, and no rule lost. |
 | `theme-extract` | quality | Extraction from drifting CSS keeps the brand, snaps to the grid, passes `check.mjs` and records its decisions. |
 | `theme-review-drift` | quality | A theme review finds a raw colour, off-grid spacing and a rebuilt button, and fixes them with the existing theme. |
 

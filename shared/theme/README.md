@@ -115,6 +115,9 @@ Three adjectives, and where the theme sits on each axis in rules.md
 `open` (the theme skill may refine it). Non-negotiables from rules.md aren't listed:
 they're fixed for every theme.
 
+The changelog keeps its 10 newest entries; older ones move to `design/THEME.changelog.md`
+(see "Compact the records" in `shared/learning/README.md`).
+
 **Version** follows semver: patch for a value tweak that keeps every role's meaning;
 minor for new tokens, roles or components; major for a locked decision changed or a
 token removed.

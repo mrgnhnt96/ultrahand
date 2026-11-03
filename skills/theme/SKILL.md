@@ -1,6 +1,6 @@
 ---
 name: theme
-description: Use only when the user asks to create, extract, define or extend a UI theme, design tokens or visual design system (colours, type, spacing, radius, elevation) for an app or site. Do not use for reviewing a theme, designing screens, or non-UI work.
+description: Use only when the user asks to create, extract, define or extend a UI theme, design tokens or visual design system (colours, type, spacing, radius, elevation) for an app or site, or to compact its design records (THEME.md, design/LESSONS.md). Do not use for reviewing a theme, designing screens, or non-UI work.
 ---
 
 # ultrahand: theme
@@ -113,6 +113,9 @@ warmer", or a design skill or `theme-review` proposing additions:
 - Retire with `$deprecated` naming the replacement; remove in a later version (EV-6).
 - Bump the version and add a changelog line saying what changed and which screens needed
   it (EV-5).
+- When the owner asks to tidy or compact the design records (THEME.md's changelog,
+  `design/LESSONS.md`), follow "Compact the records" in
+  [shared/learning/README.md](../../shared/learning/README.md).
 
 ## 5. Write and check
 
@@ -169,5 +172,7 @@ code against it with `theme-review`.
 When the owner corrects the result, states a lasting preference ("we never…") or
 dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
 shows that this skill, its rules or its scripts are wrong for any project, also write a
-plugin report, and always log it in LESSONS.md. Both are in
+plugin report, and always log it in LESSONS.md. Afterwards run
+`node "${CLAUDE_PLUGIN_ROOT}/shared/learning/size.mjs" design`, and if it says
+`compact: yes`, offer to compact the records. All three are in
 [shared/learning/README.md](../../shared/learning/README.md).

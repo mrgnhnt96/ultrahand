@@ -66,7 +66,8 @@ keyboard and touch input through the driver in `shared/input/`.
 
 The skills learn as they're used. Each one reads the project's `design/LESSONS.md` before
 it starts, and adds to it when you correct it ("we never use toggles for destructive
-settings"), so a correction is made once. A correction that shows a skill itself is
+settings"), so a correction is made once. When the lessons or the theme's changelog grow past set limits, a skill
+offers to compact them: anything removed goes to an archive file, so no rule is lost. A correction that shows a skill itself is
 wrong becomes a report for this repo. See `shared/learning/`. The eval suite in `evals/`
 (`scripts/eval.sh`) checks skill routing, the lessons loop and theme quality, and its
 quick cases gate every release.
