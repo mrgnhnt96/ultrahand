@@ -4,8 +4,8 @@ Public Claude Code plugin (`ultrahand@mrgnhnt96`). Anything committed here is pu
 
 ## Layout
 - `.claude-plugin/plugin.json`: plugin manifest.
-- `skills/<name>/SKILL.md`: one skill each for `mobile`, `tablet`, `desktop`, `review`.
-- `shared/`: assets shared by skills (e.g. the artifact canvas in `shared/canvas/`).
+- `skills/<name>/SKILL.md`: one skill each for `mobile`, `tablet`, `desktop`, `review`, `theme`, `theme-review`.
+- `shared/`: assets shared by skills (e.g. the artifact canvas in `shared/canvas/`, the theme format, rules and scripts in `shared/theme/`).
 
 ## Rules
 - No secrets, tokens, or personal/absolute paths (e.g. home directories) in any file.
