@@ -5,18 +5,23 @@ The canvas is the resizable harness that every ultrahand design skill renders it
 The page gives the viewer:
 
 - **A device frame.** Phone, tablet (with split view and the iPad window controls), desktop window, or bare. Every edge and corner resizes it: each edge is a hit strip along its full length, with a grip in the middle. The frame grows evenly about its centre and the zoom holds while you drag, so the edge you hold follows the pointer; at Fit it re-fits once you let go. Esc cancels a drag. Each grip is also a slider (the WAI-ARIA slider pattern): Tab to it, or click it, then Up/Right grow it by 1px and Down/Left shrink it (10px with Shift; Left/Right follow the pointer on a divider at the trailing edge), PageUp/PageDown move 100px, and Home/End go to the limits.
-- **A readout.** It shows the width and height and their size classes ("large width", "medium height"). The fields (labelled Width and Height) are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
-- **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so. Rotate swaps the orientation, including safe areas.
+- **A readout.** It shows the width and height and their size classes ("large width · medium height", in plain muted text). The fields (labelled Width and Height) are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
+- **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so by name only ("Large phone · resized"), since W × H beside it already has the numbers; "resized" is worked out from the values, so typing a preset's size back selects that preset again. Below 800px the options give names only. Rotate swaps the orientation, including safe areas.
 - **Review toggles:**
   - Light / Dark
   - Text 100% / 200%
   - a State picker (default, loading, empty, error…)
-  - Tap targets (Hit targets for windows), which outlines every interactive element and marks any under the platform minimum. While it's on, the result shows beside it: "all ≥ 44px" or "3 targets under 44px", plus "1 under window controls" when a control overlaps the drawn iPad window controls, which it then outlines.
-  - Zoom: −, the current zoom, and + step through 10–400%; Fit; 100%. At either end the button stays focusable and reports `aria-disabled`. Fit leaves a 48px margin round the frame, so the grips stay inside the stage. Ctrl or ⌘ with the wheel, or a trackpad pinch, zooms at the pointer. Shortcuts: Ctrl or ⌘ `=` and `−`, Ctrl or ⌘ `0` for 100%, Ctrl or ⌘ Shift `1` for Fit. They act on the canvas only while the pointer is over the stage or focus is in it; elsewhere, such as in the toolbar, they are the browser's own page zoom.
-  - Panning: the stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Scroll, hold Space and drag, or drag with the middle button. Wheel scrolling over the screen scrolls the screen first. Fit, 100%, Rotate and a new preset recentre it.
-  - Canvas: Auto / Light / Dark for the canvas's own colours, separate from the screen's Light / Dark.
-- **Keyboard:** each segmented group in the toolbar is one tab stop, and the arrow keys move within it. Rotate only shows for phones and tablets. The `?` button at the end of the toolbar, or the `?` key anywhere outside a text field and the screen, opens a list of every shortcut; Esc closes it.
-- **Toolbar layout.** From 1024px wide the toolbar takes two rows: the title, Size and W × H, then the view items, zoom and `?`. Below 1024px it is one row, and Go to, State, Rotate, Screen Light / Dark, Text size, Canvas and Tap targets move into a View menu (a disclosure button: Esc or a click outside closes it). Below 560px that row wraps into two compact rows. Below 1280px the hit-target result floats just under the toolbar, so it stays visible.
+  - Tap targets (Hit targets for windows), which outlines every interactive element and marks any under the platform minimum. It is the only toolbar control that uses the accent colour while on; other selected states stay quiet. While it's on, the result shows after it: "all ≥ 44px" or "3 targets under 44px", plus "1 under window controls" when a control overlaps the drawn iPad window controls, which it then outlines. Turning it on moves no other control.
+  - Zoom: −, the current zoom, and + step through 10–400%; Fit; 100%. A step goes to the next stop at least 5% away, so Fit at 71% steps in to 100%, not 75%; past the last stop it goes to the limit. At either end the button stays focusable and reports `aria-disabled`. A zoom shortcut flashes the readout, and screen readers hear "Zoom 75%" once the zoom has settled for half a second (`#uh-zoom-live`). Fit leaves a 48px margin round the frame, so the grips stay inside the stage. Ctrl or ⌘ with the wheel, or a trackpad pinch, zooms at the pointer. Shortcuts: Ctrl or ⌘ `=` and `−`, Ctrl or ⌘ `0` for 100%, Ctrl or ⌘ Shift `1` for Fit. They act on the canvas only while the pointer is over the stage or focus is in it; elsewhere, such as in the toolbar, they are the browser's own page zoom.
+  - Panning: the stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Scroll, hold Space and drag (also right after clicking a toolbar button, while the pointer is over the stage), or drag with the middle button. Esc during a pan puts the scroll back. Wheel scrolling over the screen scrolls the screen first. Fit, 100%, Rotate and a new preset recentre it.
+  - Canvas colours: Auto / Light / Dark for the canvas's own colours, separate from the screen's Light / Dark. It is set rarely, so it sits in the `?` popover rather than the toolbar.
+- **Keyboard:** each segmented group in the toolbar is one tab stop, and the arrow keys move within it. Rotate only shows for phones and tablets. The `?` button at the end of the toolbar, or the `?` key anywhere outside a text field and the screen, opens a list of every shortcut (pan, zoom, zoom step, 100%, Fit, grip keys, Esc to cancel a drag or pan, the W and H fields, the button groups) and the Canvas colours; Esc closes it.
+- **Toolbar layout.** Three groups, in order of use: **Frame size** (the Size picker, W × H, the size classes), **Zoom**, and **Preview** (Go to, State, Rotate, Light / Dark, Text size, Tap targets), plus `?`. Every control is 32px tall with one label style, and the zoom readout is plain text.
+  - From 1024px wide: two rows (89px). Frame size, Zoom and `?`, then Preview.
+  - Below 1024px: one row (49px). Preview moves into a menu (a disclosure button: Esc or a click outside closes it). The button names whatever differs from the defaults ("Preview · Dark · Text 200% · Tap targets"). The size flag and the hit-target result hang just under the bar. While the menu is open, it shows a copy of the result beside the Tap targets toggle, so the result stays visible and the menu never moves.
+  - Below 800px: the Size and W × H labels hide and the picker gives preset names only.
+  - Below 720px: the zoom controls fold behind a button that shows the zoom ("71%").
+  - Below 520px: Frame size folds behind a button that shows W × H, and the bar stays one 45px row down to 320px wide (a 1280px window at 400% page zoom).
 - **The screen itself.** It renders in a shadow root and stays fully interactive: buttons, multi-screen navigation with a back stack, form state, scroll position per screen.
 
 `canvas.html` is a working example as it stands (the "Trail log" demo), so you can open it directly to see every feature.
@@ -155,7 +160,7 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 - **States.** An element with `data-show-state="loading empty"` shows only in those states. Declare the states in the config's `states` field. Retry buttons and the like can call `canvas.setState('loading')`.
 - **Tap targets.** Elements that match `button, a[href], input, select, textarea, summary, label[for], [role=button|link|tab|switch|checkbox|radio|menuitem|slider]`, a focusable `[role=separator]` (a pane divider), `[data-nav], [data-nav-back]` are measured. The readout checks size only: a control that is hidden at some size isn't flagged, so check that every command is still reachable yourself. Add `data-uh-ignore-target` to inline links in running text, which WCAG 2.5.8 exempts. A `label[for]` beside its own field is counted too, but under 2.5.8's equivalent-control exception it passes when the field itself is big enough, so judge those flags rather than counting them. Call `canvas.refresh()` after opening a sheet or menu, so the count updates.
 - **Forms** must call `preventDefault()`. A real submit would navigate the artifact away.
-- **Scripted keyboard checks:** Tab from the page passes the canvas toolbar (12 stops at full width, 6 below 1024px) and the frame's Width and Height grips before it reaches the screen, so focus a control inside the screen first. Inside the shadow root, use `canvas.root.elementFromPoint(x, y)`; `document.elementFromPoint` returns the host.
+- **Scripted keyboard checks:** Tab from the page passes the canvas toolbar (11 stops at full width, 6 below 1024px, 4 below 520px) and the frame's Width and Height grips before it reaches the screen, so focus a control inside the screen first. Inside the shadow root, use `canvas.root.elementFromPoint(x, y)`; `document.elementFromPoint` returns the host.
 - **Shortcuts.** Key events on `canvas.root` arrive only while focus is inside the screen. For app-wide shortcuts, also listen on `document` and skip events from text fields and the canvas toolbar, or move focus into the screen on load.
 
 ### API (`canvas`, also `window.ultrahandCanvas`)
@@ -173,7 +178,7 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 | `toast(text, ms)` | Text-only feedback in place of `alert()`. It has no action, so build an Undo snackbar in the screen when one is needed. |
 | `refresh()` | Re-measure tap targets after a DOM change. |
 
-Errors in setup or handlers show in a banner above the canvas instead of failing silently.
+Errors in setup or handlers show in a banner ("Canvas problem", or "Canvas problems (3)") in the page flow between the toolbar and the canvas, instead of failing silently. Dismiss collapses it to a "1 problem" button in the toolbar, which brings it back. A config that doesn't parse shows only the banner, since nothing else would be right.
 
 ### Toolbar, for scripted checks
 
@@ -181,16 +186,20 @@ The toolbar lives in the page document, outside the shadow root, so a review scr
 
 | Element | Does |
 | --- | --- |
-| `#uh-view-btn`, `#uh-view-menu` | Below 1024px, the View menu button and its menu (`aria-expanded` gives its state). Open it before driving the items inside it; from 1024px the items sit in the toolbar and the button is hidden. |
-| `#uh-nav`, `#uh-state` | The Go to and State pickers, inside the View menu. Prefer `navigate` and `setState`. |
+| `#uh-preview-btn`, `#uh-preview-menu` | Below 1024px, the Preview menu button and its menu (`aria-expanded` gives its state). Open it before driving the items inside it; from 1024px the items sit in the toolbar and the button is hidden. |
+| `#uh-size-btn`, `#uh-zoom-btn` | Below 520px and 720px, the buttons that fold Frame size and Zoom away; open them before driving what's inside. |
+| `#uh-presets`, `#uh-w`, `#uh-h`, `#uh-class` | The Size picker, the Width and Height fields, and the size classes. Prefer `usePreset` and `setSize`. |
+| `#uh-nav`, `#uh-state` | The Go to and State pickers, inside the Preview menu. Prefer `navigate` and `setState`. |
 | `#uh-targets` | Toggles the tap-target overlay. `aria-pressed` gives its state. |
-| `#uh-targets-result` | The overlay's result, e.g. "3 targets under 44px" or "all ≥ 44px". Hidden while the overlay is off. |
+| `#uh-targets-result` | The overlay's result, e.g. "3 targets under 44px" or "all ≥ 44px". Hidden while the overlay is off. A status region. `#uh-targets-echo` is an `aria-hidden` copy shown in the open Preview menu. |
 | `#uh-flag` | Size limits hit, e.g. "at min width 640". Empty when the size is within limits. |
 | `#uh-rotate` | Swaps orientation. Hidden for windows and bare frames. |
-| `#uh-zoom-out`, `#uh-zoom`, `#uh-zoom-in`, `[data-zoom="fit"]`, `[data-zoom="1"]` | A step out, the current zoom, a step in, zoom to fit, and 100%. At 10% or 400% the step button has `aria-disabled="true"` and ignores clicks. |
-| `#uh-help-btn`, `#uh-keys` | The `?` button and the shortcuts list it opens. |
+| `#uh-zoom-out`, `#uh-zoom`, `#uh-zoom-in`, `[data-zoom="fit"]`, `[data-zoom="1"]` | A step out, the current zoom (text such as "71%", `aria-hidden`), a step in, zoom to fit, and 100%. At 10% or 400% the step button has `aria-disabled="true"` and ignores clicks. |
+| `#uh-zoom-live` | A polite live region that says "Zoom 75%" half a second after the zoom stops changing. |
+| `#uh-help-btn`, `#uh-keys` | The `?` button and the popover it opens: the shortcuts and the canvas colours. |
+| `#uh-error`, `#uh-error-dismiss`, `#uh-problems` | The problem banner, its Dismiss button, and the toolbar button that reopens it. |
 | `[data-edge]` | The frame's resize strips; the `e`, `s` and `divider` ones are focusable sliders. |
-| `#uh-theme` | The canvas's own colours: `auto`, `light` or `dark`. |
+| `#uh-theme` | The canvas's own colours, inside `#uh-keys`: `auto`, `light` or `dark`. |
 | `[data-scheme]`, `[data-text]` | The Light/Dark and Text 100%/200% toggles. Prefer `setScheme` and `setTextScale`. |
 
 There is no on-screen keyboard. To check a keyboard-up layout, shrink the height with `setSize(width, height - 300)`, or use the platform's `keyboard-up` extra check where it has one.
@@ -218,7 +227,8 @@ An artifact is one HTML file served with a strict Content Security Policy:
 - **44pt minimum hit target:** Apple HIG, *Accessibility* ("a minimum tappable area of 44x44 pt"), <https://developer.apple.com/design/human-interface-guidelines/accessibility>.
 - **48dp minimum touch target:** Android Accessibility Help, *Touch target size*, <https://support.google.com/accessibility/android/answer/7101858>.
 - **Target size in WCAG:** W3C, *Understanding SC 2.5.8 Target Size (Minimum)*, AA, 24px with spacing and inline exceptions, <https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html>. W3C, *Understanding SC 2.5.5 Target Size (Enhanced)*, AAA, 44px, <https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html>. The canvas defaults to the stricter platform minimums.
-- **Grip keys:** W3C WAI-ARIA Authoring Practices, *Slider pattern* (arrows, Page Up/Down, Home/End), <https://www.w3.org/WAI/ARIA/apg/patterns/slider/>. The View menu follows the *Disclosure pattern*, <https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/>.
+- **Toolbar composition:** the rules in [`shared/composition/principles.md`](../composition/principles.md). Apple HIG, *Toolbars* (group by function and frequency, at most three groups, overflow into a menu as the window narrows), <https://developer.apple.com/design/human-interface-guidelines/toolbars>. Nielsen Norman Group, *Progressive Disclosure* (rare settings such as the canvas colours go to a secondary place), <https://www.nngroup.com/articles/progressive-disclosure/>, and *Visual Hierarchy in UX* (one emphasis; if everything is contrasted, nothing stands out), <https://www.nngroup.com/articles/visual-hierarchy-ux-definition/>.
+- **Grip keys:** W3C WAI-ARIA Authoring Practices, *Slider pattern* (arrows, Page Up/Down, Home/End), <https://www.w3.org/WAI/ARIA/apg/patterns/slider/>. The Preview menu and the Frame size and Zoom folds follow the *Disclosure pattern*, <https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/>.
 - **Visible focus:** W3C, *Understanding SC 2.4.7 Focus Visible*, <https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html>, and *Understanding SC 2.4.13 Focus Appearance* (AAA: a 2px outline with 3:1 contrast), <https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html>. Focus in a segmented group draws a 2px ring with a gap in the toolbar colour, above its neighbours.
 - **Shortcuts:** W3C, *Understanding SC 2.1.4 Character Key Shortcuts*, <https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html>. Zoom shortcuts all take Ctrl or ⌘; the single-key `?` is ignored in text fields and inside the screen, so it never takes a keystroke the design needs.
 - **The Text 200% toggle:** W3C, *Understanding SC 1.4.4 Resize Text*, text resizable to 200% without loss of content or function, <https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html>.
