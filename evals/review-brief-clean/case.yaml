@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: review-brief-clean
+description: The brief for a fix-check review carries only facts (request, scope, finding IDs, paths) and none of the designer's reasoning or account of the fixes
+tags: [smoke, review]
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    I fixed R1 and R3 from the last review of the attachments panel in build/ (my notes
+    are in build/NOTES.md). Get the fixes re-checked by a reviewer before we publish.
+  max_turns: 12
+  timeout_seconds: 300
+  allowed_tools: [Skill, Read, Write, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is a planning test for a desktop design. Follow the design skill's review step:
+    write the reviewer's brief where the review guide says to keep it, then stop. Don't
+    start an agent, and don't edit the design.
