@@ -76,7 +76,7 @@ node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
   --title "<design name>" --out index.html
 ```
 
-Publish `index.html` as an artifact. The presets are `small` 360 (Android), `medium` 393 and
+Publish `index.html` as an artifact only after the review in step 7. The presets are `small` 360 (Android), `medium` 393 and
 `large` 430 (iOS); Rotate gives each in landscape, and the 320-wide reflow pass sits under
 Checks.
 
@@ -118,7 +118,7 @@ landscape. Fix each problem at the size where it appears:
 
 Then do a quick pass at the 320-wide reflow check.
 
-## 6. Self-check before you present
+## 6. Self-check before the review
 
 Go through every item. Fix any failure, or name it and say why it's acceptable.
 
@@ -168,14 +168,24 @@ at the largest and smallest size, or check by eye):
       indicator for its duration.
 - [ ] The design works at 320 wide without horizontal scrolling, and in landscape.
 
-## 7. Present
+## 7. Review the round
+
+Every round ends with a review by a fresh agent, before you publish or tell the user the
+design is ready. A round is the first design and every later change the user asks for.
+Follow [shared/review/README.md](../../shared/review/README.md): keep each round in
+`rounds/<n>/`, review the first round whole and later rounds by their diff (whole again
+when something shared changed), fix what it finds, then publish.
+
+## 8. Present
 
 Share the artifact link. In a few lines, state the section map (each section's job and
 emphasis), the key decisions and the principle behind each (cite the source key), any
 self-check item you accepted with a reason, and any
 proposed theme additions (for the `theme` skill), and any open questions.
+End with the **Review** note: its scope, findings by severity, what you fixed and what's
+left.
 
-## 8. Learn
+## 9. Learn
 
 When the owner corrects the result, states a lasting preference ("we never…") or
 dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction

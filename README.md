@@ -44,6 +44,11 @@ Each design skill builds its screen into the shared canvas in `shared/canvas/`
 within min/max bounds, with light/dark, 200% text, state and tap-target toggles.
 Design claims cite their sources in each skill's `references/sources.md`.
 
+Every design round, the first design and each change after it, is reviewed by a fresh
+agent running the `review` skill before you're told it's ready. Later rounds are reviewed
+by their diff, and the whole design is reviewed again when something shared changes. The
+loop is in `shared/review/`.
+
 A project's theme lives in the project (`design/theme.tokens.json`, in the W3C design
 tokens format, plus `design/THEME.md` for its decisions, component inventory and
 changelog). The `theme` skill builds it once, by extracting what the code already uses or

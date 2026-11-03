@@ -83,7 +83,7 @@ node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
   --title "<design name>" --out index.html
 ```
 
-Publish `index.html` as an artifact. From `references/presets.md` the canvas gets:
+Publish `index.html` as an artifact only after the review in step 7. From `references/presets.md` the canvas gets:
 
 - **Full screen:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800.
   Rotate gives each in landscape.
@@ -137,7 +137,7 @@ Work from wide to narrow, and fix each problem at the size where it appears:
 Then check the extra cases: 320-wide reflow, landscape with the keyboard up, and the
 `android-tablet` preset (if Android is in scope) in both orientations.
 
-## 6. Self-check before you present
+## 6. Self-check before the review
 
 Go through every item. Fix any failure, or name it and say why it's acceptable.
 
@@ -191,14 +191,24 @@ at the largest and smallest size, or check by eye):
 - [ ] Loading, empty and error states are designed for each pane, not just the screen.
 - [ ] The design works at 320 wide without horizontal scrolling.
 
-## 7. Present
+## 7. Review the round
+
+Every round ends with a review by a fresh agent, before you publish or tell the user the
+design is ready. A round is the first design and every later change the user asks for.
+Follow [shared/review/README.md](../../shared/review/README.md): keep each round in
+`rounds/<n>/`, review the first round whole and later rounds by their diff (whole again
+when something shared changed), fix what it finds, then publish.
+
+## 8. Present
 
 Share the artifact link. In a few lines, state the section map (each section's job and
 emphasis), the key decisions and the principle behind each (cite the source key), how the
 layout changes at each width class, any self-check item you accepted with a reason, and any
 proposed theme additions (for the `theme` skill), and any open questions.
+End with the **Review** note: its scope, findings by severity, what you fixed and what's
+left.
 
-## 8. Learn
+## 9. Learn
 
 When the owner corrects the result, states a lasting preference ("we never…") or
 dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
