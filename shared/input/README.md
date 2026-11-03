@@ -55,6 +55,7 @@ Each step is an object whose first key is the verb.
 | `scheme` | `{"scheme":"light"}`, `"dark"` or `"none"` | Emulates `prefers-color-scheme`. `none` follows the OS again. It stays until changed or `close`. |
 | `goto` | `{"goto":"other.html"}` | Navigates. It waits up to 10s for the page's load event. |
 | `controls` | `{"controls":true}` | Lists every visible interactive element as `@n` refs, with name, centre, size, and whether it is in view, covered by something else, or disabled. |
+| `inspect` | `{"inspect":".uh-viewport"}` or `{"inspect":true}` | Measures the layout in place of reading screenshots: every visible text's box, font size/weight, colour, the colour behind it and the WCAG contrast ratio, plus each control's size and the tab order. It prints the issues found, and with `--out` saves everything to `<out>/inspect-<name or WxH>.json`. A selector limits it to that element (a canvas screen is `.uh-viewport`, which leaves out the toolbar and grips); `true` takes the whole page. `min` sets the target size to check (default 24); `all: true` prints every element too. See [inspect](#inspect). |
 | `click` | `{"click":"@4","button":"right","count":2,"mods":["Shift"]}` | Moves the mouse there and presses. `button` is `left`, `right` or `middle`. |
 | `hover` | `{"hover":"text=Info"}` | Moves the mouse there. |
 | `drag` | `{"drag":"[aria-label=Width]","to":{"dx":-120,"dy":0},"cancel":"Escape"}` | Press, move in steps, release. `to` is a target or `{dx,dy}`. `hold` keeps a key down for the drag (`"Space"` to pan). `cancel` presses a key before release. `button` as for click. |
@@ -131,6 +132,31 @@ review rather than counting it as checked with real input.
 - **`pageErrors`**: uncaught exceptions and `console.error` output raised during the step.
 - **`scrolledIntoView`**: the target was out of view first.
 
+## inspect
+
+One `inspect` answers the checks that need numbers, at the size, zoom and scheme in effect, in about a second. `issues` lists, worst first:
+
+| `kind` | Means |
+| --- | --- |
+| `contrast` | Text under its WCAG 1.4.3 ratio: 4.5, or 3 for large text (24px, or 18.66px bold). Grouped by colour pair, with `n` elements and up to three `eg`. Opacity, translucent colours and every gradient stop are counted; the worst stop wins. Placeholders count; disabled text doesn't. |
+| `field-edge` | A field (input, select, textarea, a checkbox or switch role) whose fill, border and shadow all reach under 3:1 against what surrounds it (1.4.11). |
+| `target` | A control under `min` in CSS px (the canvas zoom doesn't change it). `wcag` gives the 2.5.8 verdict at 24px: `pass`, `pass by spacing` (a 24px circle on its centre touches no other target), or `fail` naming the neighbour. A link inside a sentence is exempt and skipped. |
+| `cut` | Text clipped by its own hidden overflow (`by: "itself"`, an ellipsis or line clamp) or by an ancestor's, with `px` lost. |
+| `offscreen` | Text past the window's side with nothing to scroll it into view: a reflow failure (1.4.10). `pageOverflowX` says the page itself scrolls sideways. |
+| `covered` | Something else is on top of the text's middle. With a selector, only things inside it count. |
+| `overlap` | Two texts, neither inside the other, drawn over each other. |
+| `tabindex`, `focus-up` | A positive tabindex, and a Tab step that jumps up the page: right when it starts a new column, wrong within one. |
+
+`focusOrder` is what Tab visits, `"n name @x,y"`, through shadow roots, with one stop per radio group. `counts` sums it up. `scale` appears when the page is zoomed by a transform, as a canvas frame is, so the boxes are in screen px and `target` sizes are in CSS px.
+
+What it can't tell you, so look or compute yourself:
+
+- **Text on an image** (`url()`, `image-set`) is listed under `unresolved`, with no ratio. So is anything whose background comes from an element that isn't an ancestor (a sibling laid underneath, an overlay): it is measured against the ancestor's background.
+- **Icons and graphics** (SVG, icon fonts with no text) get no contrast check; 1.4.11 still applies to them.
+- **Focus indicators** only show on focus: Tab to a control, then `inspect` or `shot`.
+- **A hit area grown with a pseudo-element** or padding outside the box isn't counted, so a `target` flag there needs a look.
+- **Composition**: hierarchy, grouping, alignment and whether it looks right still need a screenshot.
+
 ## Recipes
 
 Use every control at several sizes. Inventory first, then use each `@n` the way its kind is meant to be used (click a button, type in a field, drag a slider, pick a select's option with `choose`). Then do it again at the next size:
@@ -142,6 +168,17 @@ Use every control at several sizes. Inventory first, then use each `@n` the way 
 ```
 
 Look for a control that is `covered`, missing from the list at one size, or no longer `inView` with no way to reach it.
+
+Measure instead of looking. On a canvas, set each frame size, then 200% text and dark mode, and inspect the screen each time. The frame size, not the window, is what the design sees, and the screen's scheme follows `setScheme`, not the `scheme` step:
+
+```json
+[{"eval":"ultrahandCanvas.setSize(1440, 900)"}, {"wait":100}, {"inspect":".uh-viewport","name":"1440"}, {"shot":"1440"},
+ {"eval":"ultrahandCanvas.setSize(640, 480)"}, {"wait":100}, {"inspect":".uh-viewport","name":"640"},
+ {"eval":"ultrahandCanvas.setTextScale(2)"}, {"wait":100}, {"inspect":".uh-viewport","name":"640-text200"},
+ {"eval":"ultrahandCanvas.setTextScale(1); ultrahandCanvas.setScheme('dark')"}, {"wait":100}, {"inspect":".uh-viewport","name":"640-dark"}]
+```
+
+For a page that isn't a canvas, use `size`, `zoom` and `scheme` steps with `{"inspect":true}`. Read each line's `issues`; open the saved JSON only when you need one element's numbers.
 
 Scroll chaining. Scroll an inner list past its end and check that the outer scroller takes over:
 

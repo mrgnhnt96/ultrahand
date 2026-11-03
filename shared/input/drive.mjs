@@ -18,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
-const VERSION = 5;
+const VERSION = 6;
 const MAC = process.platform === 'darwin';
 // Mod is the platform's command key: Cmd on macOS, Ctrl elsewhere.
 const MODS = { Alt: 1, Option: 1, Ctrl: 2, Control: 2, Meta: 4, Cmd: 4, Shift: 8, Mod: MAC ? 4 : 2 };
@@ -457,10 +457,266 @@ const PAGE_HELPERS = `(() => {
     return box.right > box.left && box.bottom > box.top ? box : null;
   };
   const centreOf = (box) => [Math.round((box.left + box.right) / 2), Math.round((box.top + box.bottom) / 2)];
+  /* inspect: the layout as numbers, so a review checks contrast, targets, clipping, overlap
+     and focus order without screenshots. Colours go through a 1px canvas, which turns any
+     computed CSS colour (rgb, color(srgb), oklch, light-dark already resolved) into sRGB. */
+  const pen = Object.assign(document.createElement('canvas'), { width: 1, height: 1 })
+    .getContext('2d', { willReadFrequently: true });
+  const colours = new Map();
+  const rgba = (c) => {
+    if (!colours.has(c)) {
+      pen.clearRect(0, 0, 1, 1);
+      pen.fillStyle = 'transparent';
+      pen.fillStyle = c;
+      pen.fillRect(0, 0, 1, 1);
+      const d = pen.getImageData(0, 0, 1, 1).data;
+      colours.set(c, [d[0], d[1], d[2], d[3] / 255]);
+    }
+    return colours.get(c);
+  };
+  const over = (top, under) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])).concat(1);
+  const hex = (c) => '#' + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const lum = (c) => {
+    const [r, g, b] = c.slice(0, 3).map((v) => (v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a, b) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
+  };
+  const COLOUR = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\([^()]*\\)|#[0-9a-f]{3,8}\\b/gi;
+  /* What can sit behind el: its own background and its ancestors', down to the first opaque
+     one, on the page canvas. A gradient gives one candidate per stop; an image gives none. */
+  const behind = (el) => {
+    const rs = getComputedStyle(document.documentElement).colorScheme;
+    const dark = /dark/.test(rs) && (!/light/.test(rs) || matchMedia('(prefers-color-scheme: dark)').matches);
+    const layers = [];
+    let opacity = 1;
+    for (let p = el, solid = false; p && !solid; p = parentOf(p)) {
+      const cs = getComputedStyle(p);
+      if (cs.backgroundImage !== 'none') {
+        const stops = cs.backgroundImage.match(COLOUR);
+        if (/url\\(|image-set\\(|element\\(/.test(cs.backgroundImage) || !stops) return { image: desc(p) };
+        layers.push(stops.map(rgba));
+      }
+      const c = rgba(cs.backgroundColor);
+      if (c[3] > 0) layers.push([c]);
+      solid = c[3] >= 1;
+      if (!solid) opacity *= Number(cs.opacity);
+    }
+    let under = [dark ? [18, 18, 18, 1] : [255, 255, 255, 1]];
+    for (const layer of layers.reverse()) under = layer.flatMap((top) => under.map((u) => over(top, u))).slice(0, 12);
+    return { under, opacity };
+  };
+  const lineBoxes = (el) => {
+    const range = document.createRange();
+    const rects = [];
+    for (const n of el.childNodes) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) if (r.width >= 1 && r.height >= 1) rects.push(r);
+    }
+    return rects;
+  };
+  const union = (rects) => rects.reduce((b, r) => ({ left: Math.min(b.left, r.left), top: Math.min(b.top, r.top),
+    right: Math.max(b.right, r.right), bottom: Math.max(b.bottom, r.bottom) }),
+    { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
+  const boxOf = (b) => [b.left, b.top, b.right - b.left, b.bottom - b.top].map(Math.round);
+  const fieldText = (el, cs) => {
+    if (el.localName === 'select') return { text: clean(el.selectedOptions[0]?.text), color: cs.color };
+    if (!/^(input|textarea)$/.test(el.localName)) return null;
+    if (/^(submit|reset|button)$/.test(el.type)) return { text: clean(el.value), color: cs.color };
+    if (/^(checkbox|radio|range|color|file|image)$/.test(el.type)) return null;
+    if (el.value) return { text: el.type === 'password' ? '***' : clean(el.value).slice(0, 40), color: cs.color };
+    if (el.placeholder) return { text: clean(el.placeholder), color: getComputedStyle(el, '::placeholder').color, placeholder: true };
+    return null;
+  };
+  /* Text another box cuts off: the element's own hidden overflow (an ellipsis or a line
+     clamp), or an ancestor that hides overflow, up to the first one that scrolls. Text past
+     the window's side with no scroller to reach it is off screen: a reflow failure. */
+  const cutOff = (el, cs, b) => {
+    if (cs.display !== 'inline') {
+      const hx = /hidden|clip/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 1;
+      const hy = /hidden|clip/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1;
+      if (hx || hy) return { by: 'itself', px: Math.max(hx ? el.scrollWidth - el.clientWidth : 0, hy ? el.scrollHeight - el.clientHeight : 0) };
+    }
+    let scrollsX = false;
+    for (let p = parentOf(el); p && p !== document.documentElement && p !== document.body; p = parentOf(p)) {
+      const ps = getComputedStyle(p);
+      if (ps.overflowX === 'visible' && ps.overflowY === 'visible') continue;
+      const sx = /auto|scroll/.test(ps.overflowX), sy = /auto|scroll/.test(ps.overflowY);
+      const q = p.getBoundingClientRect();
+      const dx = sx ? 0 : Math.max(q.left - b.left, b.right - q.right, 0);
+      const dy = sy ? 0 : Math.max(q.top - b.top, b.bottom - q.bottom, 0);
+      if (dx > 1 || dy > 1) return { by: desc(p), px: Math.round(Math.max(dx, dy)) };
+      scrollsX ||= sx;
+      if (sx && sy) break;
+    }
+    const past = Math.max(b.right - innerWidth, -b.left, 0);
+    return !scrollsX && past > 1 ? { by: 'window', px: Math.round(past) } : null;
+  };
+  const coveredBy = (el, b, inScope) => {
+    const v = { left: Math.max(b.left, 0), top: Math.max(b.top, 0), right: Math.min(b.right, innerWidth), bottom: Math.min(b.bottom, innerHeight) };
+    if (v.right <= v.left || v.bottom <= v.top || getComputedStyle(el).pointerEvents === 'none') return null;
+    const top = deepHit(...centreOf(v));
+    return top && inScope(top) && !contains(el, top) && !contains(top, el) ? desc(top) : null;
+  };
+  const composed = () => {
+    const out = [];
+    const walk = (node) => {
+      const slotted = node.localName === 'slot' ? node.assignedElements({ flatten: true }) : [];
+      for (const c of slotted.length ? slotted : [...(node.shadowRoot || node).children]) { out.push(c); walk(c); }
+    };
+    walk(document);
+    return out;
+  };
+  const inspect = (scope, min) => {
+    const root = scope === true || scope == null ? null : resolve(scope);
+    const inScope = (el) => !root || contains(root, el);
+    const issues = [];
+    const elements = [];
+    const pairs = new Map();
+    const unresolved = [];
+    const texts = [];
+    const shown = (el) => visible(el) && !el.closest('datalist, script, style, noscript, template, title')
+      && (el.localName === 'select' || !el.closest('select'));
+    const alpha = (el) => { let o = 1; for (let p = el; p; p = parentOf(p)) o *= Number(getComputedStyle(p).opacity); return o; };
+    for (const el of all('*')) {
+      if (!inScope(el) || !shown(el)) continue;
+      const cs = getComputedStyle(el);
+      const field = fieldText(el, cs);
+      const rects = field ? (field.text ? [el.getBoundingClientRect()] : []) : lineBoxes(el);
+      if (!rects.length || alpha(el) < 0.05) continue;
+      const b = union(rects);
+      if (b.right - b.left <= 1 || b.bottom - b.top <= 1) continue;
+      const text = field ? field.text : clean(ownText(el));
+      const size = parseFloat(cs.fontSize);
+      const weight = Number(cs.fontWeight);
+      const need = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+      const off = !!el.closest(':disabled') || el.closest('[aria-disabled=true]');
+      const item = { el: desc(el), text: text.slice(0, 50), font: Math.round(size * 10) / 10 + '/' + weight, box: boxOf(b) };
+      const bg = behind(el);
+      const fg = rgba(field ? field.color : cs.color);
+      if (bg.image) {
+        item.bg = 'image on ' + bg.image;
+        unresolved.push(item.el);
+      } else {
+        const tint = [fg[0], fg[1], fg[2], fg[3] * bg.opacity];
+        const worst = bg.under.map((u) => ({ u, r: contrast(over(tint, u), u) })).sort((x, y) => x.r - y.r)[0];
+        Object.assign(item, { fg: hex(over(tint, worst.u)), bg: hex(worst.u), ratio: worst.r, need });
+        if (bg.under.length > 1) item.gradient = true;
+        if (worst.r < need && !off) {
+          const key = item.fg + item.bg + need;
+          const g = pairs.get(key) || { kind: 'contrast', ratio: worst.r, need, fg: item.fg, bg: item.bg, n: 0, eg: [] };
+          g.n++;
+          if (g.eg.length < 3) g.eg.push(item.el + (field?.placeholder ? ' (placeholder)' : ''));
+          pairs.set(key, g);
+        }
+      }
+      const cut = cutOff(el, cs, b);
+      if (cut) { item.cut = cut; issues.push({ kind: cut.by === 'window' ? 'offscreen' : 'cut', el: item.el, by: cut.by, px: cut.px }); }
+      const cover = coveredBy(el, b, inScope);
+      if (cover) { item.covered = cover; issues.push({ kind: 'covered', el: item.el, by: cover }); }
+      texts.push({ el, rects, desc: item.el });
+      elements.push(item);
+    }
+    issues.unshift(...[...pairs.values()].sort((a, b) => a.ratio - b.ratio));
+    /* Text drawn over other text: line boxes of two elements, neither inside the other, that
+       intersect by more than 2px each way. */
+    for (let i = 0; i < texts.length && i < 600; i++) {
+      for (let j = i + 1; j < texts.length && j < 600; j++) {
+        const a = texts[i], c = texts[j];
+        if (contains(a.el, c.el) || contains(c.el, a.el)) continue;
+        const hit = a.rects.some((r) => c.rects.some((s) =>
+          Math.min(r.right, s.right) - Math.max(r.left, s.left) > 2 && Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top) > 2));
+        if (hit) issues.push({ kind: 'overlap', el: a.desc, with: c.desc });
+      }
+    }
+    /* Targets, in CSS px (a zoomed canvas frame scales the boxes, not the layout). WCAG 2.5.8:
+       under 24px passes if a 24px circle on its centre touches no other target, and no other
+       undersized target's circle; a link inside a sentence is exempt. */
+    const ctrls = all(INTERACTIVE).filter((el) => visible(el) && inScope(el)
+      && !(el.localName === 'label' && el.control && el.contains(el.control)));
+    const live = ctrls.filter((el) => !el.disabled && el.getAttribute('aria-disabled') !== 'true').map((el) => {
+      const r = el.getBoundingClientRect();
+      const size = el.offsetWidth !== undefined ? [el.offsetWidth, el.offsetHeight] : [r.width, r.height].map(Math.round);
+      return { el, r, size, scale: size[0] ? r.width / size[0] : 1, c: [r.left + r.width / 2, r.top + r.height / 2] };
+    });
+    const small = (t) => t.size[0] < 24 || t.size[1] < 24;
+    const gap = (p, r) => Math.hypot(Math.max(r.left - p[0], 0, p[0] - r.right), Math.max(r.top - p[1], 0, p[1] - r.bottom));
+    for (const t of live) {
+      if (t.size[0] >= min && t.size[1] >= min) continue;
+      const cs = getComputedStyle(t.el);
+      if (cs.display === 'inline' && clean(ownText(parentOf(t.el))).length > clean(ownText(t.el)).length + 1) continue;
+      const near = live.find((o) => o !== t && !contains(o.el, t.el) && !contains(t.el, o.el)
+        && (gap(t.c, o.r) < 12 * t.scale || (small(t) && small(o) && Math.hypot(o.c[0] - t.c[0], o.c[1] - t.c[1]) < 24 * t.scale)));
+      issues.push({ kind: 'target', el: desc(t.el), size: t.size, min,
+        wcag: !small(t) ? 'pass' : near ? 'fail: ' + desc(near.el) + ' is within 12px' : 'pass by spacing' });
+    }
+    /* Non-text contrast (1.4.11) for fields, whose edge is how a person finds them: the
+       best of fill and borders against what is around them must reach 3:1. */
+    const FIELD = 'input:not([type=hidden], [type=submit], [type=reset], [type=button], [type=image]), select, textarea, [role=checkbox], [role=switch], [role=radio], [role=slider], [role=combobox], [role=textbox]';
+    for (const t of live) {
+      const el = t.el;
+      const cs = getComputedStyle(el);
+      if (!el.matches(FIELD) || (/^(checkbox|radio|range|color)$/.test(el.type) && cs.appearance !== 'none')) continue;
+      const out = behind(parentOf(el));
+      if (out.image) continue;
+      const around = out.under[0];
+      let edge = contrast(over(rgba(cs.backgroundColor), around), around);
+      for (const s of ['Top', 'Right', 'Bottom', 'Left']) {
+        if (parseFloat(cs['border' + s + 'Width']) >= 1 && !/none|hidden/.test(cs['border' + s + 'Style'])) {
+          edge = Math.max(edge, contrast(over(rgba(cs['border' + s + 'Color']), around), around));
+        }
+      }
+      for (const c of cs.boxShadow === 'none' ? [] : cs.boxShadow.match(COLOUR) || []) edge = Math.max(edge, contrast(over(rgba(c), around), around));
+      if (edge < 3) issues.push({ kind: 'field-edge', el: desc(el), ratio: edge, need: 3, around: hex(around) });
+    }
+    /* Focus order: what Tab visits, in the composed tree (through shadow roots and slots),
+       positive tabindex first; one stop per radio group. A step that goes up the page is
+       listed: right in a new column, wrong within one. */
+    const tree = composed();
+    const radios = new Set();
+    const stops = tree.filter((el) => el.tabIndex >= 0 && !el.disabled && !el.closest('[inert]') && visible(el) && inScope(el))
+      .filter((el) => {
+        if (el.localName !== 'input' || el.type !== 'radio' || !el.name) return true;
+        const key = (el.form ? 'f' : 'r') + el.name;
+        if (radios.has(key)) return false;
+        const group = tree.filter((o) => o.localName === 'input' && o.type === 'radio' && o.name === el.name && o.form === el.form);
+        const pick = group.find((o) => o.checked) || group[0];
+        if (pick !== el) return false;
+        radios.add(key);
+        return true;
+      });
+    const order = [...stops.filter((el) => el.tabIndex > 0).sort((a, b) => a.tabIndex - b.tabIndex), ...stops.filter((el) => el.tabIndex === 0)];
+    for (const el of order) if (el.tabIndex > 0) issues.push({ kind: 'tabindex', el: desc(el), tabindex: el.tabIndex });
+    const focusOrder = order.map((el, i) => {
+      const r = el.getBoundingClientRect();
+      const prev = i && order[i - 1].getBoundingClientRect();
+      const up = prev && r.bottom <= prev.top - 1;
+      if (up) issues.push({ kind: 'focus-up', from: desc(order[i - 1]), to: desc(el) });
+      return (i + 1) + ' ' + desc(el) + ' @' + Math.round(r.left) + ',' + Math.round(r.top);
+    });
+    for (const t of live) elements.push({ el: desc(t.el), control: true, size: t.size, box: boxOf(t.r) });
+    const kinds = {};
+    const capped = issues.filter((x) => (kinds[x.kind] = (kinds[x.kind] || 0) + 1) <= 20);
+    for (const k in kinds) if (kinds[k] > 20) capped.push({ kind: k, more: kinds[k] - 20 });
+    const scale = live[0] ? Math.round(live[0].scale * 100) / 100 : 1;
+    const page = document.scrollingElement;
+    return {
+      viewport: [innerWidth, innerHeight], ...(scale !== 1 ? { scale } : {}),
+      counts: { text: texts.length, controls: live.length, tabStops: order.length, issues: issues.length, unresolved: unresolved.length },
+      ...(page && page.scrollWidth > innerWidth + 1 ? { pageOverflowX: page.scrollWidth - innerWidth } : {}),
+      issues: capped,
+      ...(unresolved.length ? { unresolved: unresolved.slice(0, 8) } : {}),
+      focusOrder: focusOrder.length > 80 ? focusOrder.slice(0, 80).concat('+' + (focusOrder.length - 80) + ' more') : focusOrder,
+      elements,
+    };
+  };
   window.__uhDrive = {
     version: ${VERSION},
     refs: window.__uhDrive?.refs || [],
-    desc, deepActive, deepHit, resolve,
+    desc, deepActive, deepHit, resolve, inspect,
     point(target) {
       const el = resolve(target);
       let box = clipRect(el);
@@ -624,7 +880,7 @@ class Driver {
         .filter((s) => s.dx || s.dy)`);
       if (moved.length || verb !== 'click') result.scrolled = moved;
     }
-    if (!['eval', 'shot', 'controls', 'wait'].includes(verb)) result.focus = await this.js('() => __uhDrive.focus()');
+    if (!['eval', 'shot', 'controls', 'inspect', 'wait'].includes(verb)) result.focus = await this.js('() => __uhDrive.focus()');
     return result;
   }
 
@@ -776,6 +1032,21 @@ class Driver {
     return { count: controls.length, controls };
   }
 
+  // Every text element and control as numbers: contrast, target size, clipping, overlap and
+  // focus order (README: inspect). The full dump goes to <out>/inspect-<name>.json; the line
+  // printed carries the issues, and every element only with "all".
+  async do_inspect(scope, step) {
+    const { elements, ...out } = await this.js('(a) => __uhDrive.inspect(...a)', [scope, step.min ?? 24]);
+    if (this.outDir) {
+      mkdirSync(this.outDir, { recursive: true });
+      const name = String(step.name ?? out.viewport.join('x')).replace(/[^\w.-]+/g, '-');
+      out.file = join(this.outDir, `inspect-${name}.json`);
+      writeFileSync(out.file, JSON.stringify({ ...out, elements }, null, 1));
+    }
+    if (step.all) out.elements = elements;
+    return out;
+  }
+
   // An expression, or statements like the console: the value is the last statement's
   // (top-level await works, and so does an explicit return).
   async do_eval(code) {
@@ -866,7 +1137,7 @@ class Driver {
 }
 
 const VERBS = ['size', 'zoom', 'scheme', 'goto', 'click', 'hover', 'drag', 'wheel', 'key', 'type', 'choose', 'tap',
-  'touchScroll', 'pinch', 'controls', 'eval', 'wait', 'shot'];
+  'touchScroll', 'pinch', 'controls', 'inspect', 'eval', 'wait', 'shot'];
 
 // Splits "Ctrl+Shift+/" into its key and modifiers. A shifted character names the key that
 // types it, with Shift held as on a US keyboard: "?" is Shift+/, "Ctrl++" is Ctrl+Shift+=.
