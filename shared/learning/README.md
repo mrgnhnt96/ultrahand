@@ -17,7 +17,8 @@ can't quietly make its output worse.
 
 Before the skill's first step, look for `design/LESSONS.md` in the project, or in the
 artifact's `design/` files for a design that exists only as an artifact. Apply every
-lesson whose **Applies to** names this skill or `all`, unless it's marked superseded.
+lesson whose **Applies to** names this skill or `all`, unless it's marked superseded. Don't
+read `LESSONS.archive.md` unless the owner asks about an old lesson.
 
 - A lesson overrides a skill's defaults and creative choices.
 - A lesson never silently breaks a non-negotiable (theme rules NN-n, WCAG 2.2 AA, minimum
@@ -87,6 +88,59 @@ fix with a cited source when it changes a design rule. Then deliver it:
 3. Always, filed or not, add a line under `## Plugin feedback` at the end of
    `design/LESSONS.md`, creating the file with the header above when it's missing:
    `- 2026-11-03 · desktop step 6 · body-size rule too strict for dense tools · filed #18`.
-   Then it isn't lost if nobody files it.
+   Then it isn't lost if nobody files it. The last field is its status: `open`,
+   `filed #n`, `fixed in v0.4.0` or `declined`. Update it when you learn it changed.
 
 Until the plugin is fixed, record the project-side workaround as a lesson too.
+
+## Compact the records
+
+Every skill reads LESSONS.md on every run, and THEME.md's changelog only grows, so both
+get compacted when they're due. Compaction makes them shorter without losing anything:
+what leaves the live file goes to an archive next to it, which skills read only when
+asked about history.
+
+**When.** Run `node "${CLAUDE_PLUGIN_ROOT}/shared/learning/size.mjs" design` after
+adding a lesson or a changelog line, and when the owner asks to tidy or compact the
+records. It prints `compact: yes` with reasons past any of these limits:
+
+| Record | Limit |
+| --- | --- |
+| Active lessons | more than 25 |
+| Superseded lessons still in LESSONS.md | 5 or more |
+| Plugin-feedback lines that are `fixed` or `declined` | 5 or more |
+| LESSONS.md | more than 250 lines |
+| THEME.md changelog | more than 12 entries |
+
+When it's due, finish the current task first, then propose the compaction. Don't do it
+in the middle of a design.
+
+**LESSONS.md.** Work through it in this order:
+
+1. **Archive** each superseded lesson, and each plugin-feedback line that's fixed or
+   declined, by moving it whole to `design/LESSONS.archive.md`. Append it there under a
+   `## Archived <date>` heading. Before archiving a lesson as fixed, check that the plugin
+   now does what it asked.
+2. **Promote** lessons that belong in a stronger record. A lesson that fixes a theme
+   value ("body text is 14px here") becomes a locked decision in THEME.md through the
+   `theme` skill. Archive the lesson with `→ THEME.md: <decision>`.
+3. **Merge** lessons that state parts of one rule (L3 "right-align dialog buttons", L9
+   "dialog buttons are compact") into one new lesson. Give it the next ID and the line
+   `- **Merges:** L3, L9`, combine their **Applies to**, and archive the originals. Merge
+   only when the rule doesn't change. Two lessons that pull different ways are a
+   conflict: ask the owner.
+4. **Tighten** wording only. Never weaken, drop or reinterpret a rule. IDs are never
+   reused, so a lesson's ID still finds it in the archive.
+5. **Order** the active lessons by area (dialogs, copy, navigation…) so related rules sit
+   together.
+
+**THEME.md.** The decisions table and component inventory are the current state, so
+they're kept whole. Only remove a component once its tokens are removed. The changelog
+keeps its 10 newest entries. Move the older ones to `design/THEME.changelog.md`, newest
+first, and end the changelog with `- Older versions: THEME.changelog.md`. A locked
+decision's reason belongs in the decisions table, so it survives this.
+
+**Ask first.** Compaction rewrites what the owner taught, so show it before writing: a
+table of each lesson kept, merged (into which), promoted (to where) or archived (why),
+and the size before and after (from `size.mjs`). Write it when the owner agrees, then
+run `size.mjs` again and report the new size.

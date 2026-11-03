@@ -213,5 +213,7 @@ left.
 When the owner corrects the result, states a lasting preference ("we never…") or
 dismisses a finding as intended, add a lesson to `design/LESSONS.md`. When the correction
 shows that this skill, its rules or its scripts are wrong for any project, also write a
-plugin report, and always log it in LESSONS.md. Both are in
+plugin report, and always log it in LESSONS.md. Afterwards run
+`node "${CLAUDE_PLUGIN_ROOT}/shared/learning/size.mjs" design`, and if it says
+`compact: yes`, offer to compact the records. All three are in
 [shared/learning/README.md](../../shared/learning/README.md).
