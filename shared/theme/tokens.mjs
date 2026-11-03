@@ -72,7 +72,10 @@ export const valueIn = (index, t, scheme = 'light') =>
 // Colours: DTCG object {colorSpace, components, alpha, hex}, or a hex / rgb() string.
 export function parseColor(v) {
   if (v && typeof v === 'object') {
-    if (typeof v.hex === 'string') return parseColor(v.hex);
+    if (typeof v.hex === 'string') {
+      const c = parseColor(v.hex);
+      return c && v.alpha !== undefined ? { ...c, a: v.alpha } : c;
+    }
     if ((v.colorSpace ?? 'srgb') === 'srgb' && Array.isArray(v.components)) {
       const [r, g, b] = v.components.map((c) => (c === 'none' ? 0 : Number(c)));
       return { r, g, b, a: v.alpha ?? 1 };

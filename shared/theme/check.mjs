@@ -188,7 +188,9 @@ else {
   };
   const size = parseDimension(field('fontSize'));
   const lh = field('lineHeight');
-  if (size !== null && size < 16) err('NN-6', body.path, `body is ${size}px; body text is at least 16px`);
+  if (size !== null && size < 13) err('NN-6', body.path, `body is ${size}px; body text is never below 13`);
+  else if (size !== null && size < 16)
+    warn('NN-6', body.path, `body is ${size}px: fine for a dense desktop tool (macOS 13 pt, Material body medium 14), but text people read at length needs 16`);
   if (typeof lh === 'number' && lh < 1.3) warn('NN-6', body.path, `body line height ${lh}; keep body text at 1.3 or more (1.5 for long reading)`);
 }
 const sizes = new Set(

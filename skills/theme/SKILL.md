@@ -22,7 +22,8 @@ The scripts below live in `${CLAUDE_PLUGIN_ROOT}/shared/theme/`.
 
 ## 1. Find what exists
 
-Look before you ask. In the project, search for `design/THEME.md`, `*.tokens.json`,
+Look before you ask. For a design that exists only as a canvas artifact, list the
+artifact's files and read `design/` from there. In the project, search for `design/THEME.md`, `*.tokens.json`,
 `tokens/`, a Style Dictionary config, and the platform's theme code: CSS custom
 properties, `tailwind.config.*`, Flutter `ThemeData` / `ColorScheme`, SwiftUI colour
 assets, Compose `MaterialTheme`. The result picks the mode:
@@ -83,7 +84,8 @@ Then write the files (step 5).
      [shared/composition/principles.md](../../shared/composition/principles.md)) is built
      in.
    - **Type:** one scale from the chosen ratio (CR-5), with roles display, headline,
-     title, body, label; body at least 16.
+     title, body, label; body at the platform's default (16 on the web, 17 pt on
+     iOS; 13–14 only for a dense desktop tool, see NN-6).
    - **Shape, depth, motion, focus:** a radius scale in the chosen corner style; elevation
      levels in the chosen depth method; duration and easing tokens; a focus ring of 2 px
      or more.
@@ -147,7 +149,8 @@ screen template's own `<style>`: the canvas sets `data-state` inside the screen,
 page head can't reach. Declare `states` `a`, `b`, `c` in `config.json` with the direction
 names as labels, and the State picker switches between them.
 
-Publish `index.html` as an artifact.
+Publish `index.html` as an artifact. When the design itself is an artifact, republish it
+built with the theme (`--head theme.html`) and include the two `design/` files.
 
 ## 7. Present
 

@@ -74,7 +74,7 @@ const PATTERNS = [
   { kind: 'radius', re: /(?:BorderRadius\.circular|Radius\.circular)\((\d+(?:\.\d+)?)\)/g },
   // SwiftUI
   { kind: 'space', re: /\.padding\((?:\.[a-z]+,\s*)?(\d+(?:\.\d+)?)\)/g },
-  { kind: 'space', re: /spacing:\s*(\d+(?:\.\d+)?)/g },
+  { kind: 'space', re: /(?<![\w-])spacing:\s*(\d+(?:\.\d+)?)/g }, // not CSS letter-spacing
   { kind: 'radius', re: /(?:\.cornerRadius\(|cornerRadius:\s*)(\d+(?:\.\d+)?)/g },
   { kind: 'fontSize', re: /\.system\(size:\s*(\d+(?:\.\d+)?)/g },
   // Compose / Android
