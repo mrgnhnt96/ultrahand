@@ -96,10 +96,10 @@ const MEASURE = String.raw`(() => {
 
 export default async function (ui) {
   const sections = process.env.UH_SECTIONS || '';
-  const { value } = await ui.eval(`window.__uhSections = ${JSON.stringify(sections)}; ${MEASURE}`);
+  const { value } = await ui.eval(`window.__uhSections = ${JSON.stringify(sections)}; ${MEASURE}`, { quiet: true });
   for (const s of value || []) console.log(JSON.stringify({ composition: s }));
   const { value: size } = await ui.eval('innerWidth + "x" + innerHeight');
-  await ui.eval('document.documentElement.style.filter = "blur(6px)"; true');
+  await ui.eval('document.documentElement.style.filter = "blur(6px)"; true', { quiet: true });
   await ui.shot(`blur-${size}`);
-  await ui.eval('document.documentElement.style.filter = ""; true');
+  await ui.eval('document.documentElement.style.filter = ""; true', { quiet: true });
 }
