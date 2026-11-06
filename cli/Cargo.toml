@@ -1,0 +1,20 @@
+[package]
+name = "ultrahand"
+version = "0.1.0"
+edition = "2024"
+description = "Runs an ultrahand UX review in a lean, locked-down headless Claude"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "ultrahand"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
