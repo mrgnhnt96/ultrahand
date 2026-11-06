@@ -1,0 +1,95 @@
+# Builds the ultrahand binaries into a draft release. scripts/release.sh runs this on the
+# commit it is about to release, then publishes the draft once the version bump and the
+# checksums are pushed. The draft only appears when every target has tested and built.
+name: Release binaries
+run-name: Binaries for ${{ inputs.tag }} (${{ inputs.request }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag, e.g. v0.7.0
+        required: true
+        type: string
+      sha:
+        description: The commit to test and build
+        required: true
+        type: string
+      request:
+        description: Picks this run out of the list for scripts/release.sh
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - { target: aarch64-apple-darwin, runner: macos-15 }
+          - { target: x86_64-apple-darwin, runner: macos-15-intel }
+          - { target: x86_64-unknown-linux-musl, runner: ubuntu-24.04 }
+          - { target: aarch64-unknown-linux-musl, runner: ubuntu-24.04-arm }
+    env:
+      TARGET: ${{ matrix.target }}
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+            sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable --target "$TARGET"
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
+      - name: Test
+        run: cargo test --locked --target "$TARGET"
+      - name: Build
+        run: |
+          cargo build --release --locked --target "$TARGET"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp "target/$TARGET/release/ultrahand" "$GITHUB_WORKSPACE/out/ultrahand-$TARGET"
+      - name: Check the binary starts
+        run: '"$GITHUB_WORKSPACE/out/ultrahand-$TARGET" review --help'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ultrahand-${{ matrix.target }}
+          path: out/ultrahand-${{ matrix.target }}
+          if-no-files-found: error
+
+  draft:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      SHA: ${{ inputs.sha }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ultrahand-*
+          merge-multiple: true
+          path: out
+      - name: Write the checksums
+        working-directory: out
+        run: sha256sum ultrahand-* > checksums.txt
+      - name: Replace any earlier draft of this tag
+        run: |
+          if state="$(gh release view "$TAG" --json isDraft --jq .isDraft)"; then
+            [ "$state" = true ] || { echo "$TAG is already published" >&2; exit 1; }
+            gh release delete "$TAG" --yes
+          fi
+      - name: Create the draft
+        run: |
+          gh release create "$TAG" out/* --draft --target "$SHA" --title "$TAG" \
+            --notes "Prebuilt ultrahand binaries for plugin $TAG. The plugin downloads these itself."
