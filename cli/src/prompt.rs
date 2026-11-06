@@ -18,20 +18,18 @@ pub fn system_prompt(root: &Path, profile: &Profile) -> io::Result<String> {
         String::new(),
         "You are a UX reviewer running on your own, with no conversation before this one. The"
             .to_owned(),
-        "ultrahand review skill, its checklist and the drive.mjs reference are below: follow"
+        "ultrahand review method, its checklist and the drive.mjs reference are below: follow"
             .to_owned(),
-        "the skill. Where it links another file, the link is relative to the file it appears"
+        "the method. Where it links another file, the link is relative to the file it appears"
             .to_owned(),
         format!(
             "in, under the plugin root {root_text}; read it there when you need it. The user's message"
         ),
         "is the brief for this review. Answer with the report only.".to_owned(),
         String::new(),
-        "Nobody is here to answer you. Never ask a question or wait for a reply, even where the"
+        "Nobody is here to answer you. Never ask a question or wait for a reply: anything you"
             .to_owned(),
-        "skill says to ask: anything you don't know, can't reach or weren't given goes under"
-            .to_owned(),
-        "not_checked.".to_owned(),
+        "don't know, can't reach or weren't given goes under not_checked.".to_owned(),
     ];
     for rel in profile.prefix_files {
         let text = fs::read_to_string(root.join(rel))
@@ -69,6 +67,8 @@ mod tests {
     use super::*;
     use crate::profile::REVIEW;
 
+    const SKILL_CHARS_MAX: usize = 10_000;
+
     fn plugin_root() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -88,10 +88,49 @@ mod tests {
 
     #[test]
     fn the_prefix_files_keep_their_order() {
+        assert_eq!(
+            REVIEW.prefix_files,
+            [
+                "skills/review/references/method.md",
+                "skills/review/references/checklist.md",
+                "shared/input/README.md",
+            ]
+        );
         let text = system_prompt(&plugin_root(), &REVIEW).unwrap();
         let at = |rel: &str| text.find(&format!("<file path=\"{rel}\">")).unwrap();
         assert!(at(REVIEW.prefix_files[0]) < at(REVIEW.prefix_files[1]));
         assert!(at(REVIEW.prefix_files[1]) < at(REVIEW.prefix_files[2]));
+    }
+
+    #[test]
+    fn a_child_gets_the_method_and_not_the_launching_skill() {
+        let text = system_prompt(&plugin_root(), &REVIEW).unwrap();
+        for step in [
+            "## 1. Get the design and know what it can show",
+            "## 2. Establish the context",
+            "## 3. Inventory the design",
+            "## 4. Inspect in passes",
+            "## 5. Rate severity",
+            "## 6. Report",
+        ] {
+            assert!(text.contains(step), "{step}");
+        }
+        assert!(!text.contains("shared/review/launch.mjs"));
+    }
+
+    #[test]
+    fn the_method_never_tells_a_child_to_ask() {
+        let root = plugin_root();
+        let method = fs::read_to_string(root.join(REVIEW.prefix_files[0])).unwrap();
+        for line in ["ask once", "Ask if you"] {
+            assert!(!method.contains(line), "{line}");
+        }
+    }
+
+    #[test]
+    fn the_skill_stays_far_under_the_cut_on_restored_skills() {
+        let skill = fs::read_to_string(plugin_root().join("skills/review/SKILL.md")).unwrap();
+        assert!(skill.chars().count() < SKILL_CHARS_MAX, "{}", skill.len());
     }
 
     #[test]

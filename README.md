@@ -45,10 +45,17 @@ within min/max bounds, with light/dark, 200% text, state and tap-target toggles.
 Design claims cite their sources in each skill's `references/sources.md`.
 
 Every design round, the first design and each change after it, is reviewed before you're
-told it's ready, by a reviewer running the `review` skill in its own headless `claude -p`
+told it's ready, by a reviewer following the review method in its own headless `claude -p`
 session. It starts lean, on the prompt cache, and records what each review cost. Later
 rounds are reviewed by their diff, and the whole design is reviewed again when something
 shared changes. The loop and its runner are in `shared/review/`.
+
+The `review` skill doesn't review anything in your session. It splits the request into
+screens and flows, writes a plan, and launches the `ultrahand` program, which starts a
+separate lean `claude` process for each one. Only their merged findings come back, so a
+review of a large app no longer fills the session that asked for it. The skill then judges
+duplicates and ranking, checks the worst findings against the code, and writes the report.
+The method the reviewers follow is in `skills/review/references/method.md`.
 
 A project's theme lives in the project (`design/theme.tokens.json`, in the W3C design
 tokens format, plus `design/THEME.md` for its decisions, component inventory and

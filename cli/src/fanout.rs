@@ -97,6 +97,7 @@ struct Run<'a> {
     out: PathBuf,
     system: PathBuf,
     code_root: Option<PathBuf>,
+    lessons: Option<PathBuf>,
     extra_dirs: Vec<PathBuf>,
     model: String,
     effort: String,
@@ -129,7 +130,7 @@ pub fn run(plan_path: &Path, args: ReviewArgs) -> Result<bool, String> {
     let out = args.out.clone().unwrap_or_else(|| default_out(plan_path));
     let out = review::absolute(&out)?;
     if args.dry_run {
-        print_dry_run(&selected, &out, cap, &args);
+        print_dry_run(&plan, &selected, &out, cap, &args);
         return Ok(true);
     }
 
@@ -154,6 +155,7 @@ pub fn run(plan_path: &Path, args: ReviewArgs) -> Result<bool, String> {
         out,
         system,
         code_root: plan.code_root(),
+        lessons: plan.lessons.clone(),
         extra_dirs,
         model: args.model,
         effort: args.effort,
@@ -197,7 +199,7 @@ fn summary_line(written: &Written) -> String {
     parts.join(" · ")
 }
 
-fn print_dry_run(selected: &[&Unit], out: &Path, cap: usize, args: &ReviewArgs) {
+fn print_dry_run(plan: &Plan, selected: &[&Unit], out: &Path, cap: usize, args: &ReviewArgs) {
     let mut lines = vec![
         format!("out: {}", out.display()),
         format!(
@@ -205,6 +207,9 @@ fn print_dry_run(selected: &[&Unit], out: &Path, cap: usize, args: &ReviewArgs) 
             args.model, args.timeout
         ),
     ];
+    if let Some(lessons) = &plan.lessons {
+        lines.push(format!("lessons: {}", lessons.display()));
+    }
     for unit in selected {
         let scaled = unit
             .captures
@@ -221,7 +226,13 @@ fn print_dry_run(selected: &[&Unit], out: &Path, cap: usize, args: &ReviewArgs) 
     let _ = writeln!(io::stdout(), "{}", lines.join("\n"));
 }
 
-fn unit_message(unit: &Unit, staged: &Staged, root: &Path, port: u16) -> Vec<u8> {
+fn unit_message(
+    unit: &Unit,
+    staged: &Staged,
+    lessons: Option<&Path>,
+    root: &Path,
+    port: u16,
+) -> Vec<u8> {
     let code: String = unit
         .code
         .iter()
@@ -243,10 +254,13 @@ fn unit_message(unit: &Unit, staged: &Staged, root: &Path, port: u16) -> Vec<u8>
             staged.path.display(),
         )
     };
+    let lessons = lessons.map_or(String::new(), |path| {
+        format!("\n\nLESSONS.md: {}", path.display())
+    });
     let text = format!(
         "# Review unit: {}\n\nPlatform: {}\nUsers: {}\nPrimary task: {}\n\nScope: {}\n\nCode:\n\
-         {code}\nCaptures: {captures}\n\nNobody can answer a question in this run. Anything \
-         you don't know or can't reach goes under not_checked.{}",
+         {code}\nCaptures: {captures}{lessons}\n\nNobody can answer a question in this run. \
+         Anything you don't know or can't reach goes under not_checked.{}",
         unit.name,
         unit.platform,
         unit.users,
@@ -294,12 +308,14 @@ impl Run<'_> {
     fn job(&self, unit: &Unit, port: u16, staged: &Staged) -> Job {
         let mut add_dirs = vec![staged.path.clone()];
         add_dirs.extend(self.code_root.clone());
+        let lessons = self.lessons.as_deref();
+        add_dirs.extend(lessons.and_then(Path::parent).map(Path::to_path_buf));
         add_dirs.extend(self.extra_dirs.iter().cloned());
         Job {
             brief_path: self.plan_path.clone(),
             unit: Some(unit.name.clone()),
             profile: self.profile,
-            message: unit_message(unit, staged, &self.root, port),
+            message: unit_message(unit, staged, lessons, &self.root, port),
             out: merge::unit_path(&self.out, unit),
             cwd: staged.path.clone(),
             add_dirs,

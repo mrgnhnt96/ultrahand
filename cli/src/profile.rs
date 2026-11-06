@@ -16,7 +16,7 @@ pub struct Profile {
 pub const REVIEW: Profile = Profile {
     name: "review",
     prefix_files: &[
-        "skills/review/SKILL.md",
+        "skills/review/references/method.md",
         "skills/review/references/checklist.md",
         "shared/input/README.md",
     ],

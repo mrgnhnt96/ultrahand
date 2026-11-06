@@ -63,14 +63,16 @@ stops it: it has no Write or Edit, Bash runs only `drive.mjs` as one plain comma
 environment. A check that needs more, such as data-state fixtures, goes under *Not
 checked*. The lock stops edits, not reads: Read works outside the build folder, and the
 driver can open any address and save screenshots wherever `--out` says. Its system prompt
-is the review skill, the checklist and the drive.mjs reference, the same on every run, so
+is the review method, the checklist and the drive.mjs reference, the same on every run, so
 a review that starts within five minutes of the last one reads them from the cache. Use
 `--model` and `--effort` only when the user asks for them; the default is Opus.
 
 If the runner can't start (no `claude` on the PATH, or it fails before the review
 begins), start a general-purpose agent with the Agent tool instead, not a fork: a fork
-shares your context. Send it the same brief with this line first: "Load the
-ultrahand:review skill with the Skill tool, then follow it." That agent isn't locked.
+shares your context. Send it the same brief with this line first: "Read
+<plugin root>/skills/review/references/method.md and follow it." Name the method, not the
+`ultrahand:review` skill: that skill only launches another review. That agent
+isn't locked.
 
 ### The brief carries facts, never your view
 
@@ -104,7 +106,7 @@ point at it. If you used the Agent tool, save the report there yourself.
 ### Template
 
 ```text
-Review a UI design with the ultrahand review skill. Don't edit any files.
+Review a UI design with the ultrahand review method. Don't edit any files.
 
 Design: <absolute path to index.html>, an ultrahand canvas build. Drive it with
 <plugin root>/shared/input/drive.mjs. Put screenshots under <absolute path to
@@ -118,7 +120,7 @@ screen, state, size and scheme they touch">.
 Still open from the last round: <IDs and titles from the last report, each with the
 user's words if you kept it on purpose, or "none">.
 
-Return the review skill's report: verdict, findings with ID, severity, element, evidence,
+Return the review method's report: verdict, findings with ID, severity, element, evidence,
 problem, principle and fix, then what you couldn't check. Name any problem outside the
 scope that you happened to see, but don't go looking for one.
 ```
@@ -137,9 +139,9 @@ size and scheme those changes touch.
 The reviewer reads the findings in the last reviewer's words and the fix in the diff,
 so it judges the fix, not your account of it.
 
-If neither the runner nor an agent can start, run the review skill yourself as a separate
-pass after the self-check, and say in the presentation that the review wasn't
-independent.
+If neither the runner nor an agent can start, read
+`skills/review/references/method.md` and follow it yourself as a separate pass after the
+self-check, and say in the presentation that the review wasn't independent.
 
 ## 4. Act on the findings
 

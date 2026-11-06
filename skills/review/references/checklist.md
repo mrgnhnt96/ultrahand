@@ -1,6 +1,6 @@
 # Review checklist
 
-The passes from [SKILL.md](../SKILL.md), step 4. Each check cites a key from
+The passes from [method.md](method.md), step 4. Each check cites a key from
 [sources.md](sources.md). Keys with a prefix, like `mobile:HIG-A11Y`, are in that design
 skill's own `references/sources.md`; its `principles.md` explains the rule in depth.
 
@@ -141,7 +141,7 @@ Every control in the inventory:
       way round, a dropdown for two or three options hides choices a visible row would
       show [NNG-LISTBOX] [NNG-DROPDOWN].
 - [ ] **Used with real input:** every control was used the way a person would, with real
-      pointer, keyboard, wheel and touch events, at each size you reviewed (SKILL.md,
+      pointer, keyboard, wheel and touch events, at each size you reviewed (method.md,
       step 4). A control you only read or triggered by script is *Not checked*.
 
 Fields and forms:

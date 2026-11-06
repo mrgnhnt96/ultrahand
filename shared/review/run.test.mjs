@@ -5,16 +5,31 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { test } from 'node:test';
 import {
-  allowedTools, childEnv, claudeArgs, defaultOut, driveCommand, main, summarise, systemPrompt,
+  allowedTools, childEnv, claudeArgs, defaultOut, driveCommand, main, PREFIX_FILES, summarise,
+  systemPrompt,
 } from './run.mjs';
 
 test('the system prompt is the same bytes every time and has no unfilled plugin root', () => {
   const a = systemPrompt();
   assert.equal(a, systemPrompt());
   assert.ok(!a.includes('${CLAUDE_PLUGIN_ROOT}'));
-  assert.match(a, /<file path="skills\/review\/SKILL.md">/);
+  assert.match(a, /<file path="skills\/review\/references\/method.md">/);
   assert.match(a, /<file path="skills\/review\/references\/checklist.md">/);
   assert.match(a, /<file path="shared\/input\/README.md">/);
+});
+
+test('the prefix files keep their order', () => {
+  assert.deepEqual(PREFIX_FILES, [
+    'skills/review/references/method.md',
+    'skills/review/references/checklist.md',
+    'shared/input/README.md',
+  ]);
+});
+
+test('the reviewer gets the method, not the skill that launches it', () => {
+  const prompt = systemPrompt();
+  assert.ok(prompt.includes('## 4. Inspect in passes'));
+  assert.ok(!prompt.includes('shared/review/launch.mjs'));
 });
 
 test('the reviewer starts lean, with only review tools', () => {

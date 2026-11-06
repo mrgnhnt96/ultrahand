@@ -75,7 +75,7 @@ impl Fixture {
         let base = fs::canonicalize(dir.path()).unwrap();
         let root = base.join("plugin");
         for (file, text) in [
-            ("skills/review/SKILL.md", "skill"),
+            ("skills/review/references/method.md", "method"),
             ("skills/review/references/checklist.md", "checklist"),
             ("shared/input/README.md", "input"),
             ("shared/input/drive.mjs", FAKE_DRIVE),
@@ -858,6 +858,63 @@ fn a_run_stopped_while_queued_marks_its_units_and_still_merges() {
     let merged = f.merged();
     assert_eq!(merged["units"][0]["reason"], "stopped before it started");
     assert_eq!(merged["units"][1]["reason"], "stopped before it started");
+}
+
+#[test]
+fn a_child_can_read_the_lessons_the_plan_names() {
+    let f = Fixture::new();
+    f.reply_ok("search");
+    fs::create_dir_all(f.base.join("design")).unwrap();
+    fs::write(f.base.join("design/LESSONS.md"), "lesson").unwrap();
+    f.write_plan(&json!({
+        "version": 1, "platform": "desktop", "users": "u", "primary_task": "t",
+        "lessons": "design/LESSONS.md",
+        "units": [{ "name": "search", "scope": "s", "code": ["src/search.rs"] }],
+    }));
+    let output = f.run(&[]);
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+
+    let lessons = f.base.join("design/LESSONS.md");
+    let message = f.seen("search", "stdin");
+    assert!(
+        message.contains(&format!("LESSONS.md: {}\n", lessons.display())),
+        "{message}"
+    );
+    let args = f.seen("search", "args");
+    let dirs = after(&args, "--add-dir");
+    assert!(
+        dirs.contains(&f.base.join("design").to_str().unwrap()),
+        "{dirs:?}"
+    );
+}
+
+#[test]
+fn a_plan_without_lessons_names_none() {
+    let f = Fixture::new();
+    f.reply_ok("search");
+    f.write_units(json!([{ "name": "search", "scope": "s", "code": ["src/search.rs"] }]));
+    let output = f.run(&[]);
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    assert!(!f.seen("search", "stdin").contains("LESSONS.md"));
+}
+
+#[test]
+fn lessons_that_are_not_a_file_stop_the_plan() {
+    for path in ["design/gone.md", "src"] {
+        let f = Fixture::new();
+        f.write_plan(&json!({
+            "version": 1, "platform": "desktop", "users": "u", "primary_task": "t",
+            "lessons": path,
+            "units": [{ "name": "search", "scope": "s", "code": ["src/search.rs"] }],
+        }));
+        let output = f.run(&[]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(
+            stderr(&output).contains(&format!("lessons {path}")),
+            "{}",
+            stderr(&output)
+        );
+    }
 }
 
 #[test]

@@ -21,6 +21,7 @@ struct RawPlan {
     platform: Option<String>,
     users: Option<String>,
     primary_task: Option<String>,
+    lessons: Option<String>,
     units: Vec<RawUnit>,
 }
 
@@ -49,6 +50,7 @@ struct RawCapture {
 
 pub struct Plan {
     pub profile: &'static Profile,
+    pub lessons: Option<PathBuf>,
     pub units: Vec<Unit>,
 }
 
@@ -103,9 +105,14 @@ impl Plan {
             .map(|unit| resolve_unit(&raw, unit, base, &mut problems))
             .collect();
         find_clashes(&units, &mut problems);
+        let lessons = resolve_lessons(raw.lessons.as_ref(), base, &mut problems);
 
         match found {
-            Some(profile) if problems.is_empty() => Ok(Plan { profile, units }),
+            Some(profile) if problems.is_empty() => Ok(Plan {
+                profile,
+                lessons,
+                units,
+            }),
             _ => Err(problems.join("\n")),
         }
     }
@@ -157,6 +164,24 @@ pub fn slug(name: &str) -> String {
 
 fn filled(value: Option<&String>) -> Option<&String> {
     value.filter(|text| !text.trim().is_empty())
+}
+
+fn resolve_lessons(
+    path: Option<&String>,
+    base: &Path,
+    problems: &mut Vec<String>,
+) -> Option<PathBuf> {
+    let path = filled(path)?;
+    let found = fs::canonicalize(base.join(path)).and_then(|full| {
+        if full.is_file() {
+            Ok(full)
+        } else {
+            Err(io::Error::other("not a file"))
+        }
+    });
+    found
+        .map_err(|error| problems.push(format!("lessons {path}: {error}")))
+        .ok()
 }
 
 fn resolve_unit(raw: &RawPlan, unit: &RawUnit, base: &Path, problems: &mut Vec<String>) -> Unit {
@@ -364,6 +389,7 @@ mod tests {
         };
         let root = |units| {
             Plan {
+                lessons: None,
                 profile: &profile::REVIEW,
                 units,
             }
