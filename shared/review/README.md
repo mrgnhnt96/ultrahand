@@ -56,8 +56,13 @@ It writes the report to `rounds/<n>/review-<k>.md` and what the review cost to
 brief points at outside the build folder, such as the project's `design/`. A review takes
 a few minutes, so run it in the background and wait for it to finish.
 
-The runner starts the reviewer lean (none of the user's settings, plugins or MCP servers,
-and only Read, Glob, Grep and Bash) and on the 5-minute prompt cache. Its system prompt
+The runner starts the reviewer lean (none of the user's settings, plugins or MCP servers)
+and on the 5-minute prompt cache. It's locked, so the brief's "don't edit" isn't all that
+stops it: it has no Write or Edit, Bash runs only `drive.mjs` as one plain command, and
+`--chrome` is denied. It gets only auth, proxy, locale and Chrome variables from your
+environment. A check that needs more, such as data-state fixtures, goes under *Not
+checked*. The lock stops edits, not reads: Read works outside the build folder, and the
+driver can open any address and save screenshots wherever `--out` says. Its system prompt
 is the review skill, the checklist and the drive.mjs reference, the same on every run, so
 a review that starts within five minutes of the last one reads them from the cache. Use
 `--model` and `--effort` only when the user asks for them; the default is Opus.
@@ -65,7 +70,7 @@ a review that starts within five minutes of the last one reads them from the cac
 If the runner can't start (no `claude` on the PATH, or it fails before the review
 begins), start a general-purpose agent with the Agent tool instead, not a fork: a fork
 shares your context. Send it the same brief with this line first: "Load the
-ultrahand:review skill with the Skill tool, then follow it."
+ultrahand:review skill with the Skill tool, then follow it." That agent isn't locked.
 
 ### The brief carries facts, never your view
 

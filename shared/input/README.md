@@ -23,7 +23,7 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 | Command | Options |
 | --- | --- |
 | `open <url or file>` | `--size WxH` (default 1280x800), `--zoom` (`2` or `200%`, as the `zoom` step), `--scheme light\|dark` (as the `scheme` step), `--port` (default 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
-| `do <steps>` | Steps as a JSON file, inline JSON, `-` for stdin, or a `.mjs` steps script (see [Steps files](#steps-files)). `--port`, `--out <dir>` for screenshots |
+| `do <steps>` | Steps as a JSON file, inline JSON, `-` for stdin, or a `.mjs` steps script (see [Steps files](#steps-files)). `--port`, `--out <dir>` for screenshots, `--sections <selectors>` for the composition audit |
 | `close` | `--port` |
 | `run <url> <steps>` | All of the above |
 

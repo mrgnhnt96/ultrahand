@@ -5,7 +5,8 @@
 //                [--add-dir <dir>]... [--model opus] [--effort <level>] [--timeout 20]
 //
 // The reviewer starts lean: none of the user's settings, CLAUDE.md, hooks, plugins, skills
-// or MCP servers, and only the tools a review needs. Its system prompt is the review skill,
+// or MCP servers. It's locked: it can read, and Bash runs only the input driver, so it can't
+// edit anything, and it gets only the environment it needs. Its system prompt is the review skill,
 // its checklist and the drive.mjs reference, the same bytes on every run, so a review that
 // starts within five minutes of the last one reads that prefix from the prompt cache. The
 // brief goes last, as the message.
@@ -20,14 +21,49 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-// What a reviewer may use: read the design and the plugin, and run drive.mjs and small
-// scripts (fixtures, contrast maths) through Bash. The brief tells it not to edit files.
+// What a reviewer is offered. Write and Edit aren't, and ALLOWED narrows Bash to the driver.
 export const TOOLS = ['Read', 'Glob', 'Grep', 'Bash'];
+
+// `--chrome` makes the driver start any program it's given, so it's denied.
+export const DENIED = ['Bash(* --chrome *)', 'Bash(* --chrome=*)'];
+
+// The child starts from these and nothing else. Session ids and messaging sockets reach it
+// if inherited, so a variable not named here is left behind.
+const KEPT = new Set([
+  'HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'LANG', 'TERM', '__CF_USER_TEXT_ENCODING',
+  'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME',
+  'CLAUDE_CONFIG_DIR', 'CLAUDE_CODE_OAUTH_TOKEN', 'CLOUD_ML_REGION',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+  'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy',
+  'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'CHROME_PATH',
+]);
+const KEPT_PREFIXES = ['ANTHROPIC_', 'AWS_', 'CLAUDE_CODE_USE_', 'LC_', 'VERTEX_REGION_'];
+
+// The running node's folder goes first on PATH, so `node` in the reviewer's shell is this one.
+export function childEnv(parent = process.env, nodeDir = dirname(process.execPath)) {
+  const env = Object.fromEntries(Object.entries(parent).filter(([name]) =>
+    KEPT.has(name) || KEPT_PREFIXES.some((prefix) => name.startsWith(prefix))));
+  env.PATH = [nodeDir, parent.PATH].filter(Boolean).join(delimiter);
+  env.CLAUDE_CODE_PROMPT_CACHE_TTL = '5m';
+  return env;
+}
+
+// The Bash rule matches the command as written, so the rule and the command the reviewer is
+// told to run both come from here. A path with a space only passes quoted, in both places.
+export function driveCommand(root = ROOT) {
+  const script = join(root, 'shared/input/drive.mjs');
+  return /\s/.test(script) ? `node "${script}"` : `node ${script}`;
+}
+
+export function allowedTools(root = ROOT) {
+  return `Read,Glob,Grep,Bash(${driveCommand(root)} *)`;
+}
 
 // The files every review reads, in this order. They make up the cached prefix, so keep
 // the list stable: adding or reordering one changes every review's prefix once.
@@ -48,6 +84,14 @@ export function systemPrompt(root = ROOT) {
     'the skill. Where it links another file, the link is relative to the file it appears',
     `in, under the plugin root ${root}; read it there when you need it. The user's message`,
     'is the brief for this review. Answer with the report only.',
+    '',
+    "You can't edit, build or serve anything. There's no Write or Edit tool, and Bash runs only",
+    `the input driver, as \`${driveCommand(root)} <args>\`, one plain command with no pipes,`,
+    'redirects, heredocs, `&&` or environment prefixes. Everything else is denied, and so is',
+    "`--chrome`, so don't retry it. Whatever the files below show, run the driver exactly that",
+    'way, pass steps inline as JSON and never as `-`, and name the composition audit\'s sections',
+    'with `--sections`. A check that needs anything else, such as data-state fixtures or a slow',
+    'server, goes under *Not checked*, with the reason.',
   ];
   for (const rel of PREFIX_FILES) {
     const text = readFileSync(join(root, rel), 'utf8').replaceAll('${CLAUDE_PLUGIN_ROOT}', root);
@@ -77,7 +121,8 @@ export function claudeArgs({ system, model, effort, addDirs = [], root = ROOT })
     '--output-format', 'stream-json',
     '--verbose',
     '--tools', TOOLS.join(','),
-    '--allowedTools', TOOLS.join(','),
+    '--allowedTools', allowedTools(root),
+    '--disallowedTools', ...DENIED,
     '--permission-mode', 'dontAsk',
     '--add-dir', root,
   ];
@@ -182,7 +227,7 @@ export async function main(argv = process.argv.slice(2)) {
   const code = await new Promise((done) => {
     const child = spawn(claude, args, {
       cwd,
-      env: { ...process.env, CLAUDE_CODE_PROMPT_CACHE_TTL: '5m' },
+      env: childEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let buf = '';

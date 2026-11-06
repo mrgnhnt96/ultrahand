@@ -93,3 +93,14 @@ test('inspect measures contrast, targets, clipping and focus order', (t) => {
   assert.ok(line.focusOrder.some((s) => /Shadow/.test(s)), 'tab order goes through shadow roots');
   assert.equal(line.elements, undefined, 'elements are only saved, unless all is set');
 });
+
+test('--sections reaches a steps script', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'uh-sections-'));
+  writeFileSync(join(dir, 'page.html'), '<!doctype html><title>Sections</title>');
+  writeFileSync(join(dir, 'steps.mjs'), `export default [{ eval: JSON.stringify(process.env.UH_SECTIONS) }];\n`);
+  const run = spawnSync(process.execPath, [DRIVE, 'run', join(dir, 'page.html'), join(dir, 'steps.mjs'),
+    '--sections', 'header,main', '--port', '9391'], { encoding: 'utf8', timeout: 60_000 });
+  if (/Chrome not found/.test(run.stderr)) return t.skip('no Chrome');
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(run.stdout.trim().split('\n').pop()).value, 'header,main');
+});

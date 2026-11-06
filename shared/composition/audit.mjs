@@ -1,9 +1,9 @@
 // Composition audit: a steps script for shared/input/drive.mjs.
 //
 //   node shared/input/drive.mjs open page.html --size 1440x900
-//   UH_SECTIONS='header,main' node shared/input/drive.mjs do shared/composition/audit.mjs --out shots
+//   node shared/input/drive.mjs do shared/composition/audit.mjs --sections 'header,main' --out shots
 //
-// For each section (UH_SECTIONS, comma-separated selectors; by default the page's top-level
+// For each section (--sections, comma-separated selectors; by default the page's top-level
 // header, toolbar, nav, aside and main, inside a canvas screen too; named sections are all
 // measured, even when one is inside another) it prints one JSON line
 // of measures, and it saves a blurred screenshot for the squint test (blur-<w>x<h>.png).

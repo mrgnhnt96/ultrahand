@@ -30,7 +30,7 @@ The screen as a whole, then each section, before any single control. Keys `SEC-n
 `SCR-n` are the rules in
 [shared/composition/principles.md](../../../shared/composition/principles.md), which also
 holds their sources. Run its audit (`shared/composition/audit.mjs`, a steps script for the
-input driver) at the largest and smallest size, with `UH_SECTIONS` naming the sections
+input driver) at the largest and smallest size, with `--sections` naming the sections
 from your inventory, and look at the blurred screenshot before the numbers.
 
 **The whole screen**
