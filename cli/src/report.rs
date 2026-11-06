@@ -74,7 +74,7 @@ impl Report {
     }
 
     /// A child's report arrives only as data, so the readable report is written here, in
-    /// the review skill's template.
+    /// the review method's template.
     pub fn to_markdown(&self) -> String {
         let mut text = format!("## Verdict\n\n{}\n\n## Findings\n", self.verdict.trim_end());
         if self.findings.is_empty() {

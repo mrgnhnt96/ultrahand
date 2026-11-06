@@ -102,7 +102,7 @@ impl Fixture {
         let base = fs::canonicalize(dir.path()).unwrap().join(name);
         let root = base.join("plugin");
         for (file, text) in [
-            ("skills/review/SKILL.md", "skill"),
+            ("skills/review/references/method.md", "method"),
             ("skills/review/references/checklist.md", "checklist"),
             ("shared/input/README.md", "input"),
             ("shared/input/drive.mjs", FAKE_DRIVE),

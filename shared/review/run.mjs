@@ -6,7 +6,7 @@
 //
 // The reviewer starts lean: none of the user's settings, CLAUDE.md, hooks, plugins, skills
 // or MCP servers. It's locked: it can read, and Bash runs only the input driver, so it can't
-// edit anything, and it gets only the environment it needs. Its system prompt is the review skill,
+// edit anything, and it gets only the environment it needs. Its system prompt is the review method,
 // its checklist and the drive.mjs reference, the same bytes on every run, so a review that
 // starts within five minutes of the last one reads that prefix from the prompt cache. The
 // brief goes last, as the message.
@@ -68,7 +68,7 @@ export function allowedTools(root = ROOT) {
 // The files every review reads, in this order. They make up the cached prefix, so keep
 // the list stable: adding or reordering one changes every review's prefix once.
 export const PREFIX_FILES = [
-  'skills/review/SKILL.md',
+  'skills/review/references/method.md',
   'skills/review/references/checklist.md',
   'shared/input/README.md',
 ];
@@ -80,8 +80,8 @@ export function systemPrompt(root = ROOT) {
     '# ultrahand reviewer',
     '',
     'You are a UX reviewer running on your own, with no conversation before this one. The',
-    'ultrahand review skill, its checklist and the drive.mjs reference are below: follow',
-    'the skill. Where it links another file, the link is relative to the file it appears',
+    'ultrahand review method, its checklist and the drive.mjs reference are below: follow',
+    'the method. Where it links another file, the link is relative to the file it appears',
     `in, under the plugin root ${root}; read it there when you need it. The user's message`,
     'is the brief for this review. Answer with the report only.',
     '',
