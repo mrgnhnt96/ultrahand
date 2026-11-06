@@ -2,9 +2,11 @@
 import assert from 'node:assert/strict';
 import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { test } from 'node:test';
-import { claudeArgs, defaultOut, main, summarise, systemPrompt } from './run.mjs';
+import {
+  allowedTools, childEnv, claudeArgs, defaultOut, driveCommand, main, summarise, systemPrompt,
+} from './run.mjs';
 
 test('the system prompt is the same bytes every time and has no unfilled plugin root', () => {
   const a = systemPrompt();
@@ -27,6 +29,43 @@ test('the reviewer starts lean, with only review tools', () => {
   assert.equal(flag('--model'), 'sonnet');
   assert.equal(flag('--effort'), 'medium');
   assert.ok(args.includes('/p'));
+});
+
+test('the reviewer is locked to reading and the input driver', () => {
+  const args = claudeArgs({ system: '/s.md', model: 'opus', root: '/plugin' });
+  const flag = (f) => args[args.indexOf(f) + 1];
+  assert.equal(flag('--allowedTools'), 'Read,Glob,Grep,Bash(node /plugin/shared/input/drive.mjs *)');
+  const denied = args.indexOf('--disallowedTools');
+  assert.deepEqual(args.slice(denied + 1, denied + 3), ['Bash(* --chrome *)', 'Bash(* --chrome=*)']);
+  assert.equal(args[denied + 3], '--permission-mode');
+  for (const tool of ['Write', 'Edit', 'NotebookEdit']) {
+    assert.ok(!flag('--tools').includes(tool), tool);
+    assert.ok(!flag('--allowedTools').includes(tool), tool);
+  }
+});
+
+test('a plugin path with a space is quoted in the rule and the command alike', () => {
+  assert.equal(driveCommand('/my plugin'), 'node "/my plugin/shared/input/drive.mjs"');
+  assert.equal(allowedTools('/my plugin'), 'Read,Glob,Grep,Bash(node "/my plugin/shared/input/drive.mjs" *)');
+});
+
+test('the system prompt tells the reviewer what is locked', () => {
+  const text = systemPrompt();
+  assert.ok(text.includes(`\`${driveCommand()} <args>\``));
+  assert.match(text, /Not checked/);
+  assert.match(text, /--sections/);
+});
+
+test('the child keeps auth, proxy and locale variables and drops the session', () => {
+  const env = childEnv({
+    HOME: '/h', PATH: '/usr/bin', LC_ALL: 'C', ANTHROPIC_API_KEY: 'k', HTTPS_PROXY: 'p', CHROME_PATH: '/c',
+    CLAUDECODE: '1', CLAUDE_CODE_SESSION_ID: 's', MIDNA_SESSION: 'm', UH_SECTIONS: 'x',
+  }, '/node/bin');
+  assert.deepEqual(Object.keys(env).sort(), [
+    'ANTHROPIC_API_KEY', 'CHROME_PATH', 'CLAUDE_CODE_PROMPT_CACHE_TTL', 'HOME', 'HTTPS_PROXY', 'LC_ALL', 'PATH',
+  ]);
+  assert.equal(env.PATH, `/node/bin${delimiter}/usr/bin`);
+  assert.equal(env.CLAUDE_CODE_PROMPT_CACHE_TTL, '5m');
 });
 
 test('the report path follows the brief', () => {

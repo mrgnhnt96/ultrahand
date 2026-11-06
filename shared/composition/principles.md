@@ -89,11 +89,11 @@ one JSON line of measures per section and saves a blurred screenshot:
 
 ```sh
 node shared/input/drive.mjs open page.html --size 1440x900
-UH_SECTIONS='header,main' node shared/input/drive.mjs do shared/composition/audit.mjs --out shots
+node shared/input/drive.mjs do shared/composition/audit.mjs --sections 'header,main' --out shots
 node shared/input/drive.mjs close
 ```
 
-`UH_SECTIONS` takes CSS selectors (searched in shadow roots too, so a canvas screen works);
+`--sections` takes CSS selectors (searched in shadow roots too, so a canvas screen works);
 without it the audit takes the page's top-level header, toolbar, nav, aside and main.
 
 | Measure | Read it against |

@@ -6,6 +6,7 @@
 //   node drive.mjs open <url> [--size 1280x800] [--zoom 200%] [--scheme dark] [--port 9333]
 //                           [--headed] [--chrome <path>]
 //   node drive.mjs do <steps.json | steps.mjs | '<json>' | -> [--port 9333] [--out <dir>]
+//                          [--sections <selectors>]
 //   node drive.mjs close [--port 9333]
 //   node drive.mjs run <url> <steps.json | steps.mjs | '<json>'> [--size 1280x800] [--out <dir>]
 //
@@ -1273,11 +1274,12 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const [cmd, a, b] = opts._;
   if (opts.help || !cmd) {
-    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 12).join('\n').replace(/^\/\/ ?/gm, ''));
+    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 13).join('\n').replace(/^\/\/ ?/gm, ''));
     return;
   }
   if (typeof WebSocket === 'undefined') fail('Needs Node 22 or later (built-in WebSocket)');
   const port = Number(opts.port || DEFAULT_PORT);
+  if (opts.sections) process.env.UH_SECTIONS = opts.sections;
   if (cmd === 'open') {
     if (!a) fail('open needs a url or file');
     console.log(JSON.stringify(await launch(a, opts)));
