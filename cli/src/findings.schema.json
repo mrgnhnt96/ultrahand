@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "findings", "what_works", "not_checked"],
+  "properties": {
+    "verdict": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "title", "element", "evidence", "problem", "principle", "fix"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^R[0-9]+$" },
+          "severity": { "type": "integer", "minimum": 1, "maximum": 4 },
+          "title": { "type": "string" },
+          "element": { "type": "string" },
+          "evidence": { "type": "string", "enum": ["Confirmed", "Likely"] },
+          "problem": { "type": "string" },
+          "principle": { "type": "string" },
+          "fix": { "type": "string" }
+        }
+      }
+    },
+    "what_works": { "type": "array", "items": { "type": "string" } },
+    "not_checked": { "type": "array", "items": { "type": "string" } }
+  }
+}
