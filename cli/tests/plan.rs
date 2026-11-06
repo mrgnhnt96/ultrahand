@@ -115,7 +115,8 @@ seen="$dir/seen/$unit"
 mkdir -p "$seen"
 printf '%s' "$input" > "$seen/stdin"
 printf '%s\n' "$@" > "$seen/args"
-pwd > "$seen/cwd"
+here=$(pwd)
+echo "$here" > "$seen/cwd"
 ls > "$seen/files"
 cat captures.txt > "$seen/index"
 for file in *.png; do [ -e "$file" ] && cp "$file" "$seen/"; done
