@@ -6,27 +6,27 @@ use serde_json::Value;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Report {
-    verdict: String,
-    findings: Vec<Finding>,
-    what_works: Vec<String>,
-    not_checked: Vec<String>,
+    pub verdict: String,
+    pub findings: Vec<Finding>,
+    pub what_works: Vec<String>,
+    pub not_checked: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Finding {
-    id: String,
-    severity: u8,
-    title: String,
-    element: String,
-    evidence: Evidence,
-    problem: String,
-    principle: String,
-    fix: String,
+pub struct Finding {
+    pub id: String,
+    pub severity: u8,
+    pub title: String,
+    pub element: String,
+    pub evidence: Evidence,
+    pub problem: String,
+    pub principle: String,
+    pub fix: String,
 }
 
 #[derive(Serialize, Deserialize)]
-enum Evidence {
+pub enum Evidence {
     Confirmed,
     Likely,
 }
@@ -40,7 +40,7 @@ impl Evidence {
     }
 }
 
-fn severity_label(severity: u8) -> &'static str {
+pub fn severity_label(severity: u8) -> &'static str {
     match severity {
         4 => "4 Catastrophe",
         3 => "3 Major",
@@ -81,7 +81,7 @@ impl Report {
             text.push_str("\nNone.\n");
         }
         for finding in &self.findings {
-            finding.write_markdown(&mut text);
+            finding.write_markdown(&mut text, None);
         }
         write_list(&mut text, "What works", &self.what_works);
         write_list(&mut text, "Not checked", &self.not_checked);
@@ -90,16 +90,30 @@ impl Report {
 }
 
 impl Finding {
-    fn write_markdown(&self, text: &mut String) {
+    /// Every text a child wrote that can mention another finding.
+    pub fn rewrite_text(&mut self, rewrite: impl Fn(&str) -> String) {
+        for text in [
+            &mut self.title,
+            &mut self.element,
+            &mut self.problem,
+            &mut self.principle,
+            &mut self.fix,
+        ] {
+            *text = rewrite(text);
+        }
+    }
+
+    pub fn write_markdown(&self, text: &mut String, unit: Option<&str>) {
         let heading = format!(
             "{} · {} · {}",
             self.id,
             severity_label(self.severity),
             self.title
         );
+        let unit = unit.map_or(String::new(), |name| format!("- **Unit:** {name}\n"));
         let _ = write!(
             text,
-            "\n### {heading}\n- **Element:** {}\n- **Evidence:** {}\n- **Problem:** {}\n- **Principle:** {}\n- **Fix:** {}\n",
+            "\n### {heading}\n{unit}- **Element:** {}\n- **Evidence:** {}\n- **Problem:** {}\n- **Principle:** {}\n- **Fix:** {}\n",
             self.element,
             self.evidence.label(),
             self.problem,
@@ -109,7 +123,7 @@ impl Finding {
     }
 }
 
-fn write_list(text: &mut String, heading: &str, items: &[String]) {
+pub fn write_list(text: &mut String, heading: &str, items: &[String]) {
     let _ = write!(text, "\n## {heading}\n\n");
     if items.is_empty() {
         text.push_str("None.\n");

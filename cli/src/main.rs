@@ -1,8 +1,14 @@
 mod child;
+mod fanout;
 mod launch;
+mod merge;
+mod plan;
+mod profile;
 mod prompt;
 mod report;
 mod review;
+mod slots;
+mod stage;
 mod stream;
 
 use std::process::ExitCode;
@@ -24,7 +30,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Run one review as its own locked-down `claude -p` session
+    /// Run a review as locked-down `claude -p` sessions: one for a brief, one per unit of a plan
     Review(review::ReviewArgs),
 }
 

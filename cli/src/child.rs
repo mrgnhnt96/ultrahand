@@ -30,6 +30,10 @@ pub fn watch_signals() {
     }
 }
 
+pub fn interrupted() -> bool {
+    INTERRUPTED.load(Ordering::SeqCst)
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Stop {
     TimedOut,
@@ -136,7 +140,7 @@ fn watch(
         } else {
             thread::sleep(TICK);
         }
-        if INTERRUPTED.load(Ordering::SeqCst) {
+        if interrupted() {
             return Watched::Stopped(Stop::Interrupted);
         }
         if Instant::now() >= deadline {

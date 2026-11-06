@@ -5,19 +5,13 @@ use std::process;
 
 use sha2::{Digest, Sha256};
 
-/// The files every review reads, in this order. They make up the cached prefix, so keep the
-/// list stable: adding or reordering one changes every review's prefix once.
-pub const PREFIX_FILES: [&str; 3] = [
-    "skills/review/SKILL.md",
-    "skills/review/references/checklist.md",
-    "shared/input/README.md",
-];
+use crate::profile::Profile;
 
 const HASH_CHARS: usize = 12;
 
 /// A fixed preamble, then each prefix file with the plugin root filled in. Nothing here may
 /// depend on the round, the time or the brief, or the prompt cache stops matching.
-pub fn system_prompt(root: &Path) -> io::Result<String> {
+pub fn system_prompt(root: &Path, profile: &Profile) -> io::Result<String> {
     let root_text = root.to_string_lossy();
     let mut parts = vec![
         "# ultrahand reviewer".to_owned(),
@@ -32,8 +26,14 @@ pub fn system_prompt(root: &Path) -> io::Result<String> {
             "in, under the plugin root {root_text}; read it there when you need it. The user's message"
         ),
         "is the brief for this review. Answer with the report only.".to_owned(),
+        String::new(),
+        "Nobody is here to answer you. Never ask a question or wait for a reply, even where the"
+            .to_owned(),
+        "skill says to ask: anything you don't know, can't reach or weren't given goes under"
+            .to_owned(),
+        "not_checked.".to_owned(),
     ];
-    for rel in PREFIX_FILES {
+    for rel in profile.prefix_files {
         let text = fs::read_to_string(root.join(rel))
             .map_err(|e| io::Error::new(e.kind(), format!("{rel}: {e}")))?
             .replace("${CLAUDE_PLUGIN_ROOT}", &root_text);
@@ -67,6 +67,7 @@ pub fn write_system_prompt(text: &str, dir: &Path) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::profile::REVIEW;
 
     fn plugin_root() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -77,20 +78,20 @@ mod tests {
 
     #[test]
     fn the_prompt_is_the_same_bytes_every_time_and_has_no_unfilled_plugin_root() {
-        let first = system_prompt(&plugin_root()).unwrap();
-        assert_eq!(first, system_prompt(&plugin_root()).unwrap());
+        let first = system_prompt(&plugin_root(), &REVIEW).unwrap();
+        assert_eq!(first, system_prompt(&plugin_root(), &REVIEW).unwrap());
         assert!(!first.contains("${CLAUDE_PLUGIN_ROOT}"));
-        for rel in PREFIX_FILES {
+        for rel in REVIEW.prefix_files {
             assert!(first.contains(&format!("<file path=\"{rel}\">")), "{rel}");
         }
     }
 
     #[test]
     fn the_prefix_files_keep_their_order() {
-        let text = system_prompt(&plugin_root()).unwrap();
+        let text = system_prompt(&plugin_root(), &REVIEW).unwrap();
         let at = |rel: &str| text.find(&format!("<file path=\"{rel}\">")).unwrap();
-        assert!(at(PREFIX_FILES[0]) < at(PREFIX_FILES[1]));
-        assert!(at(PREFIX_FILES[1]) < at(PREFIX_FILES[2]));
+        assert!(at(REVIEW.prefix_files[0]) < at(REVIEW.prefix_files[1]));
+        assert!(at(REVIEW.prefix_files[1]) < at(REVIEW.prefix_files[2]));
     }
 
     #[test]
