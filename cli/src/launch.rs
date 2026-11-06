@@ -24,8 +24,6 @@ const DENIED: [&str; 2] = ["Bash(* --chrome *)", "Bash(* --chrome=*)"];
 const SETTINGS: &str =
     r#"{"autoMemoryEnabled":false,"includeGitInstructions":false,"autoCompactWindow":200000}"#;
 
-const FINDINGS_SCHEMA: &str = include_str!("findings.schema.json");
-
 const ALWAYS_KEPT: [&str; 7] = ["HOME", "USER", "LOGNAME", "PATH", "TMPDIR", "LANG", "SHELL"];
 const AUTH_KEPT: [&str; 5] = [
     "ANTHROPIC_API_KEY",
@@ -51,6 +49,7 @@ const CACHE_TTL: (&str, &str) = ("CLAUDE_CODE_PROMPT_CACHE_TTL", "5m");
 
 pub struct Options<'a> {
     pub system: &'a Path,
+    pub schema: &'a str,
     pub model: &'a str,
     pub effort: &'a str,
     pub add_dirs: &'a [PathBuf],
@@ -92,7 +91,7 @@ pub fn claude_args(options: &Options) -> Vec<OsString> {
         &mut args,
         &[
             ("--settings", SETTINGS.as_ref()),
-            ("--json-schema", FINDINGS_SCHEMA.as_ref()),
+            ("--json-schema", options.schema.as_ref()),
             ("--add-dir", options.root.as_os_str()),
         ],
     );
@@ -131,6 +130,7 @@ mod tests {
     fn args(root: &str) -> Vec<String> {
         let options = Options {
             system: Path::new("/s.md"),
+            schema: crate::profile::REVIEW.schema,
             model: "sonnet",
             effort: "medium",
             add_dirs: &[PathBuf::from("/p")],
@@ -211,6 +211,7 @@ mod tests {
     fn no_effort_means_no_effort_flag() {
         let options = Options {
             system: Path::new("/s.md"),
+            schema: crate::profile::REVIEW.schema,
             model: "opus",
             effort: "",
             add_dirs: &[],

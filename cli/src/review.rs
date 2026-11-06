@@ -10,7 +10,9 @@ use clap::Args;
 use serde::Serialize;
 
 use crate::child::{self, Ending, Finished, Launch, Stop};
+use crate::fanout;
 use crate::launch::{self, Options};
+use crate::profile::{self, Profile};
 use crate::prompt;
 use crate::report::Report;
 use crate::stream::{Summary, Tokens};
@@ -21,28 +23,43 @@ const DRIVE_CLOSE_LIMIT: Duration = Duration::from_secs(15);
 
 #[derive(Args)]
 pub struct ReviewArgs {
-    /// The brief, sent to the reviewer as its message
-    #[arg(long, value_name = "FILE")]
-    brief: PathBuf,
-    /// Writes <PATH>.md and <PATH>.json [default: the brief's path with "brief" swapped for "review"]
+    /// The brief, sent to one reviewer as its message
+    #[arg(long, value_name = "FILE", required_unless_present = "plan")]
+    brief: Option<PathBuf>,
+    /// A review plan: one reviewer per unit, merged into one report
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["brief", "cwd"])]
+    plan: Option<PathBuf>,
+    /// Run only this unit of the plan and merge it with the earlier results; repeat for more
+    #[arg(
+        long = "only",
+        value_name = "UNIT",
+        requires = "plan",
+        conflicts_with = "brief"
+    )]
+    pub only: Vec<String>,
+    /// Check the plan and print what would run, without starting or writing anything
+    #[arg(long, requires = "plan", conflicts_with = "brief")]
+    pub dry_run: bool,
+    /// With --brief, writes <PATH>.md and <PATH>.json [default: the brief's path with "brief"
+    /// swapped for "review"]. With --plan, the report folder [default: design/reviews/<plan name>]
     #[arg(long, value_name = "PATH")]
-    out: Option<PathBuf>,
+    pub out: Option<PathBuf>,
     /// The reviewer's working folder [default: the brief's folder]
     #[arg(long, value_name = "DIR")]
     cwd: Option<PathBuf>,
     /// A folder the reviewer may read; repeat for more
     #[arg(long = "add-dir", value_name = "DIR")]
-    add_dirs: Vec<PathBuf>,
+    pub add_dirs: Vec<PathBuf>,
     #[arg(long, default_value = "opus")]
-    model: String,
+    pub model: String,
     #[arg(long, default_value = "")]
-    effort: String,
-    /// Minutes before the reviewer and everything it started are stopped
+    pub effort: String,
+    /// Minutes before a reviewer and everything it started are stopped; time queued isn't counted
     #[arg(long, value_name = "MINUTES", default_value = "20", value_parser = minutes)]
-    timeout: f64,
+    pub timeout: f64,
     /// The ultrahand plugin folder [default: found from this binary's location]
     #[arg(long, value_name = "DIR")]
-    plugin_root: Option<PathBuf>,
+    pub plugin_root: Option<PathBuf>,
 }
 
 fn minutes(text: &str) -> Result<f64, String> {
@@ -56,20 +73,22 @@ fn minutes(text: &str) -> Result<f64, String> {
     Ok(value)
 }
 
-struct Job {
-    brief_path: PathBuf,
-    message: Vec<u8>,
-    out: PathBuf,
-    cwd: PathBuf,
-    add_dirs: Vec<PathBuf>,
-    model: String,
-    effort: String,
-    timeout_minutes: f64,
-    root: PathBuf,
-    port: u16,
+pub struct Job {
+    pub brief_path: PathBuf,
+    pub unit: Option<String>,
+    pub profile: &'static Profile,
+    pub message: Vec<u8>,
+    pub out: PathBuf,
+    pub cwd: PathBuf,
+    pub add_dirs: Vec<PathBuf>,
+    pub model: String,
+    pub effort: String,
+    pub timeout_minutes: f64,
+    pub root: PathBuf,
+    pub port: u16,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct TokenRecord {
     input: u64,
@@ -85,10 +104,12 @@ struct FirstTurnRecord {
     cache_read: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct Record {
+pub struct Record {
     brief: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    unit: Option<String>,
     model: String,
     effort: Option<String>,
     ok: bool,
@@ -104,10 +125,22 @@ struct Record {
     report: Option<Report>,
 }
 
-struct Done {
-    record: Record,
-    markdown: Option<String>,
+pub struct Done {
+    pub record: Record,
+    pub markdown: Option<String>,
     line: String,
+}
+
+impl Record {
+    pub fn not_started(brief: PathBuf, unit: String, model: String, reason: String) -> Self {
+        Record {
+            brief,
+            unit: Some(unit),
+            model,
+            error: Some(reason),
+            ..Record::default()
+        }
+    }
 }
 
 impl From<&Tokens> for TokenRecord {
@@ -124,12 +157,20 @@ impl From<&Tokens> for TokenRecord {
 /// Ok(true) when the review finished, Ok(false) when a child ran and failed, Err for bad
 /// usage, which is refused before anything starts.
 pub fn run(args: ReviewArgs) -> Result<bool, String> {
+    match args.plan.clone() {
+        Some(plan) => fanout::run(&plan, args),
+        None => run_brief(args),
+    }
+}
+
+fn run_brief(args: ReviewArgs) -> Result<bool, String> {
     let job = prepare(args)?;
-    let text = prompt::system_prompt(&job.root).map_err(|e| format!("plugin root: {e}"))?;
+    let text =
+        prompt::system_prompt(&job.root, job.profile).map_err(|e| format!("plugin root: {e}"))?;
     let system = prompt::write_system_prompt(&text, &env::temp_dir())
         .map_err(|e| format!("system prompt: {e}"))?;
-    let done = review(&job, &system);
-    let (ok, line) = match write_outputs(&job, &done.record, done.markdown.as_deref()) {
+    let done = review(&job, &system, || {});
+    let (ok, line) = match write_outputs(&job.out, &done.record, done.markdown.as_deref()) {
         Ok(()) => (done.record.ok, done.line),
         Err(error) => (
             false,
@@ -140,10 +181,14 @@ pub fn run(args: ReviewArgs) -> Result<bool, String> {
     Ok(ok)
 }
 
-fn with_suffix(base: &Path, suffix: &str) -> PathBuf {
+pub fn with_suffix(base: &Path, suffix: &str) -> PathBuf {
     let mut name = base.as_os_str().to_owned();
     name.push(suffix);
     PathBuf::from(name)
+}
+
+pub fn one_line(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 pub fn default_out(brief: &Path) -> PathBuf {
@@ -163,11 +208,11 @@ fn folder_of(path: &Path) -> &Path {
     }
 }
 
-fn absolute(path: &Path) -> Result<PathBuf, String> {
+pub fn absolute(path: &Path) -> Result<PathBuf, String> {
     path::absolute(path).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-fn existing_folder(path: &Path) -> Result<PathBuf, String> {
+pub fn existing_folder(path: &Path) -> Result<PathBuf, String> {
     if path.is_dir() {
         absolute(path)
     } else {
@@ -175,7 +220,7 @@ fn existing_folder(path: &Path) -> Result<PathBuf, String> {
     }
 }
 
-fn plugin_root(given: Option<&Path>) -> Result<PathBuf, String> {
+pub fn plugin_root(given: Option<&Path>) -> Result<PathBuf, String> {
     let found = match given {
         Some(root) => Some(root.to_path_buf()),
         None => env::current_exe().ok().and_then(|exe| {
@@ -190,16 +235,22 @@ fn plugin_root(given: Option<&Path>) -> Result<PathBuf, String> {
     fs::canonicalize(&root).map_err(|e| format!("{}: {e}", root.display()))
 }
 
-fn free_port() -> Result<u16, String> {
-    TcpListener::bind(("127.0.0.1", 0))
-        .and_then(|listener| listener.local_addr())
-        .map(|address| address.port())
+/// Every listener stays open until all the ports are known, so no two children get one port.
+pub fn free_ports(count: usize) -> Result<Vec<u16>, String> {
+    let listeners = (0..count)
+        .map(|_| TcpListener::bind(("127.0.0.1", 0)))
+        .collect::<io::Result<Vec<_>>>()
+        .map_err(|e| format!("no free port for the browser: {e}"))?;
+    listeners
+        .iter()
+        .map(|listener| listener.local_addr().map(|address| address.port()))
+        .collect::<io::Result<Vec<_>>>()
         .map_err(|e| format!("no free port for the browser: {e}"))
 }
 
 /// The prefix has to match across children, so what differs per child goes in the message.
 /// The shell lock only passes the literal form, and the plugin's own docs show others.
-fn browser_note(root: &Path, port: u16) -> String {
+pub fn browser_note(root: &Path, port: u16) -> String {
     let drive = launch::drive_command(root);
     format!(
         "\n\nBrowser: this shell runs one command, written exactly like this, on its own, with \
@@ -211,19 +262,22 @@ fn browser_note(root: &Path, port: u16) -> String {
 }
 
 fn prepare(args: ReviewArgs) -> Result<Job, String> {
-    let brief = fs::read(&args.brief).map_err(|e| format!("{}: {e}", args.brief.display()))?;
-    let out = args.out.clone().unwrap_or_else(|| default_out(&args.brief));
+    let brief_path = args.brief.ok_or("--brief or --plan is required")?;
+    let brief = fs::read(&brief_path).map_err(|e| format!("{}: {e}", brief_path.display()))?;
+    let out = args.out.clone().unwrap_or_else(|| default_out(&brief_path));
     let out = absolute(&out)?;
-    let cwd = args.cwd.as_deref().unwrap_or(folder_of(&args.brief));
+    let cwd = args.cwd.as_deref().unwrap_or(folder_of(&brief_path));
     let cwd = existing_folder(cwd)?;
     let add_dirs: Result<Vec<_>, _> = args.add_dirs.iter().map(|d| existing_folder(d)).collect();
     let root = plugin_root(args.plugin_root.as_deref())?;
     fs::create_dir_all(folder_of(&out)).map_err(|e| format!("{}: {e}", out.display()))?;
-    let port = free_port()?;
+    let port = free_ports(1)?[0];
     let mut message = brief;
     message.extend_from_slice(browser_note(&root, port).as_bytes());
     Ok(Job {
-        brief_path: absolute(&args.brief)?,
+        brief_path: absolute(&brief_path)?,
+        unit: None,
+        profile: &profile::REVIEW,
         message,
         out,
         cwd,
@@ -242,10 +296,12 @@ fn claude_program() -> OsString {
         .unwrap_or("claude".into())
 }
 
-fn review(job: &Job, system: &Path) -> Done {
+/// `on_first_reply` runs once, when the child's first assistant event arrives.
+pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
     let program = claude_program();
     let args = launch::claude_args(&Options {
         system,
+        schema: job.profile.schema,
         model: &job.model,
         effort: &job.effort,
         add_dirs: &job.add_dirs,
@@ -254,6 +310,7 @@ fn review(job: &Job, system: &Path) -> Done {
     let child_env = launch::child_env(env::vars_os());
     let started = Instant::now();
     let mut summary = Summary::default();
+    let mut on_first_reply = Some(on_first_reply);
     let finished = child::run(
         Launch {
             program: &program,
@@ -265,6 +322,11 @@ fn review(job: &Job, system: &Path) -> Done {
         },
         |line| {
             summary.feed(line);
+            if summary.first_turn.is_some()
+                && let Some(notify) = on_first_reply.take()
+            {
+                notify();
+            }
             (summary.compactions >= STOP_AT_COMPACTIONS).then_some(Stop::CompactedTwice)
         },
     );
@@ -284,6 +346,7 @@ fn review(job: &Job, system: &Path) -> Done {
     });
     let record = Record {
         brief: job.brief_path.clone(),
+        unit: job.unit.clone(),
         model: job.model.clone(),
         effort: (!job.effort.is_empty()).then(|| job.effort.clone()),
         ok: error.is_none(),
@@ -334,7 +397,7 @@ fn outcome(
 ) -> (Option<Report>, Option<String>) {
     match failure(job, program, finished, summary) {
         Some(error) => (None, Some(error)),
-        None => match summary.structured.as_ref().map(Report::parse) {
+        None => match summary.structured.as_ref().map(job.profile.parse) {
             None => (
                 None,
                 Some("the result holds no structured findings".to_owned()),
@@ -396,14 +459,20 @@ fn failure(
     })
 }
 
-fn write_outputs(job: &Job, record: &Record, markdown: Option<&str>) -> io::Result<()> {
-    let report_path = with_suffix(&job.out, ".md");
+pub fn write_outputs(out: &Path, record: &Record, markdown: Option<&str>) -> io::Result<()> {
+    let report_path = with_suffix(out, ".md");
     match markdown {
         Some(text) => fs::write(&report_path, text.trim_end().to_owned() + "\n")?,
         None => remove_stale(&report_path)?,
     }
     let json = serde_json::to_string_pretty(record)?;
-    fs::write(with_suffix(&job.out, ".json"), json + "\n")
+    fs::write(with_suffix(out, ".json"), json + "\n")
+}
+
+/// A result left by an earlier run must not pass for this one's if this one dies.
+pub fn remove_results(out: &Path) -> io::Result<()> {
+    remove_stale(&with_suffix(out, ".md"))?;
+    remove_stale(&with_suffix(out, ".json"))
 }
 
 fn remove_stale(path: &Path) -> io::Result<()> {
@@ -424,7 +493,7 @@ fn compaction_mark(compactions: u64) -> String {
 fn summary_line(out: &Path, record: &Record) -> String {
     let compacted = compaction_mark(record.compactions);
     if let Some(error) = &record.error {
-        let error = error.split_whitespace().collect::<Vec<_>>().join(" ");
+        let error = one_line(error);
         let json = with_suffix(out, ".json");
         return format!("review failed: {error} ({}){compacted}", json.display());
     }
