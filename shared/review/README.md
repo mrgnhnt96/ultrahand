@@ -47,7 +47,7 @@ as its own headless Claude session, which has never seen this conversation, so i
 share your blind spots. Write the brief (below), then run:
 
 ```sh
-node "${CLAUDE_PLUGIN_ROOT}/shared/review/run.mjs" --brief rounds/<n>/brief-<k>.md \
+node "${CLAUDE_PLUGIN_ROOT}/shared/review/launch.mjs" --data "${CLAUDE_PLUGIN_DATA}" review --brief rounds/<n>/brief-<k>.md \
   --add-dir <project root>
 ```
 
