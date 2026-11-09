@@ -110,6 +110,12 @@ Checks.
   adapts to every preset.
 - Make the main flow clickable: tabs switch, rows push, and sheets open and close. Draw
   sheets and dialogs in the screen; never use `alert`, `confirm` or `prompt`.
+- **Overlays stay inside the screen when it resizes:** the frame can be resized while a
+  sheet is open, so cap a sheet's height with a percentage (`max-height`), never only a
+  fixed px. A height or `min-height` set from script, such as one kept so the sheet doesn't
+  jump between views, is capped too: `min(<n>px, <the max-height>)`. `min-height` beats
+  `max-height`, so a bare px floor pushes the sheet off the top, its body stops scrolling,
+  and the wheel pans the canvas instead [CSS-MINMAX].
 
 ## 5. Design every preset
 
@@ -159,6 +165,9 @@ at the largest and smallest size, or check by eye):
 - [ ] Every sheet has a visible Close or Cancel button and a clear detent, and sheets never
       stack. Opening one moves focus into it, Esc closes it, and focus returns to the opener
       [NNG-SHEET].
+- [ ] With a sheet open, in each of its views, shrinking the frame keeps the sheet below the
+      status bar and its body scrolls; no px height or `min-height` outgrows the screen
+      [CSS-MINMAX].
 - [ ] The selected tab is marked by more than colour, such as an indicator pill or weight
       [WCAG-1.4] [M3-NAVBAR], and removing something offers a tappable Undo.
 - [ ] Every field has a label above it (not a placeholder), the right keyboard and

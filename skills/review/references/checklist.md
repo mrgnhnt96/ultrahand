@@ -352,6 +352,11 @@ queries. From a screenshot, say which sizes you couldn't see.
       or the `keyboard-up` extra check, or list it under Not checked.
 - [ ] **Short heights** (compact height under 480, landscape phone): sticky headers and
       footers leave room for content.
+- [ ] **Resize with an overlay open:** open each sheet, dialog and popover, step through its
+      views, then shrink the frame. It stays inside the screen, below the top inset, and its
+      body still scrolls. Look for a height or `min-height` in px set from script: it beats
+      `max-height`, so the overlay runs off the screen and the wheel scrolls the page behind
+      instead [mobile:CSS-MINMAX] [WCAG 1.4.10].
 - [ ] **Short height × 200% text together:** the sticky header plus footer stay well under
       the screen height. Overflow detectors miss content covered by sticky layers, so
       look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].

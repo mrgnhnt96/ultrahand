@@ -37,6 +37,7 @@ Platform guidelines are living documents; they were checked in November 2026.
 | WCAG-2.5.8 | W3C, WCAG 2.2 SC 2.5.8 Target Size (Minimum) (AA), 24 × 24 CSS px. https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html |
 | WCAG-3.3 | W3C, WCAG 2.2 SC 3.3.1 Error Identification, 3.3.3 Error Suggestion, 3.3.7 Redundant Entry, 3.3.8 Accessible Authentication (Minimum). https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html |
 | WCAG-4.1.3 | W3C, WCAG 2.2 SC 4.1.3 Status Messages (AA). https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html |
+| CSS-MINMAX | W3C, *CSS Box Sizing Module Level 3*, §5.2 Min and max sizes: when `min-height` is larger than `max-height`, `min-height` wins. https://www.w3.org/TR/css-sizing-3/#min-size-properties |
 
 ## Research
 

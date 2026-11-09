@@ -31,6 +31,7 @@ every release and stops when a case passes fewer than 2 of its 3 runs.
 | `review-launches-cli` | smoke | A review request becomes a written plan and a launcher dry run, and the session never reads the checklist or the method itself. |
 | `lessons-compacted` | quality | Over-limit LESSONS.md and THEME.md are compacted: superseded and closed items archived, overlapping lessons merged, a theme value promoted, the old changelog moved out, and no rule lost. |
 | `theme-extract` | quality | Extraction from drifting CSS keeps the brand, snaps to the grid, passes `check.mjs` and records its decisions. |
+| `sheet-fits-screen` | quality | A bottom sheet that keeps its height between views caps that height at the screen, so it still fits, and its list still scrolls, after the frame gets shorter. |
 | `theme-review-drift` | quality | A theme review finds a raw colour, off-grid spacing and a rebuilt button, and fixes them with the existing theme. |
 
 ## Adding a case

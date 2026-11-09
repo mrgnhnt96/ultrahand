@@ -1,0 +1,20 @@
+schema_version: "1.1"
+name: sheet-fits-screen
+description: A bottom sheet that keeps its height between views still fits the screen when the frame gets shorter after it opens
+tags: [quality, mobile]
+runs: 2
+execution:
+  prompt: >-
+    Design the purchase detail sheet for our iPhone budgeting app. Tapping a purchase
+    opens a bottom sheet with its line items (some orders have 15 or more), a toggle
+    between my items and all items, and a picker to move an item to another envelope.
+    The sheet shouldn't jump in height when it switches between the items and the picker.
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: nothing can be published, and no other Claude session or
+    agent can start here. Don't ask the user anything; assume sensible answers. Save the
+    finished canvas page as design/purchase-sheet.html in the workspace. Wherever you would
+    publish an artifact or start a review, don't: append one line to steps.log naming what
+    you would have run, then carry on as if it succeeded and reported nothing to fix.

@@ -41,6 +41,7 @@ Platform guidelines are living documents; they were checked in November 2026.
 | WCAG-2.4.11 | W3C, WCAG 2.2 SC 2.4.11 Focus Not Obscured (Minimum) (AA). https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html |
 | WCAG-2.5.7 | W3C, WCAG 2.2 SC 2.5.7 Dragging Movements (AA), single-pointer alternative to dragging. https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html |
 | WCAG-2.5.8 | W3C, WCAG 2.2 SC 2.5.8 Target Size (Minimum) (AA), 24 × 24 CSS px. https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html |
+| CSS-MINMAX | W3C, *CSS Box Sizing Module Level 3*, §5.2 Min and max sizes: when `min-height` is larger than `max-height`, `min-height` wins. https://www.w3.org/TR/css-sizing-3/#min-size-properties |
 
 ## Research
 

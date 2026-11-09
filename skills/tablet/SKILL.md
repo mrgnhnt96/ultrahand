@@ -178,6 +178,9 @@ at the largest and smallest size, or check by eye):
       hidden panes have more than one way back, and no detail pane is left empty.
 - [ ] Nothing stretches: buttons, fields, sheets, dialogs and images have max widths, and
       text has a readable line length.
+- [ ] Sheets, popovers and dialogs fit the window at every size: shrinking it while one is
+      open keeps it on screen with its body scrolling, and no px height or `min-height` set
+      from script outgrows the window (`min-height` beats `max-height`) [CSS-MINMAX].
 - [ ] Tap targets are at least 44 × 44 pt (iOS) or 48 × 48 dp (Android) and never below
       24 × 24, even with a pointer. Primary content sits in the centre and frequent
       controls are reachable from the side edges.
