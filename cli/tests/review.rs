@@ -307,6 +307,11 @@ fn the_child_keeps_only_the_listed_environment_and_a_five_minute_cache() {
     assert!(env.contains("ANTHROPIC_BASE_URL=http://kept.test"), "{env}");
     assert!(!env.contains("dropped"), "{env}");
     assert!(!env.contains("ULTRAHAND_CLAUDE"), "{env}");
+    let folder = format!(
+        "ULTRAHAND_DRIVE_FOLDER={}",
+        f.brief.parent().unwrap().display()
+    );
+    assert!(env.lines().any(|line| line == folder), "{env}");
 }
 
 #[test]

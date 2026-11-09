@@ -266,7 +266,7 @@ fn unit_message(
         unit.users,
         unit.primary_task,
         unit.scope,
-        review::browser_note(root, port),
+        review::browser_note(root, port, &staged.path),
     );
     text.into_bytes()
 }

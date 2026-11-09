@@ -1,9 +1,9 @@
 // node --test shared/input/drive.test.mjs   (needs Chrome; skips without it)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -103,4 +103,48 @@ test('--sections reaches a steps script', (t) => {
   if (/Chrome not found/.test(run.stderr)) return t.skip('no Chrome');
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(run.stdout.trim().split('\n').pop()).value, 'header,main');
+});
+
+function locked(folder, ...args) {
+  return spawnSync(process.execPath, [DRIVE, ...args], {
+    encoding: 'utf8', timeout: 20_000, env: { ...process.env, ULTRAHAND_DRIVE_FOLDER: folder },
+  });
+}
+
+test('a locked run refuses an --out outside its folder before any browser starts', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'uh-lock-'));
+  const outside = mkdtempSync(join(tmpdir(), 'uh-outside-'));
+  for (const out of [outside, join(folder, '..', basename(outside)), join(outside, 'new', 'deeper')]) {
+    const run = locked(folder, 'do', '[{"shot":"x"}]', '--port', '9399', '--out', out);
+    assert.equal(run.status, 1, out);
+    assert.match(run.stderr, /--out must be inside/, out);
+  }
+  symlinkSync(outside, join(folder, 'link'));
+  const linked = locked(folder, 'do', '[{"shot":"x"}]', '--port', '9399', '--out', join(folder, 'link', 'shots'));
+  assert.match(linked.stderr, /--out must be inside/, 'a link out of the folder is followed');
+  assert.deepEqual(readdirSync(outside), []);
+});
+
+test('a locked run lets an --out inside its folder through to the browser', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'uh-lock-'));
+  const run = locked(folder, 'do', '[{"shot":"x"}]', '--port', '9398', '--out', join(folder, 'shots'));
+  assert.doesNotMatch(run.stderr, /--out must be inside/);
+  assert.match(run.stderr, /No browser on port 9398/);
+});
+
+test('a locked run refuses any steps script but the composition audit', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'uh-lock-'));
+  const canary = join(folder, 'canary.txt');
+  const script = join(folder, 'steps.mjs');
+  writeFileSync(script, `import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(canary)}, 'ran');\nexport default [];\n`);
+  for (const cmd of [['do', script], ['run', 'about:blank', script]]) {
+    const run = locked(folder, ...cmd, '--port', '9397');
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /only steps script it runs is/);
+  }
+  assert.equal(existsSync(canary), false, 'the script never ran');
+  const audit = fileURLToPath(new URL('../composition/audit.mjs', import.meta.url));
+  const allowed = locked(folder, 'do', audit, '--port', '9397');
+  assert.doesNotMatch(allowed.stderr, /only steps script/);
+  assert.match(allowed.stderr, /No browser on port 9397/);
 });

@@ -251,14 +251,17 @@ pub fn free_ports(count: usize) -> Result<Vec<u16>, String> {
 
 /// The prefix has to match across children, so what differs per child goes in the message.
 /// The shell lock only passes the literal form, and the plugin's own docs show others.
-pub fn browser_note(root: &Path, port: u16) -> String {
+pub fn browser_note(root: &Path, port: u16, folder: &Path) -> String {
     let drive = launch::drive_command(root);
+    let folder = folder.display();
+    let audit = root.join("shared/composition/audit.mjs");
+    let audit = audit.display();
     format!(
         "\n\nBrowser: this shell runs one command, written exactly like this, on its own, with \
          steps inline as JSON:\n\n{drive} <open|do> ... --port {port}\n\nAnything else is denied: \
          a relative path, a variable, an environment prefix, a pipe, a redirect, a heredoc, \
-         a second command, or a --chrome flag. Always pass --port {port}. The browser is closed \
-         for you when you finish.\n"
+         a second command, or a --chrome flag. Always pass --port {port}. An --out folder has to \
+         be inside {folder}, and the one steps script it runs is {audit}. The browser is closed for you when you finish.\n"
     )
 }
 
@@ -274,7 +277,7 @@ fn prepare(args: ReviewArgs) -> Result<Job, String> {
     fs::create_dir_all(folder_of(&out)).map_err(|e| format!("{}: {e}", out.display()))?;
     let port = free_ports(1)?[0];
     let mut message = brief;
-    message.extend_from_slice(browser_note(&root, port).as_bytes());
+    message.extend_from_slice(browser_note(&root, port, &cwd).as_bytes());
     Ok(Job {
         brief_path: absolute(&brief_path)?,
         unit: None,
@@ -308,7 +311,7 @@ pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
         add_dirs: &job.add_dirs,
         root: &job.root,
     });
-    let child_env = launch::child_env(env::vars_os());
+    let child_env = launch::reviewer_env(env::vars_os(), &job.cwd);
     let started = Instant::now();
     let mut summary = Summary::default();
     let mut on_first_reply = Some(on_first_reply);
@@ -552,13 +555,14 @@ mod tests {
 
     #[test]
     fn the_browser_note_names_the_exact_command_and_port() {
-        let note = browser_note(Path::new("/plugin"), 41234);
+        let note = browser_note(Path::new("/plugin"), 41234, Path::new("/unit"));
         assert!(note.contains("node /plugin/shared/input/drive.mjs <open|do> ... --port 41234"));
+        assert!(note.contains("inside /unit"));
     }
 
     #[test]
     fn a_plugin_path_with_a_space_is_quoted_in_the_note() {
-        let note = browser_note(Path::new("/my plugin"), 41234);
+        let note = browser_note(Path::new("/my plugin"), 41234, Path::new("/unit"));
         assert!(note.contains("node \"/my plugin/shared/input/drive.mjs\" <open|do>"));
     }
 }

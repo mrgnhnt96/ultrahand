@@ -46,6 +46,10 @@ const NETWORK_KEPT: [&str; 11] = [
     "SSL_CERT_DIR",
 ];
 const CACHE_TTL: (&str, &str) = ("CLAUDE_CODE_PROMPT_CACHE_TTL", "5m");
+/// drive.mjs reads it: under it, --out has to be inside this folder and the only steps
+/// script it runs is the composition audit. The child's shell only passes the driver, so the
+/// child can't change or drop it.
+const DRIVE_FOLDER: &str = "ULTRAHAND_DRIVE_FOLDER";
 
 pub struct Options<'a> {
     pub system: &'a Path,
@@ -120,6 +124,17 @@ pub fn child_env(parent: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsS
     };
     let mut env: Vec<_> = parent.filter(|(name, _)| kept(name)).collect();
     env.push((CACHE_TTL.0.into(), CACHE_TTL.1.into()));
+    env
+}
+
+/// A reviewer's environment: the child's, plus `folder` as the one place its browser driver
+/// may write.
+pub fn reviewer_env(
+    parent: impl Iterator<Item = (OsString, OsString)>,
+    folder: &Path,
+) -> Vec<(OsString, OsString)> {
+    let mut env = child_env(parent);
+    env.push((DRIVE_FOLDER.into(), folder.as_os_str().to_owned()));
     env
 }
 
@@ -231,8 +246,12 @@ mod tests {
             ("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", "3"),
             ("CLAUDE_CODE_AUTO_COMPACT_WINDOW", "150000"),
             ("UH_SECTIONS", "x"),
+            ("ULTRAHAND_DRIVE_FOLDER", "/"),
         ];
-        let env = child_env(parent.iter().map(|(k, v)| (k.into(), v.into())));
+        let env = reviewer_env(
+            parent.iter().map(|(k, v)| (k.into(), v.into())),
+            Path::new("/unit"),
+        );
         let names: Vec<_> = env.iter().map(|(k, _)| k.to_str().unwrap()).collect();
         assert_eq!(
             names,
@@ -240,8 +259,10 @@ mod tests {
                 "HOME",
                 "ANTHROPIC_API_KEY",
                 "https_proxy",
-                "CLAUDE_CODE_PROMPT_CACHE_TTL"
+                "CLAUDE_CODE_PROMPT_CACHE_TTL",
+                "ULTRAHAND_DRIVE_FOLDER"
             ]
         );
+        assert_eq!(env.last().unwrap().1, "/unit");
     }
 }

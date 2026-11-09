@@ -62,7 +62,10 @@ stops it: it has no Write or Edit, Bash runs only `drive.mjs` as one plain comma
 `--chrome` is denied. It gets only auth, proxy, locale and Chrome variables from your
 environment. A check that needs more, such as data-state fixtures, goes under *Not
 checked*. The lock stops edits, not reads: Read works outside the build folder, and the
-driver can open any address and save screenshots wherever `--out` says. Its system prompt
+driver can open any address. The driver writes only inside the reviewer's working folder
+(the brief's folder, or `--cwd`), so an `--out` anywhere else is refused, and the only
+steps script it runs is the composition audit: any other `.mjs` would run as plain Node.
+Its system prompt
 is the review method, the checklist and the drive.mjs reference, the same on every run, so
 a review that starts within five minutes of the last one reads them from the cache. Use
 `--model` and `--effort` only when the user asks for them; the default is Opus.

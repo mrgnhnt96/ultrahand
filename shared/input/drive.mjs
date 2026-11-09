@@ -13,12 +13,17 @@
 // See README.md for the step list and what each result reports.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
+// A locked review child's shell runs only this script, so it can't set or clear this
+// variable: the review CLI names the one folder the child may write in, and the only steps
+// script it may run is the composition audit (a script runs as Node, with no lock at all).
+const LOCK_FOLDER = 'ULTRAHAND_DRIVE_FOLDER';
+const AUDIT = fileURLToPath(new URL('../composition/audit.mjs', import.meta.url));
 const VERSION = 6;
 const MAC = process.platform === 'darwin';
 // Mod is the platform's command key: Cmd on macOS, Ctrl elsewhere.
@@ -67,6 +72,57 @@ const UNSHIFTED = Object.fromEntries(Object.entries(SHIFTED).map(([k, v]) => [v,
 function fail(msg) {
   console.error(`drive: ${msg}`);
   process.exit(1);
+}
+
+// The real path a file would get: a missing tail is joined to its nearest existing folder,
+// and a link anywhere on the way is followed (a dangling one throws).
+function realTarget(path) {
+  let head = resolve(path);
+  const tail = [];
+  for (;;) {
+    try {
+      lstatSync(head);
+      break;
+    } catch (err) {
+      if (err.code !== 'ENOENT' || dirname(head) === head) throw err;
+      tail.unshift(basename(head));
+      head = dirname(head);
+    }
+  }
+  return join(realpathSync(head), ...tail);
+}
+
+function lockedFolder() {
+  const folder = process.env[LOCK_FOLDER];
+  if (!folder) return null;
+  try {
+    return realpathSync(folder);
+  } catch {
+    fail(`${LOCK_FOLDER} names ${folder}, which isn't there`);
+  }
+}
+
+function checkOut(out) {
+  const folder = lockedFolder();
+  if (!folder || out === undefined) return;
+  let target;
+  try {
+    target = realTarget(out);
+  } catch (err) {
+    fail(`--out ${out}: ${err.message}`);
+  }
+  if (target !== folder && !target.startsWith(folder + sep)) fail(`--out must be inside ${folder} in a review run`);
+}
+
+function checkScript(file) {
+  if (!lockedFolder()) return;
+  let target;
+  try {
+    target = realpathSync(file);
+  } catch (err) {
+    fail(`${file}: ${err.message}`);
+  }
+  if (target !== realpathSync(AUDIT)) fail(`a review run takes steps as JSON; the only steps script it runs is ${AUDIT}`);
 }
 
 function parseArgs(argv) {
@@ -1190,6 +1246,7 @@ async function readSteps(arg) {
   if (!arg) fail('No steps given');
   if (/\.m?js$/.test(arg)) {
     if (!existsSync(arg)) fail(`No such file: ${arg}`);
+    checkScript(arg);
     const mod = await import(pathToFileURL(resolve(arg)).href);
     const steps = mod.default ?? mod.steps;
     if (typeof steps === 'function' || Array.isArray(steps)) return steps;
@@ -1280,6 +1337,7 @@ async function main() {
   if (typeof WebSocket === 'undefined') fail('Needs Node 22 or later (built-in WebSocket)');
   const port = Number(opts.port || DEFAULT_PORT);
   if (opts.sections) process.env.UH_SECTIONS = opts.sections;
+  checkOut(opts.out);
   if (cmd === 'open') {
     if (!a) fail('open needs a url or file');
     console.log(JSON.stringify(await launch(a, opts)));
