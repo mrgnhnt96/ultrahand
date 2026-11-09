@@ -15,13 +15,19 @@ The page gives the viewer:
   - Zoom: −, the current zoom, and + step through 10–400%; Fit; 100%. A step goes to the next stop at least 5% away, so Fit at 71% steps in to 100%, not 75%; past the last stop it goes to the limit. At either end the button stays focusable and reports `aria-disabled`. A zoom shortcut flashes the readout, and screen readers hear "Zoom 75%" once the zoom has settled for half a second (`#uh-zoom-live`). Fit leaves a 48px margin round the frame, so the grips stay inside the stage. Ctrl or ⌘ with the wheel, or a trackpad pinch, zooms at the pointer. Shortcuts: Ctrl or ⌘ `=` and `−`, Ctrl or ⌘ `0` for 100%, Ctrl or ⌘ Shift `1` for Fit. They act on the canvas only while the pointer is over the stage or focus is in it; elsewhere, such as in the toolbar, they are the browser's own page zoom.
   - Panning: the stage pans at least half its own size (or half the frame, if larger) past every edge of the frame. Scroll, hold Space and drag (also right after clicking a toolbar button, while the pointer is over the stage), or drag with the middle button. Esc during a pan puts the scroll back. Wheel scrolling over the screen scrolls the screen first. Fit, 100%, Rotate and a new preset recentre it.
   - Canvas colours: Auto / Light / Dark for the canvas's own colours, separate from the screen's Light / Dark. It is set rarely, so it sits in the `?` popover rather than the toolbar.
+- **Comments on the design.** Comment and its notes are one split pill in the toolbar: the left half (or the `C` key) turns on comment mode, and the right half, the note count, opens the Notes menu. In comment mode a click on the screen drops a numbered pin (each note keeps its number for good, so deleting one never renumbers the rest), a drag marks an area, and either opens a comment box (`Ctrl`/`⌘` `Enter`, `Esc` and a click elsewhere all keep what was typed; only Cancel discards it). A pin is anchored to the element under it, and an area is redrawn around the elements it covers, with the margin it was drawn with, so both follow the design through resizes, reflows and scrolling. Pins show only on the screen and state they were left on. A note left at another frame size has a hollow pin, and its comment box has a "View at 430×932" button that puts the frame back to that size. The Notes menu lists every note, grouped by screen with the current one first once they span more than one; the list scrolls between a fixed header and footer, so Send and Copy stay in reach however long it gets. Opening a note goes to its screen and state, a trash button on each row deletes it at once, with Undo in the panel, sent notes have a hollow number, `+` adds a note about the whole screen (the keyboard route), and Clear all (also undoable) sits in the header, away from the send buttons. The footer hands the notes to Claude:
+  - **Send to Claude** posts the unsent notes as one comment on the artifact and sends it to Claude, which gets it in the session watching the artifact. It shows only where the page was published with the `comments` capability and the viewer can send (an editor, with a Claude session watching). Notes are marked sent, so the next send carries only new ones. One comment holds 4 KB, about 10 notes.
+  - **Copy for Claude** copies them as text to paste into the chat. Where the frame blocks the clipboard, the text shows selected instead.
+
+  Each note says where it is in terms Claude can act on: the screen, state, frame size and preset, scheme and text size, the element under a pin (and the control it sits in) or the elements an area covers, a selector, and a position in screen px. Notes are kept in the viewer's browser, per artifact, so they survive a reload and a republish to the same link.
 - **Keyboard:** each segmented group in the toolbar is one tab stop, and the arrow keys move within it. Rotate only shows for phones and tablets. The `?` button at the end of the toolbar, or the `?` key anywhere outside a text field and the screen, opens a list of every shortcut (pan, zoom, zoom step, 100%, Fit, grip keys, Esc to cancel a drag or pan, the W and H fields, the button groups) and the Canvas colours; Esc closes it.
 - **Toolbar layout.** Three groups, in order of use: **Frame size** (the Size picker, W × H, the size classes), **Zoom**, and **Preview** (Go to, State, Rotate, Light / Dark, Text size, Tap targets), plus `?`. Every control is 32px tall with one label style, and the zoom readout is plain text.
   - From 1024px wide: two rows (89px). Frame size, Zoom and `?`, then Preview.
   - Below 1024px: one row (49px). Preview moves into a menu (a disclosure button: Esc or a click outside closes it). The button names whatever differs from the defaults ("Preview · Dark · Text 200% · Tap targets"). The size flag and the hit-target result hang just under the bar. While the menu is open, it shows a copy of the result beside the Tap targets toggle, so the result stays visible and the menu never moves.
   - Below 800px: the Size and W × H labels hide and the picker gives preset names only.
-  - Below 720px: the zoom controls fold behind a button that shows the zoom ("71%").
-  - Below 520px: Frame size folds behind a button that shows W × H, and the bar stays one 45px row down to 320px wide (a 1280px window at 400% page zoom).
+  - Below 720px: the zoom controls fold behind a button that shows the zoom ("71%"), and Comment becomes an icon.
+  - Below 520px: Frame size folds behind a button that shows W × H, the Comment / notes pill shrinks to an icon and the count, and the bar stays one 45px row down to 320px wide (a 1280px window at 400% page zoom).
+  - Below 400px: Notes moves into the Preview menu. The Comment icon stays in the bar, since it's used most.
 - **The screen itself.** It renders in a shadow root and stays fully interactive: buttons, multi-screen navigation with a back stack, form state, scroll position per screen.
 
 `canvas.html` is a working example as it stands (the "Trail log" demo), so you can open it directly to see every feature.
@@ -47,7 +53,7 @@ The page gives the viewer:
    ```
 
    `<plugin>` is the plugin's root folder: `${CLAUDE_PLUGIN_ROOT}` inside a skill. The build fails, with a list of problems, on a broken config. It warns about screen code that won't work in an artifact or that defeats the review toggles (see [Limits](#limits-inside-an-artifact)).
-5. **Publish.** Publish `index.html` as an artifact: `publish_files` with `as: "index.html"`, a title and an icon. For small follow-up changes, use `edit_version` against the published page. Rebuild and republish when the screen changes a lot.
+5. **Publish.** Publish `index.html` as an artifact: `publish_files` with `as: "index.html"`, a title and an icon, and the capabilities `{ "comments": {} }` so the viewer's notes can be sent to Claude. Without it, or where artifacts have no capabilities, the canvas works the same and offers Copy for Claude only. For small follow-up changes, use `edit_version` against the published page. Rebuild and republish when the screen changes a lot.
 
 `--head head.html` injects extra `<head>` content, such as a Google Fonts `<link>`. `--presets` also accepts a plain `.json` file.
 
@@ -176,7 +182,8 @@ Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`,
 | `setSize(w, h)`, `usePreset(id)`, `setScheme('light'\|'dark')`, `setTextScale(n)` | Drive the canvas, for example to open on the case under review. |
 | `setStatusBar('light'\|'dark'\|'hidden'\|'auto')` | The status-bar glyph colour over a full-bleed header. |
 | `toast(text, ms)` | Text-only feedback in place of `alert()`. It has no action, so build an Undo snackbar in the screen when one is needed. |
-| `refresh()` | Re-measure tap targets after a DOM change. |
+| `refresh()` | Re-measure tap targets and re-place comment pins after a DOM change. |
+| `notes`, `notesText()` | The viewer's notes as data, and as the text Copy for Claude gives. |
 
 Errors in setup or handlers show in a banner ("Canvas problem", or "Canvas problems (3)") in the page flow between the toolbar and the canvas, instead of failing silently. Dismiss collapses it to a "1 problem" button in the toolbar, which brings it back. A config that doesn't parse shows only the banner, since nothing else would be right.
 
@@ -201,6 +208,8 @@ The toolbar lives in the page document, outside the shadow root, so a review scr
 | `[data-edge]` | The frame's resize strips; the `e`, `s` and `divider` ones are focusable sliders. |
 | `#uh-theme` | The canvas's own colours, inside `#uh-keys`: `auto`, `light` or `dark`. |
 | `[data-scheme]`, `[data-text]` | The Light/Dark and Text 100%/200% toggles. Prefer `setScheme` and `setTextScale`. |
+| `#uh-comment`, `#uh-notes`, `#uh-composer` | Comment mode's toggle (`aria-pressed`), the layer over the screen that holds the pins (`.uh-pin`) and areas (`.uh-region`), and the comment box. |
+| `#uh-notes-btn`, `#uh-notes-pop` | The Notes menu: a header with the count, `#uh-note-screen` (a note about the whole screen) and `#uh-notes-clear`; `#uh-notes-undo` takes back the last delete or clear; the scrolling list `#uh-note-scroll`, with a delete button on each row; a footer with `#uh-notes-send` and `#uh-notes-copy`. |
 
 There is no on-screen keyboard. To check a keyboard-up layout, shrink the height with `setSize(width, height - 300)`, or use the platform's `keyboard-up` extra check where it has one.
 

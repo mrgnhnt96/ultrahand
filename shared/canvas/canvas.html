@@ -24,6 +24,8 @@
   --accent: #2b52d0;
   --accent-ink: #ffffff;
   --warn: #a8500c;
+  --danger: #c4362b;
+  --pin: #c2410c; --pin-ink: #c2410c;
   --dot: #c5cbd6;
   --bezel: #15171c;
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -33,13 +35,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a; --field-line: #6b7383;
-    --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
+    --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --danger: #ff8a7f; --pin-ink: #fb8c4c; --dot: #262b35; --bezel: #050608;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111318; --surface: #1a1d24; --ink: #e5e8ee; --muted: #98a0af; --line: #2b303a; --field-line: #6b7383;
-  --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --dot: #262b35; --bezel: #050608;
+  --accent: #7e99ff; --accent-ink: #0c1022; --warn: #f0a25a; --danger: #ff8a7f; --pin-ink: #fb8c4c; --dot: #262b35; --bezel: #050608;
   color-scheme: dark;
 }
 
@@ -117,6 +119,15 @@ button, input, select { font: inherit; color: inherit; }
 .uh-btn[aria-disabled="true"] { color: color-mix(in srgb, var(--ink) 40%, transparent); cursor: not-allowed; }
 .uh-btn[aria-disabled="true"]:hover { border-color: var(--line); }
 .uh-caret { font-size: 12px; color: var(--muted); }
+/* Comment and its notes are one split pill: the left half turns comment mode on and off,
+   the right half (the note count) opens the list. */
+.uh-split { display: flex; }
+.uh-split > #uh-comment { border-radius: 8px 0 0 8px; }
+.uh-split #uh-notes-btn { margin-left: -1px; padding: 0 8px; border-radius: 0 8px 8px 0; gap: 4px; }
+.uh-split .uh-btn:hover, .uh-split .uh-btn:focus-visible { position: relative; z-index: 1; }
+.uh-notes-icon { display: none; }
+/* Comment mode changes what every click does, so its button carries the pin colour. */
+#uh-comment[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--pin); }
 .uh-field select, .uh-dim input {
   height: 32px;
   padding: 0 8px;
@@ -443,6 +454,214 @@ body.uh-dragging .uh-host { pointer-events: none; }
 /* A config that doesn't parse leaves nothing to show but the problem. */
 body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-error-dismiss { display: none; }
 
+/* Notes. Comment mode lets the viewer pin a comment to a point (click) or an area (drag)
+   of the screen, so feedback names the spot instead of needing a screenshot. The layer
+   sits over the screen inside the zoomed frame, so pins follow the design; their size is
+   counter-scaled like the grips. One colour that reads over light and dark designs. */
+.uh-notes { position: absolute; left: 0; top: 0; z-index: 2; overflow: hidden; }
+body.uh-commenting .uh-notes { cursor: crosshair; touch-action: none; }
+body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes { pointer-events: none; }
+.uh-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: calc(26px / var(--s));
+  height: calc(26px / var(--s));
+  margin: calc(-26px / var(--s)) 0 0 0; /* the sharp corner is the point */
+  padding: 0;
+  border: calc(2px / var(--s)) solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--pin);
+  color: #fff;
+  font: 600 calc(12px / var(--s)) / 1 var(--font-ui);
+  box-shadow: 0 calc(1px / var(--s)) calc(4px / var(--s)) rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.12s;
+}
+/* At rest a pin lets the design show through, so the text under it stays readable. */
+.uh-pin:hover, .uh-pin:focus-visible, .uh-pin[data-active] { opacity: 1; }
+.uh-pin:focus-visible { outline: calc(2px / var(--s)) solid var(--accent); outline-offset: calc(2px / var(--s)); }
+/* A note left at another frame size: its spot may have moved, so the pin is hollow. */
+.uh-pin[data-elsewhere] { background: #fff; color: var(--pin); border: calc(2px / var(--s)) dashed var(--pin); }
+.uh-pin[data-active] { box-shadow: 0 0 0 calc(3px / var(--s)) color-mix(in srgb, var(--pin) 45%, transparent), 0 calc(1px / var(--s)) calc(4px / var(--s)) rgb(0 0 0 / 0.35); }
+.uh-region {
+  position: absolute;
+  border: calc(2px / var(--s)) dashed var(--pin);
+  border-radius: calc(4px / var(--s));
+  background: color-mix(in srgb, var(--pin) 12%, transparent);
+  pointer-events: none;
+}
+/* The element a pin is on, outlined while its comment box is open. */
+.uh-target { position: absolute; border: calc(1px / var(--s)) dashed var(--pin); border-radius: calc(3px / var(--s)); pointer-events: none; }
+.uh-comment-hint {
+  position: absolute; top: 100%; left: 50%; z-index: 1;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 3px 10px;
+  border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px;
+  background: var(--surface);
+  font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.uh-btn.uh-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.uh-btn.uh-primary:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.uh-btn:disabled { color: color-mix(in srgb, var(--ink) 40%, transparent); cursor: not-allowed; }
+.uh-btn.uh-primary:disabled { background: var(--quiet, var(--line)); border-color: var(--line); }
+.uh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.uh-grow { flex: 1; }
+/* The Notes panel: a fixed header and footer around a list that scrolls on its own, so
+   Send and Copy stay in reach however many notes there are. Notes group under their
+   screen (the current one first) once they span more than one. */
+.uh-notes-pop.uh-pop {
+  width: 340px; padding: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  max-height: min(560px, calc(100vh - 80px));
+  border-color: color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 18px 44px -10px rgb(0 0 0 / 0.4);
+  animation: uh-pop-in 0.14s ease-out;
+}
+.uh-notes-pop[hidden] { display: none; }
+.uh-notes-pop h2, .uh-composer h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.uh-notes-head { display: flex; align-items: center; gap: 12px; padding: 10px 8px 8px 14px; }
+.uh-notes-head h2 { flex: 1; display: flex; align-items: center; gap: 6px; }
+.uh-notes-total {
+  min-width: 20px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--muted);
+  font-size: 11px; font-weight: 600;
+}
+.uh-notes-total:empty { display: none; }
+.uh-notes-head .uh-btn { height: 28px; border-radius: 999px; }
+.uh-btn.uh-small { padding: 0 10px; font-size: 12px; }
+.uh-notes-empty, .uh-notes-status { margin: 0; font-size: 12px; color: var(--muted); }
+.uh-notes-empty { padding: 4px 14px 14px; line-height: 1.5; }
+.uh-notes-msg { display: flex; align-items: center; gap: 8px; padding: 0 14px 10px; }
+.uh-notes-msg:has(.uh-notes-status:empty) { display: none; }
+.uh-notes-status { flex: 1; }
+.uh-notes-msg .uh-btn.uh-ghost { height: 26px; color: var(--accent); font-weight: 500; }
+/* Scroll shadows: the hairlines under the header and over the footer only show while
+   there is more list beyond them. */
+.uh-note-scroll {
+  flex: 1 1 auto; min-height: 96px; overflow: auto; overscroll-behavior: contain;
+  scroll-padding-top: 32px;
+  padding: 0 6px;
+  background:
+    linear-gradient(var(--surface), transparent) top / 100% 14px no-repeat local,
+    linear-gradient(transparent, var(--surface)) bottom / 100% 14px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 0.22), transparent) top / 100% 8px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.22), transparent) bottom / 100% 8px no-repeat scroll;
+}
+.uh-note-scroll[hidden] { display: none; }
+.uh-note-list { margin: 0; padding: 0 0 4px; list-style: none; }
+.uh-note-group {
+  position: sticky; top: 0; z-index: 1;
+  padding: 8px 8px 4px;
+  background: var(--surface);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+}
+.uh-note-row { position: relative; }
+.uh-note-open {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px 10px;
+  width: 100%; padding: 8px 40px 8px 8px; border: 0; border-radius: 10px;
+  background: none; color: var(--ink); text-align: left; cursor: pointer;
+  font: inherit;
+}
+.uh-note-open:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.uh-note-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.uh-badge {
+  grid-row: span 2; display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--pin); color: #fff; font: 600 12px/1 var(--font-ui);
+}
+.uh-note-open .uh-badge { margin-top: 1px; }
+.uh-note-row[data-sent] .uh-badge { background: none; color: var(--pin-ink); box-shadow: inset 0 0 0 1.5px var(--pin-ink); }
+.uh-note-text {
+  font-size: 14px; line-height: 1.4;
+  overflow-wrap: anywhere; white-space: pre-wrap;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.uh-note-meta { font-size: 12px; color: var(--muted); }
+.uh-note-del {
+  position: absolute; top: 6px; right: 6px;
+  height: 28px; border-radius: 999px;
+  opacity: 0.4; transition: opacity 0.12s;
+}
+.uh-note-row:hover .uh-note-del, .uh-note-del:focus-visible { opacity: 1; }
+@media (hover: none) { .uh-note-del { opacity: 1; } }
+.uh-note-group-wrap > ul { margin: 0; padding: 0; list-style: none; }
+.uh-note-group h3 { margin: 0; font: inherit; }
+.uh-notes-foot {
+  display: flex; gap: 8px; padding: 10px 14px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.uh-notes-foot .uh-btn { flex: 1 1 0; justify-content: center; height: 34px; border-radius: 999px; font-weight: 500; }
+.uh-notes-foot .uh-btn[hidden] { display: none; }
+.uh-notes-pop > .uh-notes-out { margin: 0 14px 0; width: calc(100% - 28px); flex: none; }
+.uh-notes-out { width: 100%; height: min(120px, 25vh); font: 12px/1.4 var(--font-mono); }
+.uh-notes-out {
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--field-line); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+/* The comment box: a frosted card that grows with the text, tied to its pin by the pin's
+   colour and number. The card is the field, so the textarea has no frame of its own and
+   the card takes the focus ring. */
+.uh-composer {
+  position: fixed; z-index: 6;
+  display: grid; gap: 4px;
+  width: 320px; max-width: calc(100vw - 16px);
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 18px 44px -10px rgb(0 0 0 / 0.4);
+  animation: uh-pop-in 0.14s ease-out;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.uh-composer:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), 0 18px 44px -10px rgb(0 0 0 / 0.4);
+}
+@keyframes uh-pop-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
+.uh-composer textarea {
+  display: block; width: 100%; min-height: 72px; max-height: 220px;
+  padding: 10px 10px 6px;
+  border: 0; border-radius: 10px; outline: none;
+  background: transparent; color: var(--ink);
+  font: 14px/1.5 var(--font-ui);
+  resize: none;
+}
+.uh-composer textarea::placeholder { color: var(--muted); }
+.uh-composer-size { margin: 4px 4px 0; }
+.uh-composer-size[hidden] { display: none; }
+.uh-composer-size .uh-btn {
+  height: 26px; padding: 0 10px; gap: 6px;
+  border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 14%, transparent); color: color-mix(in srgb, var(--warn) 70%, var(--ink));
+  font-size: 12px; font-weight: 500;
+}
+.uh-composer:has(.uh-composer-size:not([hidden])) { background: var(--surface); }
+.uh-composer-size .uh-btn:hover { background: color-mix(in srgb, var(--warn) 22%, transparent); }
+.uh-composer-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 2px 0 4px;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.uh-composer-bar .uh-badge { width: 20px; height: 20px; font-size: 11px; }
+.uh-composer-bar .uh-btn { height: 30px; border-radius: 999px; }
+.uh-btn.uh-ghost { border-color: transparent; background: none; color: var(--muted); }
+.uh-btn.uh-ghost:hover { border-color: transparent; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.uh-btn.uh-icon { width: 30px; padding: 0; }
+.uh-composer-bar .uh-primary { padding: 0 14px; font-weight: 500; }
+.uh-kbd-hint { font-size: 11px; color: var(--muted); white-space: nowrap; }
+/* Delete is the box's one destructive action. */
+.uh-btn.uh-danger { color: var(--danger); }
+.uh-btn.uh-danger:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+@media (prefers-reduced-motion: reduce) { .uh-composer, .uh-notes-pop.uh-pop { animation: none; transition: none; } .uh-note-del { transition: none; } }
+
 /* Below 1024px: one row (48px) of Frame size, Zoom and help, and the Preview menu, whose
    button names the settings that differ from the defaults. Status that would add a row
    (the size limit, the hit-target result) hangs from the bar's lower edge instead. */
@@ -476,8 +695,14 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
   .uh-presets .uh-lbl, .uh-dim .uh-lbl { display: none; }
   .uh-dims { gap: 4px; }
 }
-/* Narrower: the zoom controls fold behind a button that shows the zoom. */
+.uh-short { display: none; }
+.uh-notes-alt { display: none; }
+/* Narrower: the zoom controls fold behind a button that shows the zoom, and Comment
+   shortens to an icon. */
 @media (max-width: 719px) {
+  .uh-g-zoom .uh-long { display: none; }
+  .uh-g-zoom .uh-short { display: inline; }
+  #uh-comment { padding: 0 8px; }
   .uh-g-zoom .uh-btn.uh-fold-btn { display: inline-flex; }
   .uh-g-zoom .uh-fold { display: none; }
   .uh-zoomwrap[data-open] .uh-fold { display: flex; }
@@ -498,6 +723,18 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
   .uh-pop { right: 8px; max-width: calc(100% - 16px); }
   .uh-flag { left: 8px; }
   .uh-result { right: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
+}
+/* Narrowest of all (under 400px): Notes moves into the Preview menu; the Comment toggle
+   stays in the bar, since it's the one used most. */
+@media (max-width: 399px) {
+  #uh-notes-btn { display: none; }
+  .uh-split > #uh-comment { border-radius: 8px; }
+  .uh-bar { gap: 4px; }
+  .uh-group { gap: 4px; }
+  .uh-preview-btn { min-width: 0; padding: 0 6px; }
+  .uh-bar { padding: 6px; }
+  .uh-bar .uh-fold-btn { padding: 0 6px; gap: 4px; }
+  .uh-g-preview[data-open] .uh-notes-alt { display: inline-flex; }
 }
 @media (prefers-reduced-motion: reduce) {
   .uh-toast, .uh-zoom { transition: none; }
@@ -538,6 +775,28 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
     </div>
     <span class="uh-vh" id="uh-zoom-live" role="status"></span>
     <button class="uh-btn uh-problems" type="button" id="uh-problems" title="Show the canvas problems again"></button>
+    <div class="uh-split" role="group" aria-label="Comments">
+    <button class="uh-btn" type="button" id="uh-comment" aria-pressed="false" aria-label="Comment" title="Comment on the design: click to drop a pin, drag to mark an area (C)"><span class="uh-long">Comment</span><svg class="uh-short" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+    <div class="uh-notes-menu" id="uh-notes-menu">
+      <button class="uh-btn" type="button" id="uh-notes-btn" aria-expanded="false" aria-controls="uh-notes-pop" title="Your notes on this design, to send or copy to Claude"><svg class="uh-notes-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span id="uh-notes-count" aria-hidden="true"></span><span class="uh-caret" aria-hidden="true">▾</span></button>
+      <div class="uh-pop uh-notes-pop" id="uh-notes-pop" role="group" aria-labelledby="uh-notes-title" hidden>
+        <div class="uh-notes-head">
+          <h2 id="uh-notes-title">Notes <span class="uh-notes-total" id="uh-notes-total"></span></h2>
+          <button class="uh-btn uh-ghost uh-icon" type="button" id="uh-note-screen" aria-label="Add a note about the whole screen" title="Add a note about the whole screen, without a pin"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button class="uh-btn uh-ghost uh-danger uh-small" type="button" id="uh-notes-clear">Clear all</button>
+        </div>
+        <p class="uh-notes-empty" id="uh-notes-empty">No notes yet. Turn on comment mode, then click the screen to drop a pin or drag to mark an area.</p>
+        <div class="uh-note-scroll" id="uh-note-scroll"><ol class="uh-note-list" id="uh-note-list"></ol></div>
+        <textarea class="uh-notes-out" id="uh-notes-out" readonly aria-label="Notes for Claude" hidden></textarea>
+        <div class="uh-notes-foot">
+          <button class="uh-btn" type="button" id="uh-notes-send" hidden>Send to Claude</button>
+          <button class="uh-btn" type="button" id="uh-notes-copy" title="Copy every note, with where it is, to paste to Claude">Copy for Claude</button>
+        </div>
+        <div class="uh-notes-msg"><p class="uh-notes-status" id="uh-notes-status" role="status"></p><button class="uh-btn uh-ghost uh-small" type="button" id="uh-notes-undo" hidden>Undo</button></div>
+      </div>
+    </div>
+    </div>
+    <span class="uh-comment-hint" id="uh-comment-hint" hidden>Click to drop a pin · drag to mark an area · Esc to stop</span>
     <div class="uh-help">
       <button class="uh-btn" type="button" id="uh-help-btn" aria-expanded="false" aria-controls="uh-keys" aria-label="Shortcuts and canvas settings" title="Shortcuts and canvas settings (?)">?</button>
       <div class="uh-keys uh-pop" id="uh-keys" role="group" aria-labelledby="uh-keys-title" hidden>
@@ -552,6 +811,8 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
           <dt>Drag, pan</dt><dd><kbd>Esc</kbd> cancels</dd>
           <dt>W, H</dt><dd><kbd>Enter</kbd> applies, <kbd>Esc</kbd> reverts</dd>
           <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Light and Dark, text size)</dd>
+          <dt>Comment</dt><dd><kbd>C</kbd> turns it on or off. Click drops a pin, drag marks an area, <kbd>Esc</kbd> stops</dd>
+          <dt>Comment box</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels</dd>
           <dt>This list</dt><dd><kbd>?</kbd></dd>
         </dl>
         <p class="uh-keys-note">Zoom keys act on the canvas while the pointer or focus is on it; elsewhere they zoom the page.</p>
@@ -579,6 +840,7 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
       </span>
       <span class="uh-targets-row"><button class="uh-btn" type="button" id="uh-targets" aria-pressed="false" aria-describedby="uh-targets-result" title="Outline every hit area and mark any under the minimum">Tap targets</button>
 <span class="uh-result uh-result-echo" id="uh-targets-echo" aria-hidden="true" hidden></span></span>
+      <button class="uh-btn uh-notes-alt" type="button" id="uh-notes-alt" aria-controls="uh-notes-pop">Notes</button>
     </div>
     <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
   </div>
@@ -615,12 +877,27 @@ body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-er
           </div>
           <div class="uh-wincaps" id="uh-wincaps" aria-hidden="true" hidden><span><i></i><i></i><i></i></span></div>
           <div class="uh-homebar" id="uh-homebar" aria-hidden="true"></div>
+          <div class="uh-notes" id="uh-notes" hidden></div>
           <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
         </div>
       </div>
     </div>
   </div>
 </main>
+<div class="uh-composer" id="uh-composer" role="dialog" aria-labelledby="uh-composer-title" hidden>
+  <h2 class="uh-vh" id="uh-composer-title">Comment</h2>
+  <p class="uh-vh" id="uh-composer-where"></p>
+  <p class="uh-composer-size" id="uh-composer-size" hidden><button class="uh-btn" type="button" id="uh-composer-size-go"></button></p>
+  <textarea id="uh-composer-text" rows="3" maxlength="2000" aria-labelledby="uh-composer-title" aria-describedby="uh-composer-where" placeholder="What should change here?"></textarea>
+  <div class="uh-composer-bar">
+    <span class="uh-badge" id="uh-composer-num" aria-hidden="true"></span>
+    <button class="uh-btn uh-ghost uh-icon uh-danger" type="button" id="uh-composer-delete" aria-label="Delete comment" title="Delete comment"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 4.5h11M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.8 7v4.5M9.2 7v4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <span class="uh-grow"></span>
+    <span class="uh-kbd-hint" id="uh-composer-hint" aria-hidden="true"></span>
+    <button class="uh-btn uh-ghost" type="button" id="uh-composer-cancel">Cancel</button>
+    <button class="uh-btn uh-primary" type="button" id="uh-composer-save">Save</button>
+  </div>
+</div>
 
 <!-- ULTRAHAND:CONFIG:BEGIN -->
 <script type="application/json" id="uh-config">
@@ -1076,6 +1353,7 @@ window.ultrahandSetup = function (canvas) {
     var info = { screen: currentScreen ? currentScreen.dataset.screen : null, from: from, depth: stack.length };
     navListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onNavigate handler: ' + err.message); } });
     if (typeof measureTargets === 'function') measureTargets();
+    layoutNotes();
   }
   function navigate(id, opts) {
     var from = currentScreen ? currentScreen.dataset.screen : null;
@@ -1466,6 +1744,7 @@ window.ultrahandSetup = function (canvas) {
     if (f.w <= 0 || f.h <= 0) return;
     view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - f.l) / f.w;
     view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - f.t) / f.h;
+    layoutNotes();
   }, { passive: true });
   /* opts.scale holds the zoom (during a drag). opts.anchor = { fx, fy, cx, cy } keeps the
      point at fraction fx, fy of the frame area at stage pixel cx, cy: a drag anchors the
@@ -1512,6 +1791,7 @@ window.ultrahandSetup = function (canvas) {
     el.zoomOut.setAttribute('aria-disabled', String(s <= ZMIN + 0.001));
     el.zoomIn.setAttribute('aria-disabled', String(s >= ZMAX - 0.001));
     rovingTabs();
+    layoutNotes();
   }
   function setZoom(z, anchor) {
     st.zoom = z;
@@ -1941,6 +2221,740 @@ window.ultrahandSetup = function (canvas) {
   el.theme.addEventListener('change', function () { setTheme(el.theme.value); });
   try { setTheme(localStorage.getItem('uh-canvas-theme')); } catch (err) { setTheme('auto'); }
 
+  /* ---------- Notes (Comment mode) ---------- */
+  /* Comment mode (C, or the Comment button): a click on the screen drops a numbered pin, a
+     drag marks an area, and either opens a comment box. Each note records where it is in
+     words Claude can act on: the screen, state, frame size and scheme, the element under
+     the pin (or the elements the area covers) with a selector, and a position in screen
+     px. A pin is anchored to its element, so it follows it through resizes and scrolling.
+     Notes are kept in this viewer's browser, per artifact. "Copy for Claude" copies them
+     as text; "Send to Claude" posts them as one artifact comment that Claude receives,
+     where the page was published with the comments capability. */
+  var nel = {
+    layer: byId('uh-notes'), comment: byId('uh-comment'), notesAlt: byId('uh-notes-alt'), hint: byId('uh-comment-hint'),
+    menu: byId('uh-notes-menu'), btn: byId('uh-notes-btn'), count: byId('uh-notes-count'), pop: byId('uh-notes-pop'),
+    list: byId('uh-note-list'), scroll: byId('uh-note-scroll'), total: byId('uh-notes-total'), empty: byId('uh-notes-empty'), screenNote: byId('uh-note-screen'),
+    send: byId('uh-notes-send'), copy: byId('uh-notes-copy'), clear: byId('uh-notes-clear'),
+    out: byId('uh-notes-out'), status: byId('uh-notes-status'), undo: byId('uh-notes-undo'),
+    composer: byId('uh-composer'), cTitle: byId('uh-composer-title'), cWhere: byId('uh-composer-where'),
+    cText: byId('uh-composer-text'), cSize: byId('uh-composer-size'), cSizeGo: byId('uh-composer-size-go'), cDelete: byId('uh-composer-delete'), cNum: byId('uh-composer-num'), cHint: byId('uh-composer-hint'), cCancel: byId('uh-composer-cancel'), cSave: byId('uh-composer-save')
+  };
+  var NOTES_KEY = 'uh-notes:' + (cfg.title || 'canvas');
+  var notes = [];
+  try {
+    notes = JSON.parse(localStorage.getItem(NOTES_KEY) || '[]');
+    if (!Array.isArray(notes)) notes = [];
+  } catch (err) { notes = []; }
+  /* Each note keeps its number for good, so a deleted note never renumbers the rest
+     and text already sent to Claude still matches the pins. */
+  notes.forEach(function (n, i) { if (!n.num) n.num = i + 1; });
+  var undoNotes = null; /* the list before the last delete or clear */
+  var commenting = false;
+  var editing = null; /* { note, isNew } while the comment box is open */
+  var sketch = null; /* a click or drag in progress on the layer */
+  var pinEls = {}, regionEls = {}, sketchEl = null;
+  var commentsApi = null;
+
+  function saveNotes() {
+    try { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); } catch (err) { /* storage blocked */ }
+  }
+  function screenId() { return currentScreen ? currentScreen.dataset.screen : ''; }
+  function screenLabel(id) {
+    var s = id ? screenById(id) : null;
+    return (s && s.dataset.title) || id || 'Screen';
+  }
+  function stateLabel(id) {
+    var s = states.filter(function (x) { return x.id === id; })[0];
+    return s ? s.label : id;
+  }
+  function round1(v) { return Math.round(v); }
+  function frac(v) { return Math.round(v * 10000) / 10000; }
+  function scrollTopNow() { return currentScreen ? currentScreen.scrollTop : 0; }
+  /* Client px to the screen's own px (the frame is zoomed). */
+  function toLocal(cx, cy) {
+    var r = el.host.getBoundingClientRect();
+    return { x: (cx - r.left) / st.s, y: (cy - r.top) / st.s };
+  }
+  /* The topmost element of the screen at a client point. */
+  function hitAt(cx, cy) {
+    var list = root.elementsFromPoint ? root.elementsFromPoint(cx, cy) : [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] !== viewport && viewport.contains(list[i])) return list[i];
+    }
+    return null;
+  }
+  /* A selector that finds the element again from the viewport: ids where there are
+     some, otherwise tag, first classes and position, so it doubles as a description. */
+  function cssPath(e) {
+    var parts = [], fromId = false;
+    while (e && e !== viewport && e.parentElement) {
+      if (e.id) { parts.unshift('#' + CSS.escape(e.id)); fromId = true; break; }
+      var p = e.tagName.toLowerCase();
+      if (e.dataset && e.dataset.screen) p += '[data-screen="' + e.dataset.screen + '"]';
+      Array.prototype.slice.call(e.classList, 0, 2).forEach(function (c) { p += '.' + CSS.escape(c); });
+      p += ':nth-child(' + (Array.prototype.indexOf.call(e.parentElement.children, e) + 1) + ')';
+      parts.unshift(p);
+      e = e.parentElement;
+    }
+    return parts.length ? (fromId ? '' : ':scope > ') + parts.join(' > ') : '';
+  }
+  function findEl(sel) {
+    if (!sel) return null;
+    try { return viewport.querySelector(sel); } catch (err) { return null; }
+  }
+  function describe(e) {
+    var name = e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') +
+      Array.prototype.slice.call(e.classList, 0, 2).map(function (c) { return '.' + c; }).join('');
+    var label = e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.getAttribute('alt') || e.getAttribute('title') || '';
+    /* innerText keeps the gaps between blocks ("Loop 7.4 km", not "Loop7.4 km"). */
+    var text = (label || e.innerText || e.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text.length > 60) text = text.slice(0, 57) + '…';
+    return text ? name + ' "' + text + '"' : name;
+  }
+  function baseNote(kind) {
+    return {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      kind: kind, text: '', screen: screenId(), state: st.state, scheme: st.scheme, textScale: st.textScale,
+      fw: st.w, fh: st.h,
+      preset: st.preset ? presetName(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '') : 'custom size',
+      presetId: st.preset ? st.preset.id : null, landscape: st.landscape,
+      created: new Date().toISOString()
+    };
+  }
+  function makePin(cx, cy) {
+    var n = baseNote('pin');
+    var l = toLocal(cx, cy);
+    n.x = round1(l.x);
+    n.y = round1(l.y + scrollTopNow());
+    var t = hitAt(cx, cy);
+    if (t) {
+      var r = t.getBoundingClientRect();
+      n.anchor = { sel: cssPath(t), fx: frac((cx - r.left) / (r.width || 1)), fy: frac((cy - r.top) / (r.height || 1)) };
+      n.target = describe(t);
+      var hit = t.closest(TARGETS);
+      if (hit && hit !== t) n.inside = describe(hit);
+    }
+    return n;
+  }
+  function makeArea(a, b) {
+    var n = baseNote('area');
+    var c = { l: Math.min(a.x, b.x), t: Math.min(a.y, b.y), r: Math.max(a.x, b.x), b: Math.max(a.y, b.y) };
+    var tl = toLocal(c.l, c.t), br = toLocal(c.r, c.b);
+    n.x = round1(tl.x); n.y = round1(tl.y + scrollTopNow());
+    n.aw = round1(br.x - tl.x); n.ah = round1(br.y - tl.y);
+    /* The smallest element holding the whole area. */
+    var e = hitAt((c.l + c.r) / 2, (c.t + c.b) / 2);
+    while (e && e !== currentScreen && e.parentElement && e.parentElement !== viewport) {
+      var er = e.getBoundingClientRect();
+      if (er.left <= c.l + 1 && er.top <= c.t + 1 && er.right >= c.r - 1 && er.bottom >= c.b - 1) break;
+      e = e.parentElement;
+    }
+    if (e && viewport.contains(e)) n.within = describe(e);
+    /* What it covers: the largest elements wholly inside it, in reading order. */
+    var covers = [];
+    Array.prototype.forEach.call((currentScreen || viewport).querySelectorAll('*'), function (x) {
+      if (covers.some(function (o) { return o.contains(x); })) return;
+      var r = x.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      if (r.left < c.l - 1 || r.top < c.t - 1 || r.right > c.r + 1 || r.bottom > c.b + 1) return;
+      covers.push(x);
+    });
+    n.covers = covers.slice(0, 8).map(describe);
+    /* The area follows what it covers: their selectors, and the margin drawn round them. */
+    var u = unionRect(covers.slice(0, 8));
+    if (u) {
+      n.coverSels = covers.slice(0, 8).map(cssPath);
+      n.pad = { l: round1((u.left - c.l) / st.s), t: round1((u.top - c.t) / st.s), r: round1((c.r - u.right) / st.s), b: round1((c.b - u.bottom) / st.s) };
+    }
+    if (covers.length > 8) n.covers.push('and ' + (covers.length - 8) + ' more');
+    /* An area round one element follows that element when the frame resizes; any other
+       area follows the element holding it. */
+    var anchorEl = covers.length === 1 ? covers[0] : e;
+    if (anchorEl && viewport.contains(anchorEl)) {
+      var r = anchorEl.getBoundingClientRect();
+      n.anchor = {
+        sel: cssPath(anchorEl),
+        fx: frac((c.l - r.left) / (r.width || 1)), fy: frac((c.t - r.top) / (r.height || 1)),
+        fx2: frac((c.r - r.left) / (r.width || 1)), fy2: frac((c.b - r.top) / (r.height || 1))
+      };
+    }
+    return n;
+  }
+  /* Where a note sits now, in the screen's own px, or null when it isn't on the screen
+     and state being shown. */
+  function unionRect(list) {
+    var u = null;
+    list.forEach(function (x) {
+      var r = x.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      u = u ? { left: Math.min(u.left, r.left), top: Math.min(u.top, r.top), right: Math.max(u.right, r.right), bottom: Math.max(u.bottom, r.bottom) }
+        : { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    });
+    return u;
+  }
+  /* Whether the frame now differs from the one the note was left at. */
+  function sizeDiffers(n) {
+    return n.kind !== 'screen' && n.fw != null && (n.fw !== st.w || n.fh !== st.h);
+  }
+  function noteBox(n) {
+    if (n.kind === 'screen') return null;
+    if ((n.screen || '') !== screenId() || (n.state || null) !== (st.state || null)) return null;
+    if (n.kind === 'area' && n.coverSels && n.coverSels.length) {
+      var u = unionRect(n.coverSels.map(findEl).filter(Boolean));
+      if (u) {
+        var p0 = toLocal(u.left, u.top), p1 = toLocal(u.right, u.bottom);
+        return { x: p0.x - n.pad.l, y: p0.y - n.pad.t, x2: p1.x + n.pad.r, y2: p1.y + n.pad.b };
+      }
+    }
+    var a = n.anchor, e = a && findEl(a.sel);
+    var r = e && e.getBoundingClientRect();
+    if (r && r.width && r.height) {
+      var p = toLocal(r.left + a.fx * r.width, r.top + a.fy * r.height);
+      if (n.kind === 'pin') return { x: p.x, y: p.y };
+      var q = toLocal(r.left + a.fx2 * r.width, r.top + a.fy2 * r.height);
+      return { x: p.x, y: p.y, x2: q.x, y2: q.y };
+    }
+    var dy = scrollTopNow();
+    if (n.kind === 'pin') return { x: n.x, y: n.y - dy };
+    return { x: n.x, y: n.y - dy, x2: n.x + n.aw, y2: n.y + n.ah - dy };
+  }
+  function nextNumber() {
+    return notes.reduce(function (m, x) { return Math.max(m, x.num || 0); }, 0) + 1;
+  }
+  function noteNumber(n) { return n.num || nextNumber(); }
+  function placeBox(node, x, y, x2, y2) {
+    node.style.left = Math.min(x, x2) + 'px';
+    node.style.top = Math.min(y, y2) + 'px';
+    node.style.width = Math.abs(x2 - x) + 'px';
+    node.style.height = Math.abs(y2 - y) + 'px';
+  }
+  var notesQueued = false;
+  function layoutNotes() {
+    if (!nel || notesQueued) return;
+    notesQueued = true;
+    requestAnimationFrame(function () { notesQueued = false; drawNotes(); });
+  }
+  function drawNotes() {
+    var L = nel.layer;
+    L.hidden = !commenting;
+    if (!commenting) { placeComposer(); return; }
+    L.style.left = el.host.offsetLeft + 'px';
+    L.style.top = el.host.offsetTop + 'px';
+    L.style.width = el.host.offsetWidth + 'px';
+    L.style.height = el.host.offsetHeight + 'px';
+    var list = notes.slice();
+    if (editing && editing.isNew) list.push(editing.note);
+    var seen = {};
+    list.forEach(function (n) {
+      var b = noteBox(n);
+      if (!b) return;
+      seen[n.id] = true;
+      if (n.kind === 'area') {
+        var box = regionEls[n.id];
+        if (!box) { box = regionEls[n.id] = document.createElement('div'); box.className = 'uh-region'; L.prepend(box); }
+        placeBox(box, b.x, b.y, b.x2, b.y2);
+      }
+      var pin = pinEls[n.id];
+      if (!pin) {
+        pin = pinEls[n.id] = document.createElement('button');
+        pin.type = 'button';
+        pin.className = 'uh-pin';
+        pin.dataset.id = n.id;
+        L.append(pin);
+      }
+      var num = noteNumber(n);
+      pin.textContent = num;
+      pin.setAttribute('aria-label', 'Comment ' + num + ': ' + (n.text || 'new'));
+      pin.title = n.text || 'New comment';
+      /* An area's pin sits on its top-right corner, kept inside the screen. */
+      var size = 26 / st.s;
+      var px = n.kind === 'area' ? Math.min(Math.max(b.x, b.x2), el.host.offsetWidth - size) : b.x;
+      var py = n.kind === 'area' ? Math.max(Math.min(b.y, b.y2), size) : b.y;
+      pin.style.left = px + 'px';
+      pin.style.top = py + 'px';
+      pin.toggleAttribute('data-active', !!(editing && editing.note === n));
+      pin.toggleAttribute('data-elsewhere', sizeDiffers(n));
+      if (sizeDiffers(n)) pin.title = (n.text || 'New comment') + ' (left at ' + n.fw + '×' + n.fh + ')';
+    });
+    Object.keys(pinEls).forEach(function (id) {
+      if (!seen[id]) { pinEls[id].remove(); delete pinEls[id]; }
+    });
+    Object.keys(regionEls).forEach(function (id) {
+      if (!seen[id]) { regionEls[id].remove(); delete regionEls[id]; }
+    });
+    if (sketch && sketch.moved) {
+      if (!sketchEl) { sketchEl = document.createElement('div'); sketchEl.className = 'uh-region'; L.append(sketchEl); }
+      var a = toLocal(sketch.x, sketch.y), z = toLocal(sketch.x2, sketch.y2);
+      placeBox(sketchEl, a.x, a.y, z.x, z.y);
+    } else if (sketchEl) { sketchEl.remove(); sketchEl = null; }
+    drawTarget();
+    placeComposer();
+  }
+  /* The comment box sits beside its pin, inside the window; a whole-screen note centres it. */
+  /* The client rect of the element a pin is on, if it's small enough to keep in view. */
+  function targetRect(n) {
+    var e = n.anchor && findEl(n.anchor.sel);
+    if (!e) return null;
+    var q = e.getBoundingClientRect(), f = el.host.getBoundingClientRect();
+    if (!q.width || q.width * q.height > 0.4 * f.width * f.height) return null;
+    return q;
+  }
+  var targetEl = null;
+  function drawTarget() {
+    var t = editing && editing.note.kind === 'pin' && !nel.layer.hidden && targetRect(editing.note);
+    if (!t) { if (targetEl) { targetEl.remove(); targetEl = null; } return; }
+    if (!targetEl) { targetEl = document.createElement('div'); targetEl.className = 'uh-target'; nel.layer.append(targetEl); }
+    var a = toLocal(t.left, t.top), z = toLocal(t.right, t.bottom);
+    placeBox(targetEl, a.x, a.y, z.x, z.y);
+  }
+  function placeComposer() {
+    if (!editing) return;
+    showComposerSize();
+    var c = nel.composer;
+    var W = c.offsetWidth, H = c.offsetHeight;
+    var pin = pinEls[editing.note.id];
+    var box = regionEls[editing.note.id];
+    var stage = el.stage.getBoundingClientRect();
+    var x, y;
+    if (pin && pin.isConnected && !nel.layer.hidden) {
+      /* Beside the pin, or below, above or left of the area, wherever it fits whole, so it
+         never covers what the note is about. */
+      var r = pin.getBoundingClientRect();
+      if (box) {
+        var b = box.getBoundingClientRect();
+        r = { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) };
+      }
+      var top = stage.top + 8, vw = window.innerWidth - 8, vh = window.innerHeight - 8;
+      function spotsAround(q) {
+        return [[q.right + 10, q.top], [q.left, q.bottom + 10], [q.left, q.top - H - 10], [q.left - 10 - W, q.top]];
+      }
+      function fitting(list) {
+        return list.filter(function (p) { return p[0] >= 8 && p[0] + W <= vw && p[1] >= top && p[1] + H <= vh; })[0];
+      }
+      /* First clear of the element the pin is on too, so it stays in view while it's
+         described; failing that, clear of the pin alone. */
+      var t = editing.note.kind === 'pin' && targetRect(editing.note), fits = null;
+      if (t) fits = fitting(spotsAround({ left: Math.min(r.left, t.left), top: Math.min(r.top, t.top), right: Math.max(r.right, t.right), bottom: Math.max(r.bottom, t.bottom) }));
+      if (!fits) fits = fitting(spotsAround(r));
+      if (!fits) {
+        /* Nowhere whole: below if there's more room there, else above, clamped. */
+        fits = vh - r.bottom > r.top - top ? [r.left, r.bottom + 10] : [r.left, r.top - H - 10];
+      }
+      x = fits[0];
+      y = fits[1];
+    } else {
+      x = stage.left + (stage.width - W) / 2;
+      y = stage.top + (stage.height - H) / 3;
+    }
+    x = Math.max(8, Math.min(x, window.innerWidth - W - 8));
+    y = Math.max(stage.top + 8, Math.min(y, window.innerHeight - H - 8));
+    c.style.left = Math.round(x) + 'px';
+    c.style.top = Math.round(y) + 'px';
+  }
+  function whereText(n) {
+    var at = n.kind === 'pin' ? 'Pin' + (n.target ? ' on ' + n.target : '')
+      : n.kind === 'area' ? 'Area ' + Math.round(n.aw) + '×' + Math.round(n.ah) +
+        (n.covers && n.covers.length === 1 ? ' over ' + n.covers[0] : n.within ? ' in ' + n.within : '')
+      : 'The whole screen';
+    var where = screenLabel(n.screen) + (n.state && states.length > 1 ? ' · ' + stateLabel(n.state) : '');
+    return at + ' · ' + where;
+  }
+  function showComposerSize() {
+    var n = editing && editing.note;
+    var differs = !!n && !editing.isNew && sizeDiffers(n);
+    nel.cSize.hidden = !differs;
+    if (differs) {
+      nel.cSizeGo.textContent = 'View at ' + n.fw + '×' + n.fh;
+      nel.cSizeGo.title = 'Left at ' + n.fw + '×' + n.fh + ' (' + n.preset + '). Put the frame back to that size.';
+    }
+  }
+  /* Put the frame back the way it was when the note was left. */
+  function showAtNoteSize(n) {
+    var p = n.presetId && presets.filter(function (x) { return x.id === n.presetId; })[0];
+    if (p && (!st.preset || st.preset.id !== p.id)) usePreset(p);
+    if (p && !!n.landscape !== st.landscape) rotate();
+    if (st.w !== n.fw || st.h !== n.fh) setSize(n.fw, n.fh, 'api');
+  }
+  /* The box grows with the text, up to its max height, then scrolls; Save waits for words. */
+  var MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  function fitComposerText() {
+    var t = nel.cText;
+    t.style.height = 'auto';
+    t.style.height = Math.min(t.scrollHeight, 220) + 'px';
+    nel.cSave.disabled = !t.value.trim();
+  }
+  function openComposer(n, isNew) {
+    editing = { note: n, isNew: isNew };
+    nel.cTitle.textContent = (isNew ? 'New comment ' : 'Comment ') + noteNumber(n);
+    nel.cWhere.textContent = whereText(n);
+    nel.cText.value = n.text || '';
+    nel.cNum.textContent = noteNumber(n);
+    nel.cDelete.hidden = isNew;
+    fitComposerText();
+    showComposerSize();
+    nel.composer.hidden = false;
+    drawNotes();
+    nel.cText.focus({ preventScroll: true });
+  }
+  /* Closing keeps typed words: Save, Esc and a click elsewhere store them, Cancel drops them. */
+  function closeComposer(save, refocus) {
+    if (!editing) return;
+    var ed = editing;
+    var text = nel.cText.value.trim();
+    if (save && text) {
+      ed.note.text = text;
+      delete ed.note.sent;
+      if (ed.isNew) { ed.note.num = nextNumber(); notes.push(ed.note); }
+      saveNotes();
+    }
+    editing = null;
+    nel.composer.hidden = true;
+    drawNotes();
+    renderNotesUI();
+    if (refocus) {
+      var pin = pinEls[ed.note.id];
+      if (pin && !nel.layer.hidden) pin.focus({ preventScroll: true });
+      else focusCommentControl();
+    }
+  }
+  /* Comment, or the Notes button where Comment sits in its menu (narrow windows). */
+  function focusCommentControl() {
+    (nel.comment.offsetParent ? nel.comment : nel.btn.offsetParent ? nel.btn : el.previewBtn).focus();
+  }
+  function deleteNote(n) {
+    notes = notes.filter(function (x) { return x !== n; });
+    saveNotes();
+  }
+  nel.cSave.addEventListener('click', function () { closeComposer(true, true); });
+  nel.cText.addEventListener('input', function () { fitComposerText(); placeComposer(); });
+  nel.cHint.textContent = MAC ? '⌘↵' : 'Ctrl+↵';
+  nel.cSave.title = 'Save (' + (MAC ? '⌘ Enter' : 'Ctrl Enter') + ')';
+  nel.cSizeGo.addEventListener('click', function () {
+    if (!editing) return;
+    showAtNoteSize(editing.note);
+    showComposerSize();
+    drawNotes();
+    nel.cText.focus({ preventScroll: true });
+  });
+  nel.cCancel.addEventListener('click', function () { closeComposer(false, true); });
+  nel.cDelete.addEventListener('click', function () {
+    if (!editing) return;
+    deleteNote(editing.note);
+    editing.isNew = false;
+    nel.cText.value = '';
+    closeComposer(false, false);
+    focusCommentControl();
+  });
+  nel.composer.addEventListener('keydown', function (e) {
+    /* Esc closes like a click elsewhere: it keeps what was typed. Cancel is the discard. */
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeComposer(true, true); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); closeComposer(true, true); }
+  });
+
+  function setCommenting(on) {
+    commenting = !!on;
+    document.body.classList.toggle('uh-commenting', commenting);
+    nel.comment.setAttribute('aria-pressed', String(commenting));
+    nel.hint.hidden = !commenting;
+    if (!commenting) { sketch = null; if (editing && editing.note.kind !== 'screen') closeComposer(true, false); }
+    drawNotes();
+  }
+  nel.comment.addEventListener('click', function () { setCommenting(!commenting); });
+  nel.notesAlt.addEventListener('click', function () {
+    el.previewBtn.click();
+    notesMenu.open();
+    nel.screenNote.focus();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || drag || pan || e.defaultPrevented) return;
+    var path = e.composedPath ? e.composedPath() : [];
+    var t = path[0] || e.target;
+    var typing = t && t.closest && t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+    if ((e.key === 'c' || e.key === 'C') && !typing && path.indexOf(el.host) < 0 && !editing) {
+      e.preventDefault();
+      setCommenting(!commenting);
+    } else if (e.key === 'Escape' && sketch) {
+      e.preventDefault();
+      sketch = null;
+      drawNotes();
+    } else if (e.key === 'Escape' && commenting && !editing && !typing) {
+      e.preventDefault();
+      setCommenting(false);
+    }
+  });
+
+  /* A press on the layer: a click drops a pin, a drag of more than a few px marks an area. */
+  nel.layer.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || document.body.classList.contains('uh-space')) return;
+    if (e.target.closest('.uh-pin')) return;
+    e.preventDefault();
+    if (editing) closeComposer(true, false);
+    nel.layer.setPointerCapture(e.pointerId);
+    sketch = { id: e.pointerId, x: e.clientX, y: e.clientY, x2: e.clientX, y2: e.clientY, moved: false };
+  });
+  nel.layer.addEventListener('pointermove', function (e) {
+    if (!sketch || e.pointerId !== sketch.id) return;
+    sketch.x2 = e.clientX;
+    sketch.y2 = e.clientY;
+    if (Math.abs(sketch.x2 - sketch.x) > 6 || Math.abs(sketch.y2 - sketch.y) > 6) sketch.moved = true;
+    if (sketch.moved) layoutNotes();
+  });
+  nel.layer.addEventListener('pointerup', function (e) {
+    if (!sketch || e.pointerId !== sketch.id) return;
+    var s = sketch;
+    sketch = null;
+    var n = s.moved ? makeArea({ x: s.x, y: s.y }, { x: s.x2, y: s.y2 }) : makePin(s.x, s.y);
+    openComposer(n, true);
+  });
+  nel.layer.addEventListener('pointercancel', function () { sketch = null; drawNotes(); });
+  nel.layer.addEventListener('click', function (e) {
+    var pin = e.target.closest('.uh-pin');
+    if (!pin) return;
+    var n = notes.filter(function (x) { return x.id === pin.dataset.id; })[0];
+    if (n) {
+      if (editing && editing.note !== n) closeComposer(true, false);
+      openComposer(n, false);
+    } else if (editing) nel.cText.focus();
+  });
+  /* The layer covers the screen, so the wheel is passed on to whatever scrolls under it;
+     once that can't scroll further, the stage pans as usual. */
+  nel.layer.addEventListener('wheel', function (e) {
+    if (e.ctrlKey || e.metaKey) return;
+    var k = e.deltaMode === 1 ? 16 : 1;
+    var sc = hitAt(e.clientX, e.clientY);
+    while (sc && sc !== viewport) {
+      var cs = getComputedStyle(sc);
+      if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX) && (sc.scrollHeight > sc.clientHeight || sc.scrollWidth > sc.clientWidth)) break;
+      sc = sc.parentElement;
+    }
+    if (!sc || sc === viewport) return;
+    var t0 = sc.scrollTop, l0 = sc.scrollLeft;
+    sc.scrollTop += e.deltaY * k;
+    sc.scrollLeft += e.deltaX * k;
+    if (sc.scrollTop !== t0 || sc.scrollLeft !== l0) e.preventDefault();
+  }, { passive: false });
+  root.addEventListener('scroll', function () { if (commenting) layoutNotes(); }, true);
+
+  /* ---------- Notes list, copy and send ---------- */
+  function exportText(list) {
+    var lines = [
+      'Design notes on "' + (cfg.title || 'Untitled screen') + '" (' + list.length + (list.length === 1 ? ' note' : ' notes') + ').',
+      'Positions are CSS px from the top-left of the screen, scroll included.',
+      ''
+    ];
+    list.forEach(function (n) {
+      var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
+      lines.push(noteNumber(n) + '. ' + kind + ' · screen ' + screenLabel(n.screen) +
+        (n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
+        (n.textScale !== 1 ? ' · text ' + Math.round(n.textScale * 100) + '%' : ''));
+      if (n.kind === 'pin') {
+        lines.push('   At ' + n.x + ', ' + n.y + (n.target ? ' on ' + n.target : '') + (n.inside ? ', inside ' + n.inside : ''));
+      } else if (n.kind === 'area') {
+        lines.push('   Area from ' + n.x + ', ' + n.y + ', ' + n.aw + '×' + n.ah + (n.within ? ', in ' + n.within : ''));
+        if (n.covers && n.covers.length) lines.push('   Covers: ' + n.covers.join('; '));
+      }
+      if (n.anchor && n.anchor.sel) lines.push('   Selector: ' + n.anchor.sel.replace(/^:scope > /, ''));
+      lines.push('   Note: ' + String(n.text).replace(/\n/g, '\n         '));
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  }
+  function noteStatus(text) { nel.status.textContent = text; nel.undo.hidden = true; undoNotes = null; }
+  /* Deleting and clearing happen at once and can be undone until the next action. */
+  function removeWithUndo(keep, text) {
+    var before = notes.slice();
+    notes = keep;
+    saveNotes();
+    renderNotesUI();
+    drawNotes();
+    noteStatus(text);
+    undoNotes = before;
+    nel.undo.hidden = false;
+  }
+  var TRASH_SVG = byId('uh-composer-delete').innerHTML;
+  /* The row says what the screen group doesn't: what kind of note, and its state when it
+     isn't the first (default) one. */
+  function rowMeta(n) {
+    var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
+    return kind + (n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') + (n.sent ? ' · Sent' : '');
+  }
+  function noteRow(note) {
+    var li = document.createElement('li');
+    li.className = 'uh-note-row';
+    if (note.sent) li.setAttribute('data-sent', '');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'uh-note-open';
+    var badge = document.createElement('span');
+    badge.className = 'uh-badge';
+    badge.textContent = noteNumber(note);
+    var text = document.createElement('span');
+    text.className = 'uh-note-text';
+    text.textContent = note.text;
+    var meta = document.createElement('span');
+    meta.className = 'uh-note-meta';
+    meta.textContent = rowMeta(note);
+    b.append(badge, text, meta);
+    b.title = whereText(note);
+    b.addEventListener('click', function () { showNote(note); });
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'uh-btn uh-ghost uh-icon uh-danger uh-note-del';
+    del.setAttribute('aria-label', 'Delete note ' + noteNumber(note));
+    del.title = 'Delete note';
+    del.innerHTML = TRASH_SVG;
+    del.addEventListener('click', function () {
+      var rows = Array.prototype.slice.call(nel.list.querySelectorAll('.uh-note-del'));
+      var i = rows.indexOf(del);
+      removeWithUndo(notes.filter(function (x) { return x !== note; }), 'Note ' + noteNumber(note) + ' deleted.');
+      var next = nel.list.querySelectorAll('.uh-note-del');
+      var to = next[Math.min(i, next.length - 1)];
+      (to ? to.previousElementSibling : nel.undo).focus();
+    });
+    li.append(b, del);
+    return li;
+  }
+  function renderNotesUI() {
+    var n = notes.length;
+    nel.count.textContent = n ? String(n) : '';
+    nel.notesAlt.textContent = n ? 'Notes · ' + n : 'Notes';
+    nel.btn.setAttribute('aria-label', n ? 'Notes, ' + n : 'Notes');
+    nel.total.textContent = n ? String(n) : '';
+    nel.empty.hidden = n > 0;
+    nel.scroll.hidden = n === 0;
+    nel.clear.hidden = n === 0;
+    nel.list.replaceChildren();
+    /* Group by screen, the current screen first, once the notes span more than one. */
+    var order = [], groups = {};
+    notes.forEach(function (note) {
+      var k = note.screen || '';
+      if (!groups[k]) { groups[k] = []; order.push(k); }
+      groups[k].push(note);
+    });
+    var cur = screenId();
+    if (groups[cur]) order = [cur].concat(order.filter(function (k) { return k !== cur; }));
+    function byNum(a, b) { return noteNumber(a) - noteNumber(b); }
+    order.forEach(function (k) {
+      var rows = groups[k].slice().sort(byNum).map(noteRow);
+      if (order.length === 1) { nel.list.append.apply(nel.list, rows); return; }
+      var li = document.createElement('li');
+      li.className = 'uh-note-group-wrap';
+      var h = document.createElement('h3');
+      h.className = 'uh-note-group';
+      h.id = 'uh-note-group-' + order.indexOf(k);
+      h.textContent = screenLabel(k) + (k === cur ? ' · this screen' : '');
+      var ul = document.createElement('ul');
+      ul.setAttribute('aria-labelledby', h.id);
+      ul.append.apply(ul, rows);
+      li.append(h, ul);
+      nel.list.append(li);
+    });
+    var unsent = notes.filter(function (x) { return !x.sent; }).length;
+    nel.copy.disabled = n === 0;
+    nel.clear.disabled = n === 0;
+    nel.send.disabled = unsent === 0;
+    nel.send.textContent = unsent && unsent < n ? 'Send ' + unsent + ' new to Claude' : 'Send to Claude';
+    nel.send.title = unsent ? 'Post the notes as a comment on this artifact and send it to Claude' : 'Every note has been sent';
+    nel.copy.classList.toggle('uh-primary', nel.send.hidden);
+    nel.send.classList.toggle('uh-primary', !nel.send.hidden);
+  }
+  /* Opening a note from the list goes to its screen and state and opens its comment box. */
+  function showNote(n) {
+    notesMenu.close(false);
+    if (n.screen && n.screen !== screenId() && screenById(n.screen)) navigate(n.screen);
+    if (n.state && n.state !== st.state && states.some(function (s) { return s.id === n.state; })) setState(n.state);
+    var e = n.anchor && findEl(n.anchor.sel);
+    if (e && e.scrollIntoView) e.scrollIntoView({ block: 'nearest' });
+    if (n.kind !== 'screen' && !commenting) setCommenting(true);
+    openComposer(n, false);
+  }
+  var notesMenu = disclosure(nel.menu, nel.btn,
+    function () { return !nel.pop.hidden; },
+    function (v) {
+      nel.pop.hidden = !v;
+      if (v) { noteStatus(''); nel.out.hidden = true; renderNotesUI(); refreshSend(); }
+    });
+  nel.screenNote.addEventListener('click', function () {
+    notesMenu.close(false);
+    openComposer(baseNote('screen'), true);
+  });
+  nel.clear.addEventListener('click', function () {
+    var n = notes.length;
+    removeWithUndo([], n === 1 ? '1 note cleared.' : 'All ' + n + ' notes cleared.');
+    nel.undo.focus();
+  });
+  nel.undo.addEventListener('click', function () {
+    if (!undoNotes) return;
+    var back = undoNotes;
+    notes = back;
+    saveNotes();
+    renderNotesUI();
+    drawNotes();
+    noteStatus(back.length === 1 ? 'Note restored.' : 'Notes restored.');
+    nel.screenNote.focus();
+  });
+  nel.copy.addEventListener('click', function () {
+    var text = exportText(notes);
+    function fallback() {
+      /* Clipboard access can be blocked in an artifact frame: show the text, selected. */
+      nel.out.value = text;
+      nel.out.hidden = false;
+      nel.out.focus();
+      nel.out.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      noteStatus(ok ? 'Copied. Paste it to Claude.' : 'Copying is blocked here: the text is selected below, so press Ctrl or ⌘ C.');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { noteStatus('Copied. Paste it to Claude.'); }, fallback);
+    } else fallback();
+  });
+  function refreshSend() {
+    if (!commentsApi || typeof commentsApi.canSendToClaude !== 'function') { nel.send.hidden = true; renderNotesUI(); return; }
+    commentsApi.canSendToClaude().then(function (v) {
+      nel.send.hidden = v !== 'available';
+      renderNotesUI();
+    }, function () { nel.send.hidden = true; renderNotesUI(); });
+  }
+  var SEND_ERRORS = {
+    consent_required: 'Not sent: commenting from the page hasn’t been allowed. Allow it, or use Copy for Claude.',
+    forbidden: 'Commenting from the page is off here. Use Copy for Claude.',
+    claude_unavailable: 'No Claude session can take it right now. Nothing was posted; use Copy for Claude.',
+    rate_limited: 'Sent too often. Wait a moment, then send again.',
+    invalid: 'The notes couldn’t be sent as a comment. Use Copy for Claude.'
+  };
+  nel.send.addEventListener('click', function () {
+    var list = notes.filter(function (x) { return !x.sent; });
+    if (!commentsApi || !list.length) return;
+    var text = exportText(list);
+    if (new TextEncoder().encode(text).length > 4000) {
+      noteStatus('Too long for one comment (4 KB). Use Copy for Claude instead.');
+      return;
+    }
+    nel.send.disabled = true;
+    noteStatus('Sending…');
+    commentsApi.anchorFor(el.frame).then(function (anchor) {
+      return commentsApi.sendToClaude({ anchor: anchor, text: text });
+    }).then(function () {
+      var at = new Date().toISOString();
+      list.forEach(function (x) { x.sent = at; });
+      saveNotes();
+      renderNotesUI();
+      noteStatus('Sent ' + list.length + (list.length === 1 ? ' note' : ' notes') + ' to Claude. Its reply comes in the comment thread.');
+    }, function (err) {
+      var code = err && err.code;
+      if (code === 'forbidden' || code === 'not_granted' || code === 'capability_removed') nel.send.hidden = true;
+      renderNotesUI();
+      noteStatus(SEND_ERRORS[code] || 'Not sent' + (code ? ' (' + code + ')' : '') + '. Use Copy for Claude.');
+    });
+  });
+  /* Send to Claude lights up only where the page was published with the comments
+     capability and this viewer can send; everywhere else Copy for Claude is the way. */
+  if (window.claude && typeof window.claude.use === 'function') {
+    Promise.resolve(window.claude.use('comments')).then(function (c) { commentsApi = c || null; refreshSend(); }, function () {});
+  }
+  renderNotesUI();
+
   /* ---------- Public API handed to the screen's setup function ---------- */
   var toastTimer = 0;
   var canvas = {
@@ -1976,7 +2990,10 @@ window.ultrahandSetup = function (canvas) {
     },
     setTextScale: function (n) { st.textScale = Number(n) > 0 ? Number(n) : 1; render(); },
     /* Call after changing the DOM in a way that moves hit areas (e.g. opening a sheet). */
-    refresh: function () { measureTargets(); },
+    refresh: function () { measureTargets(); layoutNotes(); },
+    /* The viewer's notes (Comment mode), and the same as text for Claude. */
+    get notes() { return JSON.parse(JSON.stringify(notes)); },
+    notesText: function () { return exportText(notes); },
     setStatusBar: function (tone) {
       st.statusTone = ['light', 'dark', 'hidden'].indexOf(tone) >= 0 ? tone : 'auto';
       render();
