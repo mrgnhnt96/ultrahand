@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: notes-from-artifact
+description: When the user says they left notes on a published design, the session reads them from the artifact's uh-notes collection itself instead of asking for a paste
+tags: [smoke, notes]
+runs: 3
+execution:
+  prompt: >-
+    I left some notes on the phone checkout screen you designed for us:
+    https://claude.ai/artifact/0a1b2c3d-notes-eval. Can you go through them?
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: no artifact or claude.ai tool works here. Don't ask the
+    user anything. Wherever you would call a tool that isn't available here (reading an
+    artifact, its data or its comments), append one line to steps.log in the workspace
+    root naming the tool and its arguments, then stop and end with the message you would
+    send the user.
