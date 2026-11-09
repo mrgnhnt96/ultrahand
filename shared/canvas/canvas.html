@@ -495,9 +495,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
 /* The element a pin is on, outlined while its comment box is open. */
 .uh-target { position: absolute; border: calc(2px / var(--s)) dashed var(--pin); border-radius: calc(5px / var(--s)); pointer-events: none; }
 /* In comment mode, the element a click would pin to, under the pointer: aim before clicking. */
-.uh-target.uh-hover { border-width: calc(1px / var(--s)); border-style: solid; background: color-mix(in srgb, var(--pin) 6%, transparent); }
-/* A big container gets the line only, so the cards inside it don't look picked. */
-.uh-target.uh-hover[data-big] { background: none; }
+.uh-target.uh-hover { border-width: calc(1px / var(--s)); }
 .uh-comment-hint {
   position: absolute; top: 100%; left: 50%; z-index: 1;
   transform: translateX(-50%);
@@ -2512,10 +2510,6 @@ window.ultrahandSetup = function (canvas) {
     if (!q.width || !q.height || q.width * q.height > 0.9 * f.width * f.height) return null;
     return q;
   }
-  function isBig(q) {
-    var f = el.host.getBoundingClientRect();
-    return q.width * q.height > 0.4 * f.width * f.height;
-  }
   /* Drawn 2 screen px outside the element, so the line doesn't touch its text. */
   function placeOutline(node, q) {
     var a = toLocal(q.left, q.top), z = toLocal(q.right, q.bottom), g = 2 / st.s;
@@ -2717,37 +2711,29 @@ window.ultrahandSetup = function (canvas) {
     sketch = { id: e.pointerId, x: e.clientX, y: e.clientY, x2: e.clientX, y2: e.clientY, moved: false };
   });
   /* Hovering shows the element a click would pin to (mouse and pen only). */
-  var hoverEl = null, hoverAt = null, hoverRaf = 0, hoverOn = null, hoverWait = 0;
+  var hoverEl = null, hoverAt = null, hoverRaf = 0;
   function clearHover() {
     hoverAt = null;
-    hoverOn = null;
-    clearTimeout(hoverWait);
     if (hoverEl) { hoverEl.remove(); hoverEl = null; }
   }
   function showHover(t) {
     var r = outlineRect(t);
-    hoverOn = t;
     if (!r) { if (hoverEl) { hoverEl.remove(); hoverEl = null; } return; }
     if (!hoverEl) { hoverEl = document.createElement('div'); hoverEl.className = 'uh-target uh-hover'; nel.layer.append(hoverEl); }
-    hoverEl.toggleAttribute('data-big', isBig(r));
     placeOutline(hoverEl, r);
   }
   function drawHover() {
     hoverRaf = 0;
     var t = hoverAt && !sketch && commenting && hitAt(hoverAt.x, hoverAt.y);
-    if (!t) { clearTimeout(hoverWait); hoverOn = null; if (hoverEl) { hoverEl.remove(); hoverEl = null; } return; }
-    if (t === hoverOn) { showHover(t); return; }
-    /* A short wait before switching, so crossing a thin gap doesn't flash its container. */
-    clearTimeout(hoverWait);
-    if (!hoverEl) showHover(t);
-    else hoverWait = setTimeout(function () { if (hoverAt) showHover(hitAt(hoverAt.x, hoverAt.y)); }, 80);
+    if (!t) { if (hoverEl) { hoverEl.remove(); hoverEl = null; } return; }
+    showHover(t);
   }
   nel.layer.addEventListener('pointermove', function (e) {
     if (!sketch && e.pointerType !== 'touch') {
       if (e.target.closest('.uh-pin')) clearHover();
       else {
         hoverAt = { x: e.clientX, y: e.clientY };
-        if (!hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
+        drawHover();
       }
     }
     if (!sketch || e.pointerId !== sketch.id) return;
