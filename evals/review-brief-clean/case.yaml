@@ -15,4 +15,5 @@ execution:
   append_system_prompt: >-
     This is a planning test for a desktop design. Follow the design skill's review step:
     write the reviewer's brief where the review guide says to keep it, then stop. Don't run
-    the review (no runner, no agent), and don't edit the design.
+    the review (no runner, no agent), and don't edit the design. Your final message is the
+    brief's text, verbatim, and nothing else.
