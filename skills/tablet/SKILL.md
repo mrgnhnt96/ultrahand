@@ -88,7 +88,7 @@ node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
   --title "<design name>" --out index.html
 ```
 
-Publish `index.html` as an artifact, with the capabilities `{ "comments": {} }` so the
+Publish `index.html` as an artifact, with the capabilities `{ "db": {} }` so the
 user's canvas notes can reach you, only after the review in step 7. From `references/presets.md` the canvas gets:
 
 - **Full screen:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800.
@@ -224,9 +224,13 @@ layout changes at each width class, any self-check item you accepted with a reas
 proposed theme additions (for the `theme` skill), and any open questions.
 End with the **Review** note: its scope, what's left and why, and what it cost.
 Tell the user they can mark up the design instead of sending screenshots: Comment (or `C`),
-click to drop a pin or drag to mark an area, then Notes > Send to Claude or Copy for Claude.
-Their notes arrive as an artifact comment or pasted text, and each names the screen, state,
-frame size, element and selector: act on them as change requests, without asking for images.
+click to drop a pin or drag to mark an area, then tell you they left notes. The notes save
+themselves to the artifact's database. When the user says they left notes or comments, read
+them yourself with `ArtifactData` (`list`, collection `uh-notes`, on the artifact's URL)
+instead of asking them to paste. Each note has its `text` and a `where` naming the screen,
+state, frame size, element and selector: act on them as change requests, without asking for
+images. If the list comes back empty, the page may not have the `db` capability or the
+viewer couldn't write to it: ask them to check they're signed in.
 
 ## 9. Learn
 

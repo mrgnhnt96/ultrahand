@@ -124,7 +124,10 @@ button, input, select { font: inherit; color: inherit; }
 .uh-split { display: flex; }
 .uh-split > #uh-comment { border-radius: 8px 0 0 8px; }
 .uh-split #uh-notes-btn { margin-left: -1px; padding: 0 8px; border-radius: 0 8px 8px 0; gap: 4px; }
-.uh-split .uh-btn:hover, .uh-split .uh-btn:focus-visible { position: relative; z-index: 1; }
+/* Only the pill's own two halves: a looser selector also caught the Notes panel's buttons,
+   and made each row's absolutely placed trash button relative on hover, under the row. */
+.uh-split > #uh-comment:hover, .uh-split > #uh-comment:focus-visible,
+.uh-split #uh-notes-btn:hover, .uh-split #uh-notes-btn:focus-visible { position: relative; z-index: 1; }
 .uh-notes-icon { display: none; }
 /* Comment mode changes what every click does, so its button carries the pin colour. */
 #uh-comment[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--pin); }
@@ -514,7 +517,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
 .uh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .uh-grow { flex: 1; }
 /* The Notes panel: a fixed header and footer around a list that scrolls on its own, so
-   Send and Copy stay in reach however many notes there are. Notes group under their
+   the status and storage line stay in reach however many notes there are. Notes group under their
    screen (the current one first) once they span more than one. */
 .uh-notes-pop.uh-pop {
   width: 340px; padding: 0; overflow: hidden;
@@ -578,7 +581,6 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   background: var(--pin); color: #fff; font: 600 12px/1 var(--font-ui);
 }
 .uh-note-open .uh-badge { margin-top: 1px; }
-.uh-note-row[data-sent] .uh-badge { background: none; color: var(--pin-ink); box-shadow: inset 0 0 0 1.5px var(--pin-ink); }
 .uh-note-text {
   font-size: 14px; line-height: 1.4;
   overflow-wrap: anywhere; white-space: pre-wrap;
@@ -588,25 +590,21 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
 .uh-note-del {
   position: absolute; top: 6px; right: 6px;
   height: 28px; border-radius: 999px;
-  opacity: 0.4; transition: opacity 0.12s;
+  opacity: 0.7; transition: opacity 0.12s;
 }
 .uh-note-row:hover .uh-note-del, .uh-note-del:focus-visible { opacity: 1; }
 @media (hover: none) { .uh-note-del { opacity: 1; } }
 .uh-note-group-wrap > ul { margin: 0; padding: 0; list-style: none; }
 .uh-note-group h3 { margin: 0; font: inherit; }
-.uh-notes-foot {
-  display: flex; gap: 8px; padding: 10px 14px 12px;
-  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
-}
-.uh-notes-foot .uh-btn { flex: 1 1 0; justify-content: center; height: 34px; border-radius: 999px; font-weight: 500; }
+.uh-notes-foot { display: flex; align-items: center; gap: 8px; padding: 6px 14px 10px; }
+.uh-notes-foot[hidden] { display: none; }
+.uh-notes-where { flex: 1; margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+.uh-notes-foot .uh-btn.uh-ghost { height: 26px; color: var(--accent); font-weight: 500; }
 .uh-notes-foot .uh-btn[hidden] { display: none; }
-.uh-notes-pop > .uh-notes-out { margin: 0 14px 0; width: calc(100% - 28px); flex: none; }
-.uh-notes-out { width: 100%; height: min(120px, 25vh); font: 12px/1.4 var(--font-mono); }
-.uh-notes-out {
-  box-sizing: border-box;
-  padding: 8px;
-  border: 1px solid var(--field-line); border-radius: 8px;
-  background: var(--surface); color: var(--ink);
+/* In a very short window the panel scrolls as one, so the header and footer stay reachable. */
+@media (max-height: 360px) {
+  .uh-notes-pop.uh-pop { overflow: auto; }
+  .uh-note-scroll { flex: none; min-height: 0; overflow: visible; }
 }
 /* The comment box: a frosted card that grows with the text, tied to its pin by the pin's
    colour and number. The card is the field, so the textarea has no frame of its own and
@@ -782,7 +780,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
     <div class="uh-split" role="group" aria-label="Comments">
     <button class="uh-btn" type="button" id="uh-comment" aria-pressed="false" aria-label="Comment" title="Comment on the design: click to drop a pin, drag to mark an area (C)"><span class="uh-long">Comment</span><svg class="uh-short" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
     <div class="uh-notes-menu" id="uh-notes-menu">
-      <button class="uh-btn" type="button" id="uh-notes-btn" aria-expanded="false" aria-controls="uh-notes-pop" title="Your notes on this design, to send or copy to Claude"><svg class="uh-notes-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span id="uh-notes-count" aria-hidden="true"></span><span class="uh-caret" aria-hidden="true">▾</span></button>
+      <button class="uh-btn" type="button" id="uh-notes-btn" aria-expanded="false" aria-controls="uh-notes-pop" title="Your notes on this design"><svg class="uh-notes-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span id="uh-notes-count" aria-hidden="true"></span><span class="uh-caret" aria-hidden="true">▾</span></button>
       <div class="uh-pop uh-notes-pop" id="uh-notes-pop" role="group" aria-labelledby="uh-notes-title" hidden>
         <div class="uh-notes-head">
           <h2 id="uh-notes-title">Notes <span class="uh-notes-total" id="uh-notes-total"></span></h2>
@@ -791,12 +789,8 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
         </div>
         <p class="uh-notes-empty" id="uh-notes-empty">No notes yet. Turn on comment mode, then click the screen to drop a pin or drag to mark an area.</p>
         <div class="uh-note-scroll" id="uh-note-scroll"><ol class="uh-note-list" id="uh-note-list"></ol></div>
-        <textarea class="uh-notes-out" id="uh-notes-out" readonly aria-label="Notes for Claude" hidden></textarea>
-        <div class="uh-notes-foot">
-          <button class="uh-btn" type="button" id="uh-notes-send" hidden>Send to Claude</button>
-          <button class="uh-btn" type="button" id="uh-notes-copy" title="Copy every note, with where it is, to paste to Claude">Copy for Claude</button>
-        </div>
         <div class="uh-notes-msg"><p class="uh-notes-status" id="uh-notes-status" role="status"></p><button class="uh-btn uh-ghost uh-small" type="button" id="uh-notes-undo" hidden>Undo</button></div>
+        <div class="uh-notes-foot" id="uh-notes-foot" hidden><p class="uh-notes-where" id="uh-notes-where"></p><button class="uh-btn uh-ghost uh-small" type="button" id="uh-notes-save" hidden>Save now</button></div>
       </div>
     </div>
     </div>
@@ -2239,8 +2233,7 @@ window.ultrahandSetup = function (canvas) {
     layer: byId('uh-notes'), comment: byId('uh-comment'), notesAlt: byId('uh-notes-alt'), hint: byId('uh-comment-hint'),
     menu: byId('uh-notes-menu'), btn: byId('uh-notes-btn'), count: byId('uh-notes-count'), pop: byId('uh-notes-pop'),
     list: byId('uh-note-list'), scroll: byId('uh-note-scroll'), total: byId('uh-notes-total'), empty: byId('uh-notes-empty'), screenNote: byId('uh-note-screen'),
-    send: byId('uh-notes-send'), copy: byId('uh-notes-copy'), clear: byId('uh-notes-clear'),
-    out: byId('uh-notes-out'), status: byId('uh-notes-status'), undo: byId('uh-notes-undo'),
+    clear: byId('uh-notes-clear'), where: byId('uh-notes-where'), foot: byId('uh-notes-foot'), saveNow: byId('uh-notes-save'), status: byId('uh-notes-status'), undo: byId('uh-notes-undo'),
     composer: byId('uh-composer'), cTitle: byId('uh-composer-title'), cWhere: byId('uh-composer-where'),
     cText: byId('uh-composer-text'), cSize: byId('uh-composer-size'), cSizeGo: byId('uh-composer-size-go'), cDelete: byId('uh-composer-delete'), cNum: byId('uh-composer-num'), cHint: byId('uh-composer-hint'), cCancel: byId('uh-composer-cancel'), cSave: byId('uh-composer-save')
   };
@@ -2251,17 +2244,140 @@ window.ultrahandSetup = function (canvas) {
     if (!Array.isArray(notes)) notes = [];
   } catch (err) { notes = []; }
   /* Each note keeps its number for good, so a deleted note never renumbers the rest
-     and text already sent to Claude still matches the pins. */
+     and a note Claude reads still matches its pin. */
   notes.forEach(function (n, i) { if (!n.num) n.num = i + 1; });
   var undoNotes = null; /* the list before the last delete or clear */
   var commenting = false;
   var editing = null; /* { note, isNew } while the comment box is open */
   var sketch = null; /* a click or drag in progress on the layer */
   var pinEls = {}, regionEls = {}, sketchEl = null;
-  var commentsApi = null;
+  /* Where the page was published with the db capability, every note is also a document in
+     the artifact's database (collection NOTES_COL, one document per note, keyed by its id),
+     so Claude can read them with ArtifactData when told "I left notes". Notes stay in this
+     browser too, so they work offline and wherever there is no database. `synced` marks a
+     note whose current text the database has confirmed; a new or edited note is unsynced
+     until then, and an unsynced note always wins over the database's copy. Deleted ids are
+     kept out of later snapshots until the database confirms the delete. */
+  var NOTES_COL = 'uh-notes';
+  var store = null; /* the notes collection, once the database answers */
+  var storeState = (window.claude && typeof window.claude.use === 'function') ? 'pending' : 'none';
+  /* 'pending' (asking), 'none' (no database), 'ok', or 'readonly' (writes refused) */
+  /* Deletes the database hasn't confirmed: kept across reloads and retried with the next write. */
+  var DELETED_KEY = NOTES_KEY + ':deleted';
+  var deletedIds = {};
+  try { deletedIds = JSON.parse(localStorage.getItem(DELETED_KEY) || '{}') || {}; } catch (err) { deletedIds = {}; }
+  function saveDeleted() {
+    try { localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds)); } catch (err) { /* storage blocked */ }
+  }
+  var AUTHOR_KEY = 'uh-notes-author';
+  var me = '';
+  try { me = localStorage.getItem(AUTHOR_KEY) || ''; } catch (err) { /* storage blocked */ }
+  if (!me) {
+    me = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    try { localStorage.setItem(AUTHOR_KEY, me); } catch (err) { /* storage blocked */ }
+  }
+  /* A note from before authors were kept, still in this browser, is this viewer's. */
+  notes.forEach(function (n) { if (!n.author) n.author = me; });
+  function mine(n) { return n.author === me; }
 
   function saveNotes() {
     try { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); } catch (err) { /* storage blocked */ }
+  }
+  function noteDoc(n) {
+    var body = JSON.parse(JSON.stringify(n));
+    delete body.synced;
+    delete body.stored;
+    body.num = noteNumber(n);
+    body.where = describeNote(n).join('\n');
+    body.updated = new Date().toISOString();
+    return body;
+  }
+  var STORE_ERRORS = {
+    quota_exceeded: 'This design’s note storage is full: delete some notes to save more.',
+    resource_exhausted: 'Saving too fast: your notes are kept in this browser and save with your next change.',
+    unavailable: 'Couldn’t reach the design’s storage: your notes are kept in this browser and save with your next change.'
+  };
+  /* A failed write sets the status text only, so Undo and what it would restore survive. */
+  var statusError = false;
+  function storeFailed(err) {
+    var code = err && err.code;
+    if (!STORE_ERRORS[code]) {
+      /* The footer explains the read-only state and what to do: don't say it twice. */
+      storeState = 'readonly';
+      nel.status.textContent = nel.undo.hidden ? '' : actionText.replace(/\.$/, ' here.') + ' Not saved to the design.';
+    } else if (!nel.undo.hidden && code !== 'quota_exceeded') {
+      /* Keep what was done (and its Undo) in view, with what happened to it. */
+      nel.status.textContent = actionText.replace(/\.$/, ' here.') + ' Couldn’t reach the design’s storage, so the design gets this with your next change.';
+      statusError = true;
+    } else {
+      nel.status.textContent = STORE_ERRORS[code];
+      statusError = true;
+    }
+    renderNotesUI();
+    throw err;
+  }
+  function pendingDeletes() { return Object.keys(deletedIds).length; }
+  /* Write notes (after a viewer action only), plus any not yet in the database and any
+     delete it hasn't confirmed. Resolves true when every write landed. */
+  function pushNotes(list) {
+    if (storeState !== 'ok') return Promise.resolve(false);
+    var todo = list.slice();
+    notes.forEach(function (n) { if (!n.synced && todo.indexOf(n) < 0) todo.push(n); });
+    var calls = todo.map(function (n) {
+      var text = n.text;
+      return store.doc(n.id).set(noteDoc(n)).then(function () {
+        n.stored = true; /* the database has had it at least once */
+        if (n.text === text) n.synced = true; /* an edit made meanwhile stays unsynced */
+        saveNotes();
+        renderNotesUI();
+      }, storeFailed);
+    });
+    Object.keys(deletedIds).forEach(function (id) { calls.push(deleteDoc(id)); });
+    return Promise.all(calls).then(function () { return true; }, function () { return false; });
+  }
+  /* Deleting is idempotent, so a note whose first write is still in flight goes too. */
+  function deleteDoc(id) {
+    return store.doc(id).delete().then(function () {
+      delete deletedIds[id];
+      saveDeleted();
+      renderNotesUI();
+    }, storeFailed);
+  }
+  function dropNotes(list) {
+    /* A note the database never had is simply gone: there's nothing there to delete. */
+    list = list.filter(function (n) { return n.stored || n.synced; });
+    list.forEach(function (n) { deletedIds[n.id] = true; });
+    saveDeleted();
+    if (storeState !== 'ok') return;
+    list.forEach(function (n) { deleteDoc(n.id).catch(function () {}); });
+  }
+  function upsertNote(n) {
+    var i = -1;
+    notes.forEach(function (x, j) { if (x.id === n.id) i = j; });
+    if (i < 0) notes.push(n); else notes[i] = n;
+  }
+  function onNotesSnapshot(snap) {
+    var local = {};
+    notes.forEach(function (n) { if (!n.synced) local[n.id] = n; });
+    if (editing && !editing.isNew) local[editing.note.id] = editing.note;
+    var seen = {};
+    var next = [];
+    snap.docs.forEach(function (d) {
+      if (deletedIds[d.id]) return;
+      seen[d.id] = true;
+      if (local[d.id]) { next.push(local[d.id]); return; }
+      var n = JSON.parse(JSON.stringify(d.data() || {}));
+      n.id = d.id;
+      n.synced = true;
+      n.stored = true;
+      delete n.where; delete n.updated;
+      next.push(n);
+    });
+    notes.forEach(function (n) { if (!n.synced && !seen[n.id] && !deletedIds[n.id]) next.push(n); });
+    notes = next;
+    saveNotes();
+    renderNotesUI();
+    drawNotes();
   }
   function screenId() { return currentScreen ? currentScreen.dataset.screen : ''; }
   function screenLabel(id) {
@@ -2323,7 +2439,7 @@ window.ultrahandSetup = function (canvas) {
       fw: st.w, fh: st.h,
       preset: st.preset ? presetName(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '') : 'custom size',
       presetId: st.preset ? st.preset.id : null, landscape: st.landscape,
-      created: new Date().toISOString()
+      created: new Date().toISOString(), author: me
     };
   }
   function makePin(cx, cy) {
@@ -2603,12 +2719,17 @@ window.ultrahandSetup = function (canvas) {
     nel.cSave.disabled = !t.value.trim();
   }
   function openComposer(n, isNew) {
-    editing = { note: n, isNew: isNew };
-    nel.cTitle.textContent = (isNew ? 'New comment ' : 'Comment ') + noteNumber(n);
-    nel.cWhere.textContent = whereText(n);
+    /* Someone else's note opens to read only: no editing, saving or deleting it for everyone. */
+    var theirs = !isNew && !mine(n);
+    editing = { note: n, isNew: isNew, theirs: theirs };
+    nel.cTitle.textContent = (isNew ? 'New comment ' : theirs ? 'Someone else’s comment ' : 'Comment ') + noteNumber(n);
+    nel.cWhere.textContent = whereText(n) + (theirs ? '. You can read it but not change it.' : '');
     nel.cText.value = n.text || '';
+    nel.cText.readOnly = theirs;
     nel.cNum.textContent = noteNumber(n);
-    nel.cDelete.hidden = isNew;
+    nel.cDelete.hidden = isNew || theirs;
+    nel.cSave.hidden = theirs;
+    nel.cCancel.textContent = theirs ? 'Close' : 'Cancel';
     fitComposerText();
     showComposerSize();
     nel.composer.hidden = false;
@@ -2620,11 +2741,13 @@ window.ultrahandSetup = function (canvas) {
     if (!editing) return;
     var ed = editing;
     var text = nel.cText.value.trim();
-    if (save && text) {
+    if (save && text && !ed.theirs) {
+      if (ed.note.text !== text) delete ed.note.synced;
       ed.note.text = text;
-      delete ed.note.sent;
-      if (ed.isNew) { ed.note.num = nextNumber(); notes.push(ed.note); }
+      if (ed.isNew) ed.note.num = nextNumber();
+      upsertNote(ed.note);
       saveNotes();
+      pushNotes([ed.note]);
     }
     editing = null;
     nel.composer.hidden = true;
@@ -2641,8 +2764,9 @@ window.ultrahandSetup = function (canvas) {
     (nel.comment.offsetParent ? nel.comment : nel.btn.offsetParent ? nel.btn : el.previewBtn).focus();
   }
   function deleteNote(n) {
-    notes = notes.filter(function (x) { return x !== n; });
+    notes = notes.filter(function (x) { return x.id !== n.id; });
     saveNotes();
+    dropNotes([n]);
   }
   nel.cSave.addEventListener('click', function () { closeComposer(true, true); });
   nel.cText.addEventListener('input', function () { fitComposerText(); placeComposer(); });
@@ -2657,11 +2781,17 @@ window.ultrahandSetup = function (canvas) {
   });
   nel.cCancel.addEventListener('click', function () { closeComposer(false, true); });
   nel.cDelete.addEventListener('click', function () {
-    if (!editing) return;
-    deleteNote(editing.note);
+    if (!editing || editing.theirs) return;
+    var n = editing.note;
+    var wasNew = editing.isNew;
     editing.isNew = false;
     nel.cText.value = '';
     closeComposer(false, false);
+    /* A saved note goes with Undo, the same as the row's trash button. */
+    if (!wasNew && notes.some(function (x) { return x.id === n.id; })) {
+      removeWithUndo(notes.filter(function (x) { return x.id !== n.id; }), 'Note ' + noteNumber(n) + ' deleted.');
+      canvas.toast('Note ' + noteNumber(n) + ' deleted. Undo it from Notes.');
+    }
     focusCommentControl();
   });
   nel.composer.addEventListener('keydown', function (e) {
@@ -2808,36 +2938,31 @@ window.ultrahandSetup = function (canvas) {
     if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
   }, true);
 
-  /* ---------- Notes list, copy and send ---------- */
-  function exportText(list) {
-    var lines = [
-      'Design notes on "' + (cfg.title || 'Untitled screen') + '" (' + list.length + (list.length === 1 ? ' note' : ' notes') + ').',
-      'Positions are CSS px from the top-left of the screen, scroll included.',
-      ''
-    ];
-    list.forEach(function (n) {
-      var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
-      lines.push(noteNumber(n) + '. ' + kind + ' · screen ' + screenLabel(n.screen) +
-        (n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
-        (n.textScale !== 1 ? ' · text ' + Math.round(n.textScale * 100) + '%' : ''));
-      if (n.kind === 'pin') {
-        lines.push('   At ' + n.x + ', ' + n.y + (n.target ? ' on ' + n.target : '') + (n.inside ? ', inside ' + n.inside : ''));
-      } else if (n.kind === 'area') {
-        lines.push('   Area from ' + n.x + ', ' + n.y + ', ' + n.aw + '×' + n.ah + (n.within ? ', in ' + n.within : ''));
-        if (n.covers && n.covers.length) lines.push('   Covers: ' + n.covers.join('; '));
-      }
-      if (n.anchor && n.anchor.sel) lines.push('   Selector: ' + n.anchor.sel.replace(/^:scope > /, ''));
-      lines.push('   Note: ' + String(n.text).replace(/\n/g, '\n         '));
-      lines.push('');
-    });
-    return lines.join('\n').trim();
+  /* ---------- Notes list and storage ---------- */
+  /* One note, in words Claude can act on: stored with it as `where`. */
+  function describeNote(n) {
+    var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
+    var lines = [noteNumber(n) + '. ' + kind + ' · screen ' + screenLabel(n.screen) +
+      (n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
+      (n.textScale !== 1 ? ' · text ' + Math.round(n.textScale * 100) + '%' : '')];
+    if (n.kind === 'pin') {
+      lines.push('At ' + n.x + ', ' + n.y + ' (CSS px from the screen’s top-left, scroll included)' + (n.target ? ' on ' + n.target : '') + (n.inside ? ', inside ' + n.inside : ''));
+    } else if (n.kind === 'area') {
+      lines.push('Area from ' + n.x + ', ' + n.y + ', ' + n.aw + '×' + n.ah + ' (CSS px)' + (n.within ? ', in ' + n.within : ''));
+      if (n.covers && n.covers.length) lines.push('Covers: ' + n.covers.join('; '));
+    }
+    if (n.anchor && n.anchor.sel) lines.push('Selector: ' + n.anchor.sel.replace(/^:scope > /, ''));
+    return lines;
   }
-  function noteStatus(text) { nel.status.textContent = text; nel.undo.hidden = true; undoNotes = null; }
+  var actionText = '';
+  function noteStatus(text) { actionText = text; nel.status.textContent = text; nel.undo.hidden = true; undoNotes = null; statusError = false; }
   /* Deleting and clearing happen at once and can be undone until the next action. */
   function removeWithUndo(keep, text) {
     var before = notes.slice();
+    var gone = before.filter(function (x) { return keep.indexOf(x) < 0; });
     notes = keep;
     saveNotes();
+    dropNotes(gone);
     renderNotesUI();
     drawNotes();
     noteStatus(text);
@@ -2849,15 +2974,17 @@ window.ultrahandSetup = function (canvas) {
      isn't the first (default) one. */
   function rowMeta(n) {
     var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
-    return kind + (n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') + (n.sent ? ' · Sent' : '');
+    return kind + (n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') +
+      (!mine(n) ? ' · Someone else’s' : '') +
+      (storeState === 'ok' || storeState === 'readonly' ? (n.synced ? '' : ' · This browser only') : '');
   }
   function noteRow(note) {
     var li = document.createElement('li');
     li.className = 'uh-note-row';
-    if (note.sent) li.setAttribute('data-sent', '');
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'uh-note-open';
+    b.dataset.id = note.id;
     var badge = document.createElement('span');
     badge.className = 'uh-badge';
     badge.textContent = noteNumber(note);
@@ -2884,7 +3011,8 @@ window.ultrahandSetup = function (canvas) {
       var to = next[Math.min(i, next.length - 1)];
       (to ? to.previousElementSibling : nel.undo).focus();
     });
-    li.append(b, del);
+    li.append(b);
+    if (mine(note)) li.append(del);
     return li;
   }
   function renderNotesUI() {
@@ -2895,7 +3023,11 @@ window.ultrahandSetup = function (canvas) {
     nel.total.textContent = n ? String(n) : '';
     nel.empty.hidden = n > 0;
     nel.scroll.hidden = n === 0;
-    nel.clear.hidden = n === 0;
+    /* A snapshot can re-render the list under the viewer's focus: put it back on the same row. */
+    var fa = document.activeElement;
+    var fRow = fa && nel.list.contains(fa) ? fa.closest('.uh-note-row') : null;
+    var fId = fRow && fRow.querySelector('.uh-note-open').dataset.id;
+    var fDel = fa && fa.classList.contains('uh-note-del');
     nel.list.replaceChildren();
     /* Group by screen, the current screen first, once the notes span more than one. */
     var order = [], groups = {};
@@ -2922,14 +3054,39 @@ window.ultrahandSetup = function (canvas) {
       li.append(h, ul);
       nel.list.append(li);
     });
-    var unsent = notes.filter(function (x) { return !x.sent; }).length;
-    nel.copy.disabled = n === 0;
-    nel.clear.disabled = n === 0;
-    nel.send.disabled = unsent === 0;
-    nel.send.textContent = unsent && unsent < n ? 'Send ' + unsent + ' new to Claude' : 'Send to Claude';
-    nel.send.title = unsent ? 'Post the notes as a comment on this artifact and send it to Claude' : 'Every note has been sent';
-    nel.copy.classList.toggle('uh-primary', nel.send.hidden);
-    nel.send.classList.toggle('uh-primary', !nel.send.hidden);
+    /* With other people's notes in the list, Clear takes only this viewer's own. */
+    var own = notes.filter(mine).length;
+    var others = n - own;
+    if (fId) {
+      var back = nel.list.querySelector('.uh-note-open[data-id="' + fId + '"]');
+      if (back) (fDel ? back.nextElementSibling : back).focus({ preventScroll: true });
+    }
+    nel.clear.textContent = others ? 'Clear mine' : 'Clear all';
+    nel.clear.title = others ? 'Delete your ' + own + (own === 1 ? ' note' : ' notes') + '; other people’s stay' : 'Delete every note';
+    nel.clear.hidden = own === 0;
+    nel.clear.disabled = own === 0;
+    /* Say where the notes are, from their real state, so the viewer knows what Claude can read. */
+    var local = notes.filter(function (x) { return !x.synced; }).length;
+    var gone = pendingDeletes();
+    function onlyHere() {
+      return local === n ? (n === 1 ? 'This note is' : 'These notes are') : local + ' of ' + n + ' notes ' + (local === 1 ? 'is' : 'are');
+    }
+    var goneText = gone ? (gone === 1 ? '1 deleted note is' : gone + ' deleted notes are') + ' still saved with the design.' : '';
+    var where = '';
+    if (storeState === 'ok') {
+      where = local || gone
+        ? [local ? onlyHere() + ' only in this browser so far.' : '', goneText].filter(Boolean).join(' ')
+        : n ? 'Saved with this design. Tell Claude you left notes and it reads them here.' : '';
+    } else if (storeState === 'readonly') {
+      where = local || gone
+        ? 'You can’t save notes to this design. ' + [local ? onlyHere() + ' only in this browser, so Claude can’t read ' + (local === 1 ? 'it.' : 'them.') : '', goneText].filter(Boolean).join(' ') + ' Ask the design’s owner for access.'
+        : '';
+    } else if (storeState === 'none') {
+      where = n ? 'Saved in this browser only, so Claude can’t read these. Notes left on the published design are saved where Claude can read them.' : '';
+    }
+    nel.where.textContent = where;
+    nel.saveNow.hidden = !(storeState === 'ok' && (local || gone));
+    nel.foot.hidden = !where;
   }
   /* Opening a note from the list goes to its screen and state and opens its comment box. */
   function showNote(n) {
@@ -2945,86 +3102,56 @@ window.ultrahandSetup = function (canvas) {
     function () { return !nel.pop.hidden; },
     function (v) {
       nel.pop.hidden = !v;
-      if (v) { noteStatus(''); nel.out.hidden = true; renderNotesUI(); refreshSend(); }
+      if (v) { if (!statusError && nel.undo.hidden) noteStatus(''); renderNotesUI(); }
     });
   nel.screenNote.addEventListener('click', function () {
     notesMenu.close(false);
     openComposer(baseNote('screen'), true);
   });
   nel.clear.addEventListener('click', function () {
-    var n = notes.length;
-    removeWithUndo([], n === 1 ? '1 note cleared.' : 'All ' + n + ' notes cleared.');
+    var keep = notes.filter(function (x) { return !mine(x); });
+    var n = notes.length - keep.length;
+    removeWithUndo(keep, n === 1 ? '1 note cleared.' : (keep.length ? 'Your ' : 'All ') + n + ' notes cleared.');
     nel.undo.focus();
   });
-  nel.undo.addEventListener('click', function () {
-    if (!undoNotes) return;
-    var back = undoNotes;
-    notes = back;
-    saveNotes();
-    renderNotesUI();
-    drawNotes();
-    noteStatus(back.length === 1 ? 'Note restored.' : 'Notes restored.');
-    nel.screenNote.focus();
-  });
-  nel.copy.addEventListener('click', function () {
-    var text = exportText(notes);
-    function fallback() {
-      /* Clipboard access can be blocked in an artifact frame: show the text, selected. */
-      nel.out.value = text;
-      nel.out.hidden = false;
-      nel.out.focus();
-      nel.out.select();
-      var ok = false;
-      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
-      noteStatus(ok ? 'Copied. Paste it to Claude.' : 'Copying is blocked here: the text is selected below, so press Ctrl or ⌘ C.');
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { noteStatus('Copied. Paste it to Claude.'); }, fallback);
-    } else fallback();
-  });
-  function refreshSend() {
-    if (!commentsApi || typeof commentsApi.canSendToClaude !== 'function') { nel.send.hidden = true; renderNotesUI(); return; }
-    commentsApi.canSendToClaude().then(function (v) {
-      nel.send.hidden = v !== 'available';
-      renderNotesUI();
-    }, function () { nel.send.hidden = true; renderNotesUI(); });
-  }
-  var SEND_ERRORS = {
-    consent_required: 'Not sent: commenting from the page hasn’t been allowed. Allow it, or use Copy for Claude.',
-    forbidden: 'Commenting from the page is off here. Use Copy for Claude.',
-    claude_unavailable: 'No Claude session can take it right now. Nothing was posted; use Copy for Claude.',
-    rate_limited: 'Sent too often. Wait a moment, then send again.',
-    invalid: 'The notes couldn’t be sent as a comment. Use Copy for Claude.'
-  };
-  nel.send.addEventListener('click', function () {
-    var list = notes.filter(function (x) { return !x.sent; });
-    if (!commentsApi || !list.length) return;
-    var text = exportText(list);
-    if (new TextEncoder().encode(text).length > 4000) {
-      noteStatus('Too long for one comment (4 KB). Use Copy for Claude instead.');
-      return;
-    }
-    nel.send.disabled = true;
-    noteStatus('Sending…');
-    commentsApi.anchorFor(el.frame).then(function (anchor) {
-      return commentsApi.sendToClaude({ anchor: anchor, text: text });
-    }).then(function () {
-      var at = new Date().toISOString();
-      list.forEach(function (x) { x.sent = at; });
-      saveNotes();
-      renderNotesUI();
-      noteStatus('Sent ' + list.length + (list.length === 1 ? ' note' : ' notes') + ' to Claude. Its reply comes in the comment thread.');
-    }, function (err) {
-      var code = err && err.code;
-      if (code === 'forbidden' || code === 'not_granted' || code === 'capability_removed') nel.send.hidden = true;
-      renderNotesUI();
-      noteStatus(SEND_ERRORS[code] || 'Not sent' + (code ? ' (' + code + ')' : '') + '. Use Copy for Claude.');
+  nel.saveNow.addEventListener('click', function () {
+    noteStatus('Saving…');
+    pushNotes([]).then(function (ok) {
+      if (ok) noteStatus('Saved.');
+      /* The button hides once nothing is left to save: keep focus in the panel. */
+      if (nel.saveNow.hidden && document.activeElement === nel.saveNow || document.activeElement === document.body) {
+        (nel.list.querySelector('.uh-note-open') || nel.screenNote).focus();
+      }
     });
   });
-  /* Send to Claude lights up only where the page was published with the comments
-     capability and this viewer can send; everywhere else Copy for Claude is the way. */
+
+  nel.undo.addEventListener('click', function () {
+    if (!undoNotes) return;
+    var ids = {};
+    notes.forEach(function (x) { ids[x.id] = true; });
+    var returning = undoNotes.filter(function (x) { return !ids[x.id]; });
+    returning.forEach(function (x) { delete x.synced; delete deletedIds[x.id]; notes.push(x); });
+    saveDeleted();
+    saveNotes();
+    pushNotes(returning);
+    renderNotesUI();
+    drawNotes();
+    noteStatus(returning.length === 1 ? 'Note restored.' : 'Notes restored.');
+    /* Back to the (first) restored row, where the viewer was. */
+    var rows = Array.prototype.slice.call(nel.list.querySelectorAll('.uh-note-open'));
+    var at = rows.filter(function (r) { return returning.some(function (x) { return r.dataset.id === x.id; }); })[0];
+    (at || nel.screenNote).focus();
+  });
+  /* Notes go to the artifact's database where the page was published with the db
+     capability; everywhere else they stay in this browser. */
   if (window.claude && typeof window.claude.use === 'function') {
-    Promise.resolve(window.claude.use('comments')).then(function (c) { commentsApi = c || null; refreshSend(); }, function () {});
+    Promise.resolve(window.claude.use('db')).then(function (db) {
+      if (!db) { storeState = 'none'; renderNotesUI(); return; }
+      store = db.collection(NOTES_COL);
+      storeState = 'ok';
+      store.onSnapshot(onNotesSnapshot, storeFailed);
+      renderNotesUI();
+    }, function () { storeState = 'none'; renderNotesUI(); });
   }
   renderNotesUI();
 
@@ -3066,7 +3193,9 @@ window.ultrahandSetup = function (canvas) {
     refresh: function () { measureTargets(); layoutNotes(); },
     /* The viewer's notes (Comment mode), and the same as text for Claude. */
     get notes() { return JSON.parse(JSON.stringify(notes)); },
-    notesText: function () { return exportText(notes); },
+    notesText: function () {
+      return notes.map(function (n) { return describeNote(n).concat('Note: ' + n.text).join('\n'); }).join('\n\n');
+    },
     setStatusBar: function (tone) {
       st.statusTone = ['light', 'dark', 'hidden'].indexOf(tone) >= 0 ? tone : 'auto';
       render();
