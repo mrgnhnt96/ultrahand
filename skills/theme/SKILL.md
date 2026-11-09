@@ -156,7 +156,7 @@ screen template's own `<style>`: the canvas sets `data-state` inside the screen,
 page head can't reach. Declare `states` `a`, `b`, `c` in `config.json` with the direction
 names as labels, and the State picker switches between them.
 
-Publish `index.html` as an artifact, with the capabilities `{ "comments": {} }`. When the design itself is an artifact, republish it
+Publish `index.html` as an artifact, with the capabilities `{ "db": {} }`. When the design itself is an artifact, republish it
 built with the theme (`--head theme.html`) and include the two `design/` files.
 
 ## 7. Present
