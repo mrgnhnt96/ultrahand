@@ -76,7 +76,8 @@ node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
   --title "<design name>" --out index.html
 ```
 
-Publish `index.html` as an artifact only after the review in step 7. The presets are `small` 360 (Android), `medium` 393 and
+Publish `index.html` as an artifact, with the capabilities `{ "comments": {} }` so the
+user's canvas notes can reach you, only after the review in step 7. The presets are `small` 360 (Android), `medium` 393 and
 `large` 430 (iOS); Rotate gives each in landscape, and the 320-wide reflow pass sits under
 Checks.
 
@@ -186,6 +187,10 @@ self-check item you accepted with a reason, and any
 proposed theme additions (for the `theme` skill), and any open questions.
 End with the **Review** note: its scope, findings by severity, what you fixed and what's
 left.
+Tell the user they can mark up the design instead of sending screenshots: Comment (or `C`),
+click to drop a pin or drag to mark an area, then Notes > Send to Claude or Copy for Claude.
+Their notes arrive as an artifact comment or pasted text, and each names the screen, state,
+frame size, element and selector: act on them as change requests, without asking for images.
 
 ## 9. Learn
 

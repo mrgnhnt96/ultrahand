@@ -83,7 +83,8 @@ node "${CLAUDE_PLUGIN_ROOT}/shared/canvas/build.mjs" \
   --title "<design name>" --out index.html
 ```
 
-Publish `index.html` as an artifact only after the review in step 7. From `references/presets.md` the canvas gets:
+Publish `index.html` as an artifact, with the capabilities `{ "comments": {} }` so the
+user's canvas notes can reach you, only after the review in step 7. From `references/presets.md` the canvas gets:
 
 - **Full screen:** `ipad-mini` 744, `ipad` 820, `ipad-13` 1032 and `android-tablet` 800.
   Rotate gives each in landscape.
@@ -209,6 +210,10 @@ layout changes at each width class, any self-check item you accepted with a reas
 proposed theme additions (for the `theme` skill), and any open questions.
 End with the **Review** note: its scope, findings by severity, what you fixed and what's
 left.
+Tell the user they can mark up the design instead of sending screenshots: Comment (or `C`),
+click to drop a pin or drag to mark an area, then Notes > Send to Claude or Copy for Claude.
+Their notes arrive as an artifact comment or pasted text, and each names the screen, state,
+frame size, element and selector: act on them as change requests, without asking for images.
 
 ## 9. Learn
 
