@@ -86,7 +86,9 @@ true, so a brief that explains or defends the design turns the review into a che
 your claims. Fill in the template below and add nothing else. Each field takes only
 what its line says:
 
-- **The request** is the user's words, quoted. Don't summarise or restate it.
+- **The request** is the user's words, quoted. Don't summarise or restate it. If it
+  points at the designer's notes or reasoning (a notes file, "see my comments"), cut
+  that part and mark the cut with "…": the reviewer never reads your notes.
 - **Screens** names what's on the canvas and which parts are review chrome, as plain
   labels. Don't describe what a screen is meant to achieve.
 - **Project records** are paths. Don't paraphrase the owner's preferences: the reviewer

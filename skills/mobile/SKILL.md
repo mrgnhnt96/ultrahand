@@ -1,6 +1,6 @@
 ---
 name: mobile
-description: Use only when the user asks to design a mobile UI screen or flow (phone-sized layouts, touch targets, thumb reach), or corrects one or states a lasting design preference for a phone app. Do not use for tablet, desktop, or non-UI work.
+description: Use only when the user asks to design a mobile UI screen or flow (phone-sized layouts, touch targets, thumb reach), corrects one, says they left notes or comments on one, or states a lasting design preference for a phone app. Do not use for tablet, desktop, or non-UI work.
 ---
 
 # ultrahand: mobile

@@ -1,6 +1,6 @@
 ---
 name: desktop
-description: Use only when the user asks to design a desktop UI screen or flow (resizable windows, min/max sizes, pointer and keyboard), or corrects one or states a lasting design preference for a desktop app. Do not use for mobile, tablet, or non-UI work.
+description: Use only when the user asks to design a desktop UI screen or flow (resizable windows, min/max sizes, pointer and keyboard), corrects one, says they left notes or comments on one, or states a lasting design preference for a desktop app. Do not use for mobile, tablet, or non-UI work.
 ---
 
 # ultrahand: desktop
