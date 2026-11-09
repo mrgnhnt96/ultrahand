@@ -9,6 +9,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::watchdog;
+
 const TICK: Duration = Duration::from_millis(50);
 const TERM_GRACE: Duration = Duration::from_secs(5);
 const DRAIN_LIMIT: Duration = Duration::from_secs(2);
@@ -90,6 +92,7 @@ pub fn run(launch: Launch, mut on_line: impl FnMut(&[u8]) -> Option<Stop>) -> Fi
         }
     };
     let group = child.id() as libc::pid_t;
+    watchdog::watch_group(group);
     feed_stdin(&mut child, launch.input);
     let lines = read_lines(child.stdout.take());
     let stderr = read_stderr(child.stderr.take());
@@ -97,6 +100,7 @@ pub fn run(launch: Launch, mut on_line: impl FnMut(&[u8]) -> Option<Stop>) -> Fi
     let deadline = Instant::now() + launch.timeout;
     let ending = watch(&mut child, &lines, deadline, &mut on_line);
     let status = stop_group(group, &mut child);
+    watchdog::forget_group(group);
     drain(&lines, &mut on_line);
 
     let ending = match ending {
@@ -236,6 +240,19 @@ fn stop_group(group: libc::pid_t, child: &mut Child) -> Option<ExitStatus> {
     signal_group(group, libc::SIGKILL);
     let _ = child.kill();
     status.or(child.wait().ok())
+}
+
+/// For a group whose leader this process didn't start, so there's no zombie to reap.
+pub fn stop_orphaned_group(group: libc::pid_t) {
+    signal_group(group, libc::SIGTERM);
+    let deadline = Instant::now() + TERM_GRACE;
+    while Instant::now() < deadline {
+        if !group_alive(group) {
+            return;
+        }
+        thread::sleep(TICK);
+    }
+    signal_group(group, libc::SIGKILL);
 }
 
 /// A short helper command: no input, no output, and it can't outlast `limit`. It ignores
