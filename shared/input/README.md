@@ -29,6 +29,8 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 
 `open` starts Chrome headless with a throwaway profile. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
 
+With `ULTRAHAND_DRIVE_FOLDER` set, as the review CLI sets it for each locked reviewer, `--out` has to be inside that folder and the only steps script `do` and `run` take is `shared/composition/audit.mjs`. Any other steps script runs as plain Node and could write anywhere.
+
 Each line echoes its step. A string in it longer than 160 characters is cut to its start and its length, so a long `eval` doesn't fill the output. A step with `"quiet": true` prints only `i`, the step, `ok` and any `error`, `warning` or `pageErrors`; a steps script still gets the whole result back.
 
 Headless Chrome takes `prefers-color-scheme` from the OS appearance, so on a Mac set to Dark the page sees `dark`, and a page that follows the scheme renders dark. Set it with `--scheme` or the `scheme` step, and check both.

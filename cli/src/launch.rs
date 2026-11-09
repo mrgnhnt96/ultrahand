@@ -46,6 +46,10 @@ const NETWORK_KEPT: [&str; 11] = [
     "SSL_CERT_DIR",
 ];
 const CACHE_TTL: (&str, &str) = ("CLAUDE_CODE_PROMPT_CACHE_TTL", "5m");
+/// drive.mjs reads it: under it, --out has to be inside this folder and the only steps
+/// script it runs is the composition audit. The child's shell only passes the driver, so the
+/// child can't change or drop it.
+const DRIVE_FOLDER: &str = "ULTRAHAND_DRIVE_FOLDER";
 
 pub struct Options<'a> {
     pub system: &'a Path,
@@ -112,14 +116,20 @@ fn push_pairs(args: &mut Vec<OsString>, pairs: &[(&str, &OsStr)]) {
 }
 
 /// A child starts from an empty environment. Session ids, messaging sockets and compaction
-/// overrides all reach it if inherited, so anything not named here is left behind.
-pub fn child_env(parent: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsString, OsString)> {
+/// overrides all reach it if inherited, so anything not named here is left behind. `folder`
+/// is the one place the child's browser driver may write.
+pub fn child_env(
+    parent: impl Iterator<Item = (OsString, OsString)>,
+    folder: &Path,
+) -> Vec<(OsString, OsString)> {
     let kept = |name: &OsStr| {
         let listed = |list: &[&str]| list.iter().any(|keep| OsStr::new(keep) == name);
         listed(&ALWAYS_KEPT) || listed(&AUTH_KEPT) || listed(&NETWORK_KEPT)
     };
     let mut env: Vec<_> = parent.filter(|(name, _)| kept(name)).collect();
+    env.retain(|(name, _)| name != DRIVE_FOLDER);
     env.push((CACHE_TTL.0.into(), CACHE_TTL.1.into()));
+    env.push((DRIVE_FOLDER.into(), folder.as_os_str().to_owned()));
     env
 }
 
@@ -231,8 +241,12 @@ mod tests {
             ("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", "3"),
             ("CLAUDE_CODE_AUTO_COMPACT_WINDOW", "150000"),
             ("UH_SECTIONS", "x"),
+            ("ULTRAHAND_DRIVE_FOLDER", "/"),
         ];
-        let env = child_env(parent.iter().map(|(k, v)| (k.into(), v.into())));
+        let env = child_env(
+            parent.iter().map(|(k, v)| (k.into(), v.into())),
+            Path::new("/unit"),
+        );
         let names: Vec<_> = env.iter().map(|(k, _)| k.to_str().unwrap()).collect();
         assert_eq!(
             names,
@@ -240,8 +254,10 @@ mod tests {
                 "HOME",
                 "ANTHROPIC_API_KEY",
                 "https_proxy",
-                "CLAUDE_CODE_PROMPT_CACHE_TTL"
+                "CLAUDE_CODE_PROMPT_CACHE_TTL",
+                "ULTRAHAND_DRIVE_FOLDER"
             ]
         );
+        assert_eq!(env.last().unwrap().1, "/unit");
     }
 }
