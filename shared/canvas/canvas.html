@@ -204,6 +204,8 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 
 /* Stage */
 .uh-bar { grid-row: 1; }
+.uh-stage:focus:not(:focus-visible) { outline: none; }
+.uh-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .uh-stage {
   grid-row: 3;
   position: relative;
@@ -813,6 +815,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           <dt>Drag, pan</dt><dd><kbd>Esc</kbd> cancels</dd>
           <dt>W, H</dt><dd><kbd>Enter</kbd> applies, <kbd>Esc</kbd> reverts</dd>
           <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Light and Dark, text size)</dd>
+          <dt>Screen</dt><dd><kbd>Esc</kbd> moves focus out of the screen, so <kbd>C</kbd>, <kbd>?</kbd> and the zoom keys work. If the screen used the Esc (to close a menu or dialog, or clear a field), press it again</dd>
           <dt>Comment</dt><dd><kbd>C</kbd> turns it on or off. Click drops a pin, drag marks an area, <kbd>Esc</kbd> stops</dd>
           <dt>Comment box</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels</dd>
           <dt>This list</dt><dd><kbd>?</kbd></dd>
@@ -851,7 +854,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   <div class="uh-error-text" id="uh-error-text" role="alert"></div>
   <button class="uh-btn uh-error-dismiss" type="button" id="uh-error-dismiss">Dismiss</button>
 </div>
-<main class="uh-stage" id="uh-stage">
+<main class="uh-stage" id="uh-stage" tabindex="-1">
   <div class="uh-scaler" id="uh-scaler">
     <div class="uh-rig" id="uh-rig">
       <!-- Keyboard: Width and Height are the two sliders; the other edges and corners are pointer-only. -->
@@ -2697,8 +2700,28 @@ window.ultrahandSetup = function (canvas) {
     } else if (e.key === 'Escape' && commenting && !editing && !typing) {
       e.preventDefault();
       setCommenting(false);
+    } else if (e.key === 'Escape' && path.indexOf(el.host) >= 0) {
+      leaveScreenIfUnused(e);
     }
   });
+  /* An Escape the screen didn't use leaves it: focus goes to the stage, so C, ? and the zoom
+     keys work again without a click outside the screen. The Escape keeps its default, and
+     the check waits a tick, so a dialog still closes, a search field still clears and a
+     menu still hands focus back; any of those keeps focus in the screen for this press. */
+  function openLayers() {
+    return root.querySelectorAll('dialog[open], [aria-modal="true"], [aria-expanded="true"]').length +
+      (function () { try { return root.querySelectorAll(':popover-open').length; } catch (err) { return 0; } })();
+  }
+  function leaveScreenIfUnused(e) {
+    var at = root.activeElement, layers = openLayers();
+    var value = at && 'value' in at ? at.value : null;
+    setTimeout(function () {
+      if (e.defaultPrevented || !at || !at.isConnected || root.activeElement !== at) return;
+      if (openLayers() !== layers || (value !== null && at.value !== value)) return;
+      if (root.querySelector('dialog[open], [aria-modal="true"]')) return;
+      el.stage.focus({ preventScroll: true });
+    }, 0);
+  }
 
   /* A press on the layer: a click drops a pin, a drag of more than a few px marks an area. */
   nel.layer.addEventListener('pointerdown', function (e) {
