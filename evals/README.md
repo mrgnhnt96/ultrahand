@@ -27,6 +27,7 @@ every release and stops when a case passes fewer than 2 of its 3 runs.
 | `lessons-recorded` | smoke | A lasting correction becomes a lesson in the documented format. |
 | `plugin-feedback` | smoke | A correction to the skill itself becomes a plugin report, kept in LESSONS.md, with no public issue opened unasked. |
 | `review-brief-clean` | smoke | A fix-check reviewer brief names the finding IDs, the last report and the fix diff by path, and carries none of the designer's notes, reasons or account of the fixes. |
+| `review-before-present` | smoke | A first design round starts the independent review on its own, before it publishes or presents, and the reply opens with one line on what the review caught. The sandbox can't start a reviewer, so the run logs the review and publish steps to `steps.log` and the graders check their order. |
 | `review-launches-cli` | smoke | A review request becomes a written plan and a launcher dry run, and the session never reads the checklist or the method itself. |
 | `lessons-compacted` | quality | Over-limit LESSONS.md and THEME.md are compacted: superseded and closed items archived, overlapping lessons merged, a theme value promoted, the old changelog moved out, and no rule lost. |
 | `theme-extract` | quality | Extraction from drifting CSS keeps the brand, snaps to the grid, passes `check.mjs` and records its decisions. |
