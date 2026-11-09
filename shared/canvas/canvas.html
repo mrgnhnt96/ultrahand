@@ -493,7 +493,11 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   pointer-events: none;
 }
 /* The element a pin is on, outlined while its comment box is open. */
-.uh-target { position: absolute; border: calc(1px / var(--s)) dashed var(--pin); border-radius: calc(3px / var(--s)); pointer-events: none; }
+.uh-target { position: absolute; border: calc(2px / var(--s)) dashed var(--pin); border-radius: calc(5px / var(--s)); pointer-events: none; }
+/* In comment mode, the element a click would pin to, under the pointer: aim before clicking. */
+.uh-target.uh-hover { border-width: calc(1px / var(--s)); border-style: solid; background: color-mix(in srgb, var(--pin) 6%, transparent); }
+/* A big container gets the line only, so the cards inside it don't look picked. */
+.uh-target.uh-hover[data-big] { background: none; }
 .uh-comment-hint {
   position: absolute; top: 100%; left: 50%; z-index: 1;
   transform: translateX(-50%);
@@ -2488,6 +2492,7 @@ window.ultrahandSetup = function (canvas) {
       placeBox(sketchEl, a.x, a.y, z.x, z.y);
     } else if (sketchEl) { sketchEl.remove(); sketchEl = null; }
     drawTarget();
+    if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
     placeComposer();
   }
   /* The comment box sits beside its pin, inside the window; a whole-screen note centres it. */
@@ -2499,13 +2504,30 @@ window.ultrahandSetup = function (canvas) {
     if (!q.width || q.width * q.height > 0.4 * f.width * f.height) return null;
     return q;
   }
+  /* Which elements get an outline: anything but the screen itself or one that fills it.
+     The hover outline and the pinned one follow the same rule. */
+  function outlineRect(e) {
+    if (!e || e === currentScreen) return null;
+    var q = e.getBoundingClientRect(), f = el.host.getBoundingClientRect();
+    if (!q.width || !q.height || q.width * q.height > 0.9 * f.width * f.height) return null;
+    return q;
+  }
+  function isBig(q) {
+    var f = el.host.getBoundingClientRect();
+    return q.width * q.height > 0.4 * f.width * f.height;
+  }
+  /* Drawn 2 screen px outside the element, so the line doesn't touch its text. */
+  function placeOutline(node, q) {
+    var a = toLocal(q.left, q.top), z = toLocal(q.right, q.bottom), g = 2 / st.s;
+    placeBox(node, a.x - g, a.y - g, z.x + g, z.y + g);
+  }
   var targetEl = null;
   function drawTarget() {
-    var t = editing && editing.note.kind === 'pin' && !nel.layer.hidden && targetRect(editing.note);
+    var n = editing && editing.note;
+    var t = n && n.kind === 'pin' && !nel.layer.hidden && n.anchor && outlineRect(findEl(n.anchor.sel));
     if (!t) { if (targetEl) { targetEl.remove(); targetEl = null; } return; }
     if (!targetEl) { targetEl = document.createElement('div'); targetEl.className = 'uh-target'; nel.layer.append(targetEl); }
-    var a = toLocal(t.left, t.top), z = toLocal(t.right, t.bottom);
-    placeBox(targetEl, a.x, a.y, z.x, z.y);
+    placeOutline(targetEl, t);
   }
   function placeComposer() {
     if (!editing) return;
@@ -2654,6 +2676,7 @@ window.ultrahandSetup = function (canvas) {
   function setCommenting(on) {
     commenting = !!on;
     document.body.classList.toggle('uh-commenting', commenting);
+    if (!commenting) clearHover();
     nel.comment.setAttribute('aria-pressed', String(commenting));
     nel.hint.hidden = !commenting;
     if (!commenting) { sketch = null; if (editing && editing.note.kind !== 'screen') closeComposer(true, false); }
@@ -2688,12 +2711,47 @@ window.ultrahandSetup = function (canvas) {
     if (e.button !== 0 || document.body.classList.contains('uh-space')) return;
     if (e.target.closest('.uh-pin')) return;
     e.preventDefault();
+    clearHover();
     if (editing) closeComposer(true, false);
     nel.layer.setPointerCapture(e.pointerId);
     sketch = { id: e.pointerId, x: e.clientX, y: e.clientY, x2: e.clientX, y2: e.clientY, moved: false };
   });
+  /* Hovering shows the element a click would pin to (mouse and pen only). */
+  var hoverEl = null, hoverAt = null, hoverRaf = 0, hoverOn = null, hoverWait = 0;
+  function clearHover() {
+    hoverAt = null;
+    hoverOn = null;
+    clearTimeout(hoverWait);
+    if (hoverEl) { hoverEl.remove(); hoverEl = null; }
+  }
+  function showHover(t) {
+    var r = outlineRect(t);
+    hoverOn = t;
+    if (!r) { if (hoverEl) { hoverEl.remove(); hoverEl = null; } return; }
+    if (!hoverEl) { hoverEl = document.createElement('div'); hoverEl.className = 'uh-target uh-hover'; nel.layer.append(hoverEl); }
+    hoverEl.toggleAttribute('data-big', isBig(r));
+    placeOutline(hoverEl, r);
+  }
+  function drawHover() {
+    hoverRaf = 0;
+    var t = hoverAt && !sketch && commenting && hitAt(hoverAt.x, hoverAt.y);
+    if (!t) { clearTimeout(hoverWait); hoverOn = null; if (hoverEl) { hoverEl.remove(); hoverEl = null; } return; }
+    if (t === hoverOn) { showHover(t); return; }
+    /* A short wait before switching, so crossing a thin gap doesn't flash its container. */
+    clearTimeout(hoverWait);
+    if (!hoverEl) showHover(t);
+    else hoverWait = setTimeout(function () { if (hoverAt) showHover(hitAt(hoverAt.x, hoverAt.y)); }, 80);
+  }
   nel.layer.addEventListener('pointermove', function (e) {
+    if (!sketch && e.pointerType !== 'touch') {
+      if (e.target.closest('.uh-pin')) clearHover();
+      else {
+        hoverAt = { x: e.clientX, y: e.clientY };
+        if (!hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
+      }
+    }
     if (!sketch || e.pointerId !== sketch.id) return;
+    clearHover();
     sketch.x2 = e.clientX;
     sketch.y2 = e.clientY;
     if (Math.abs(sketch.x2 - sketch.x) > 6 || Math.abs(sketch.y2 - sketch.y) > 6) sketch.moved = true;
@@ -2707,6 +2765,7 @@ window.ultrahandSetup = function (canvas) {
     openComposer(n, true);
   });
   nel.layer.addEventListener('pointercancel', function () { sketch = null; drawNotes(); });
+  nel.layer.addEventListener('pointerleave', clearHover);
   nel.layer.addEventListener('click', function (e) {
     var pin = e.target.closest('.uh-pin');
     if (!pin) return;
@@ -2732,8 +2791,13 @@ window.ultrahandSetup = function (canvas) {
     sc.scrollTop += e.deltaY * k;
     sc.scrollLeft += e.deltaX * k;
     if (sc.scrollTop !== t0 || sc.scrollLeft !== l0) e.preventDefault();
+    if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
   }, { passive: false });
-  root.addEventListener('scroll', function () { if (commenting) layoutNotes(); }, true);
+  root.addEventListener('scroll', function () {
+    if (!commenting) return;
+    layoutNotes();
+    if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
+  }, true);
 
   /* ---------- Notes list, copy and send ---------- */
   function exportText(list) {
