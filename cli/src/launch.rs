@@ -116,19 +116,24 @@ fn push_pairs(args: &mut Vec<OsString>, pairs: &[(&str, &OsStr)]) {
 }
 
 /// A child starts from an empty environment. Session ids, messaging sockets and compaction
-/// overrides all reach it if inherited, so anything not named here is left behind. `folder`
-/// is the one place the child's browser driver may write.
-pub fn child_env(
-    parent: impl Iterator<Item = (OsString, OsString)>,
-    folder: &Path,
-) -> Vec<(OsString, OsString)> {
+/// overrides all reach it if inherited, so anything not named here is left behind.
+pub fn child_env(parent: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsString, OsString)> {
     let kept = |name: &OsStr| {
         let listed = |list: &[&str]| list.iter().any(|keep| OsStr::new(keep) == name);
         listed(&ALWAYS_KEPT) || listed(&AUTH_KEPT) || listed(&NETWORK_KEPT)
     };
     let mut env: Vec<_> = parent.filter(|(name, _)| kept(name)).collect();
-    env.retain(|(name, _)| name != DRIVE_FOLDER);
     env.push((CACHE_TTL.0.into(), CACHE_TTL.1.into()));
+    env
+}
+
+/// A reviewer's environment: the child's, plus `folder` as the one place its browser driver
+/// may write.
+pub fn reviewer_env(
+    parent: impl Iterator<Item = (OsString, OsString)>,
+    folder: &Path,
+) -> Vec<(OsString, OsString)> {
+    let mut env = child_env(parent);
     env.push((DRIVE_FOLDER.into(), folder.as_os_str().to_owned()));
     env
 }
@@ -243,7 +248,7 @@ mod tests {
             ("UH_SECTIONS", "x"),
             ("ULTRAHAND_DRIVE_FOLDER", "/"),
         ];
-        let env = child_env(
+        let env = reviewer_env(
             parent.iter().map(|(k, v)| (k.into(), v.into())),
             Path::new("/unit"),
         );

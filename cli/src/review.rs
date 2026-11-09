@@ -311,7 +311,7 @@ pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
         add_dirs: &job.add_dirs,
         root: &job.root,
     });
-    let child_env = launch::child_env(env::vars_os(), &job.cwd);
+    let child_env = launch::reviewer_env(env::vars_os(), &job.cwd);
     let started = Instant::now();
     let mut summary = Summary::default();
     let mut on_first_reply = Some(on_first_reply);
