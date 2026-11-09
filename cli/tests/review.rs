@@ -414,6 +414,28 @@ fn a_signal_to_the_command_stops_the_child_and_still_writes_the_record() {
 }
 
 #[test]
+fn a_sigkill_to_the_command_still_stops_the_child_and_closes_its_browser() {
+    let f = Fixture::new();
+    f.fake_claude(
+        r#"sh -c 'trap "" TERM; echo $$ > "$0.stubborn"; while :; do sleep 1; done' "$me" &
+until [ -e "$me.stubborn" ]; do :; done
+exec sleep 60"#,
+    );
+    let mut running = f.command().stdout(Stdio::null()).spawn().unwrap();
+    let stubborn_file = f.captured_path("stubborn");
+    assert!(wait_until(SLOW_START, || stubborn_file.exists()));
+    running.kill().unwrap();
+    running.wait().unwrap();
+
+    let claude = pid_in(&f.captured_path("pid"));
+    let stubborn = pid_in(&stubborn_file);
+    assert!(wait_until(Duration::from_secs(10), || gone(claude) && gone(stubborn)));
+    assert!(wait_until(SLOW_START, || f
+        .drive_calls()
+        .starts_with("close --port ")));
+}
+
+#[test]
 fn one_compaction_is_marked_in_the_record_and_the_summary() {
     let f = Fixture::new();
     f.fake_stream(&[compaction_event(), result_event(findings())]);

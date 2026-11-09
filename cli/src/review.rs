@@ -16,6 +16,7 @@ use crate::profile::{self, Profile};
 use crate::prompt;
 use crate::report::Report;
 use crate::stream::{Summary, Tokens};
+use crate::watchdog;
 
 const STDERR_IN_ERROR: usize = 500;
 const STOP_AT_COMPACTIONS: u64 = 2;
@@ -311,6 +312,7 @@ pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
     let started = Instant::now();
     let mut summary = Summary::default();
     let mut on_first_reply = Some(on_first_reply);
+    watchdog::watch_browser(job.port, &job.root);
     let finished = child::run(
         Launch {
             program: &program,
@@ -331,8 +333,9 @@ pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
         },
     );
     if !matches!(finished.ending, Ending::NotStarted(_)) {
-        close_browser(job, &child_env);
+        close_browser(&job.root, job.port, &job.cwd, &child_env);
     }
+    watchdog::forget_browser(job.port);
 
     let seconds = if summary.seconds > 0 {
         summary.seconds
@@ -378,15 +381,15 @@ pub fn review(job: &Job, system: &Path, on_first_reply: impl FnOnce()) -> Done {
 
 /// A browser is its own process group by design and outlives both a group kill and a
 /// normal exit, so it's closed here however the child ended.
-fn close_browser(job: &Job, env: &[(OsString, OsString)]) {
-    let script = job.root.join("shared/input/drive.mjs");
+pub fn close_browser(root: &Path, port: u16, cwd: &Path, env: &[(OsString, OsString)]) {
+    let script = root.join("shared/input/drive.mjs");
     let args = [
         script.into(),
         "close".into(),
         "--port".into(),
-        job.port.to_string().into(),
+        port.to_string().into(),
     ];
-    child::run_briefly("node".as_ref(), &args, &job.cwd, env, DRIVE_CLOSE_LIMIT);
+    child::run_briefly("node".as_ref(), &args, cwd, env, DRIVE_CLOSE_LIMIT);
 }
 
 fn outcome(

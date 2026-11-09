@@ -10,6 +10,7 @@ mod review;
 mod slots;
 mod stage;
 mod stream;
+mod watchdog;
 
 use std::process::ExitCode;
 
@@ -31,14 +32,21 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Run a review as locked-down `claude -p` sessions: one for a brief, one per unit of a plan
-    Review(review::ReviewArgs),
+    Review(Box<review::ReviewArgs>),
+    /// Stops what a review left running if it dies without doing so; started by a review
+    #[command(name = watchdog::SUBCOMMAND, hide = true)]
+    Watchdog,
 }
 
 fn main() -> ExitCode {
+    let args = match Cli::parse().command {
+        Command::Review(args) => *args,
+        Command::Watchdog => {
+            watchdog::run();
+            return ExitCode::SUCCESS;
+        }
+    };
     child::watch_signals();
-    let Cli {
-        command: Command::Review(args),
-    } = Cli::parse();
     match review::run(args) {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::from(EXIT_CHILD_FAILED),
