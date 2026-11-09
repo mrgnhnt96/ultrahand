@@ -2,8 +2,10 @@
 
 Every design round ends with an independent review, and the user hears the design is ready
 only after it. A **round** is the first design and every later prompt that changes it, so a
-one-line tweak gets reviewed too. Skip the review only when the user says to skip it in
-this round, and say in the presentation that you skipped it.
+one-line tweak gets reviewed too. The designer starts the review on its own; the user
+shouldn't have to ask for it, and shouldn't be the one who finds what it would have
+caught. Skip the review only when the user says to skip it in this round, and say in the
+presentation that you skipped it.
 
 A designer checking its own work tends to see what it meant to build, not what it built,
 and any one reviewer misses problems that another catches (`NNG-HE` in
@@ -158,7 +160,8 @@ Then publish, save the round to `rounds/<n>/`, and present.
 
 ## 5. Report the review
 
-In the presentation, add a short **Review** note: the scope and why (this round's changes,
-or the whole design because something shared changed), the findings by severity, what you
-fixed, anything left open with the reason, and what the reviews cost (from each
-`review-<k>.json`).
+Open the presentation with one line saying what the review caught and what you fixed, such
+as "Review caught 4 problems (1 major: two toolbar buttons for one action); fixed all 4."
+End it with a short **Review** note: the scope and why (this round's changes, or the whole
+design because something shared changed), anything left open with the reason, and what
+the reviews cost (from each `review-<k>.json`).

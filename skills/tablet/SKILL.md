@@ -16,6 +16,11 @@ is in [references/principles.md](references/principles.md), and each rule cites
 lessons for this skill. They record what the owner has already corrected, so don't repeat
 those mistakes. See [shared/learning/README.md](../../shared/learning/README.md).
 
+**Review gate:** the user never sees an unreviewed design. Every round (the first draft
+and every revision, however small) ends with step 7, which you start yourself without
+being asked. An independent reviewer checks the built canvas, you fix what holds up,
+and only then do you publish or present.
+
 ## 1. Gather requirements
 
 Ask only for what you can't infer. Settle these before drawing:
@@ -192,24 +197,29 @@ at the largest and smallest size, or check by eye):
 - [ ] Loading, empty and error states are designed for each pane, not just the screen.
 - [ ] The design works at 320 wide without horizontal scrolling.
 
-## 7. Review the round
+## 7. Review the round, before the user sees it
 
-Every round ends with a review by a reviewer in its own headless session, before you
-publish or tell the user the design is ready. A round is the first design and every later
-change the user asks for. Follow [shared/review/README.md](../../shared/review/README.md):
+Start the review yourself after every round: the first draft and every later change the
+user asks for, however small. The reviewer runs the ultrahand review method in its own
+headless session and gets only the built canvas and a brief of facts, never your
+reasoning. Follow [shared/review/README.md](../../shared/review/README.md):
 keep each round in `rounds/<n>/`, write the brief and run
 `node "${CLAUDE_PLUGIN_ROOT}/shared/review/launch.mjs" --data "${CLAUDE_PLUGIN_DATA}" review --brief rounds/<n>/brief-<k>.md`,
 review the first round whole and later rounds by their diff (whole again when something
-shared changed), fix what it finds, then publish.
+shared changed), fix the findings that hold up, then publish. Until the review has run,
+don't publish, share a link or screenshot, or say the design is ready. If the runner
+can't start, use the README's fallback. Skip the review only when the user says to skip
+it this round, and say that you skipped it.
 
 ## 8. Present
 
-Share the artifact link. In a few lines, state the section map (each section's job and
+Share the artifact link with one line on the review first, saying what it caught and what
+you fixed (for example "Review caught 4 problems (1 major: two toolbar buttons for one
+action); fixed all 4."). Then, in a few lines, state the section map (each section's job and
 emphasis), the key decisions and the principle behind each (cite the source key), how the
 layout changes at each width class, any self-check item you accepted with a reason, and any
 proposed theme additions (for the `theme` skill), and any open questions.
-End with the **Review** note: its scope, findings by severity, what you fixed and what's
-left.
+End with the **Review** note: its scope, what's left and why, and what it cost.
 Tell the user they can mark up the design instead of sending screenshots: Comment (or `C`),
 click to drop a pin or drag to mark an area, then Notes > Send to Claude or Copy for Claude.
 Their notes arrive as an artifact comment or pasted text, and each names the screen, state,

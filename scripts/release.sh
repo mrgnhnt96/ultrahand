@@ -77,7 +77,7 @@ elif ! command -v claude >/dev/null; then
   die "needs the claude CLI for the smoke evals (or SKIP_EVALS=1)"
 else
   say "running the smoke evals (a few minutes)"
-  scripts/eval.sh --tag smoke --ablation none --threshold 0.66 -j 4 --max-cost-usd 6 ||
+  scripts/eval.sh --tag smoke --ablation none --threshold 0.66 -j 4 --max-cost-usd 10 ||
     die "smoke evals failed: see evals/results/ (nothing was changed)"
 fi
 
