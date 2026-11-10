@@ -1,0 +1,20 @@
+schema_version: "1.1"
+name: explore-skip-spec
+description: A request that already fixes the layout skips explore and goes straight to the full design, saying so in one line
+tags: [smoke, explore]
+runs: 3
+execution:
+  prompt: >-
+    Design the orders screen for our iPhone shop app: a large title, a segmented control
+    for Active and Past, a list of order cards (number, date, item count, total, status
+    chip), and a floating button to start a new order.
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: nothing can be published, and no other Claude session or
+    agent can start here. Don't ask the user anything; assume sensible answers, and keep
+    the design to one screen in its default state. Wherever you would publish an artifact
+    or start another Claude session or agent, don't: append one line to steps.log naming
+    what you would have run, then carry on as if it succeeded and reported nothing to fix.
+    End with the message you would send the user.

@@ -1,0 +1,22 @@
+schema_version: "1.1"
+name: section-options
+description: >-
+  "N options for <section>" on a design in progress changes only that section in each
+  option, and shows them in the compare canvas without running the review first
+tags: [quality, explore]
+runs: 2
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    The transactions screen in design/ is close. Give me 3 options for the filter bar
+    before we lock it in.
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: nothing can be published, and no other Claude session or
+    agent can start here. Don't ask the user anything; assume sensible answers. Wherever
+    you would publish an artifact or start a review or another agent, don't: append one
+    line to steps.log naming what you would have run, then carry on as if it succeeded.
+    End with the message you would send the user.
