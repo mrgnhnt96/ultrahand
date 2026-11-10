@@ -4,13 +4,14 @@
 //
 //   node build.mjs --screen screen.html [--config config.json] [--presets presets.md]
 //                  [--head head.html] [--title "Checkout"] [--out index.html]
+//   node build.mjs --concepts concepts.json [same options]   (explore: concepts side by side)
 //
 // --presets takes a .json file, or a .md file whose first ```json block holds the presets.
 // Its fields are merged under --config, so the config wins on any key both set.
 // See README.md for the config and screen contract.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -130,9 +131,64 @@ function lint(screen) {
   return warn;
 }
 
+/* The screen's own <template id="uh-screen">: where it starts and ends, nested templates included. */
+function templateRange(screen) {
+  const open = screen.match(/<template\b[^>]*\bid\s*=\s*["']uh-screen["'][^>]*>/);
+  if (!open) return null;
+  const re = /<template\b|<\/template\s*>/gi;
+  re.lastIndex = open.index + open[0].length;
+  let depth = 1, m;
+  while ((m = re.exec(screen))) {
+    depth += m[0].charAt(1) === '/' ? -1 : 1;
+    if (!depth) return { start: open.index, openEnd: open.index + open[0].length, end: m.index + m[0].length };
+  }
+  return null;
+}
+
+/* Several concepts share one page, so each one's template gets its own id and each inline
+   script runs in its own function scope: top-level names can't collide, and the setup
+   each one assigns to window.ultrahandSetup is kept under its concept's id. */
+function conceptScreen(screen, c, file) {
+  const r = templateRange(screen);
+  if (!r) fail(`${file} needs a <template id="uh-screen">`);
+  const tpl = screen.slice(r.start, r.end).replace(/(\bid\s*=\s*["'])uh-screen(["'])/, `$1uh-screen-${c.id}$2`);
+  const wrap = (part) => part.replace(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi, (all, attrs, body) => {
+    if (/\bsrc\s*=/.test(attrs)) return all;
+    const type = (attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/) || [])[1];
+    if (type === 'module') fail(`${file}: use a plain <script>, not a module, in a concept screen`);
+    if (type && !/javascript$/i.test(type)) return all;
+    return `<script${attrs}>(function () {\n${body}\n}).call(window);</script>`;
+  });
+  const id = JSON.stringify(c.id);
+  return `<!-- concept ${c.id} -->\n${wrap(screen.slice(0, r.start))}${tpl}${wrap(screen.slice(r.end))}\n` +
+    `<script>(window.ultrahandConcepts = window.ultrahandConcepts || {})[${id}] = window.ultrahandSetup; window.ultrahandSetup = undefined;</script>`;
+}
+
+function readConcepts(path) {
+  const raw = readJson(path, 'concepts');
+  const spec = Array.isArray(raw) ? { concepts: raw } : raw;
+  const list = spec && spec.concepts;
+  const errors = [];
+  if (!Array.isArray(list) || list.length < 2 || list.length > 5) errors.push('concepts must be an array of 2 to 5 entries');
+  const ids = new Set();
+  (Array.isArray(list) ? list : []).forEach((c, i) => {
+    const at = `concept ${c && c.id ? `"${c.id}"` : i + 1}`;
+    if (!c || typeof c !== 'object') return errors.push(`${at} is not an object`);
+    if (!/^[a-z0-9][a-z0-9-]*$/i.test(c.id || '')) errors.push(`${at} needs an id of letters, digits and dashes`);
+    else if (ids.has(c.id)) errors.push(`${at}: duplicate id`);
+    ids.add(c.id);
+    if (!c.label) errors.push(`${at} needs a label`);
+    if (!c.position) errors.push(`${at} needs a one-line position`);
+    if (!c.screen) errors.push(`${at} needs a screen file`);
+  });
+  if (spec.section !== undefined && (typeof spec.section !== 'string' || !spec.section.trim())) errors.push('section must be a section name');
+  if (errors.length) fail(`concepts problems in ${path}:\n  - ${errors.join('\n  - ')}`);
+  return { section: spec.section, concepts: list.map((c) => ({ ...c, file: join(dirname(resolve(path)), c.screen) })) };
+}
+
 const opt = args(process.argv.slice(2));
-if (opt.help || !opt.screen) {
-  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 10).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
+if (opt.help || (!opt.screen && !opt.concepts)) {
+  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 11).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
   process.exit(opt.help ? 0 : 1);
 }
 
@@ -142,8 +198,22 @@ if (opt.title) cfg.title = opt.title;
 const errors = validate(cfg);
 if (errors.length) fail(`config problems:\n  - ${errors.join('\n  - ')}`);
 
-const screen = read(opt.screen, 'screen');
-if (!/<template\b[^>]*\bid\s*=\s*["']uh-screen["']/.test(screen)) fail(`${opt.screen} needs a <template id="uh-screen">`);
+if (opt.screen && opt.concepts) fail('pass --screen or --concepts, not both');
+let screen, lintWarnings = [];
+if (opt.concepts) {
+  const spec = readConcepts(opt.concepts);
+  cfg.concepts = spec.concepts.map(({ id, label, position }) => ({ id, label, position }));
+  if (spec.section) cfg.conceptSection = spec.section;
+  screen = spec.concepts.map((c) => {
+    const s = read(c.file, `concept "${c.id}" screen`);
+    lintWarnings.push(...lint(s).map((w) => `${c.id}: ${w}`));
+    return conceptScreen(s, c, c.screen);
+  }).join('\n\n');
+} else {
+  screen = read(opt.screen, 'screen');
+  if (!templateRange(screen)) fail(`${opt.screen} needs a <template id="uh-screen">`);
+  lintWarnings = lint(screen);
+}
 const head = opt.head ? read(opt.head, 'head') : '';
 
 let html = read(resolve(here, 'canvas.html'), 'template');
@@ -156,6 +226,6 @@ const out = resolve(opt.out || 'index.html');
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 
-for (const w of lint(screen)) console.warn(`warning: ${w}`);
+for (const w of lintWarnings) console.warn(`warning: ${w}`);
 const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
-console.log(`Wrote ${out} (${kb} KiB, ${cfg.presets.length} presets${cfg.extraChecks ? ` + ${cfg.extraChecks.length} checks` : ''})`);
+console.log(`Wrote ${out} (${kb} KiB, ${cfg.presets.length} presets${cfg.extraChecks ? ` + ${cfg.extraChecks.length} checks` : ''}${cfg.concepts ? `, ${cfg.concepts.length} ${cfg.conceptSection ? 'options' : 'concepts'}` : ''})`);

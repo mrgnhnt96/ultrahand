@@ -56,6 +56,16 @@ The page gives the viewer:
 
 `--head head.html` injects extra `<head>` content, such as a Google Fonts `<link>`. `--presets` also accepts a plain `.json` file.
 
+### Concepts side by side
+
+For the explore stage and section options ([shared/explore](../explore/README.md)), pass `--concepts concepts.json` in place of `--screen`. The file lists 2 to 5 concepts, each `{ id, label, position, screen }`, with `screen` relative to the file, plus an optional `section` for section options. Each concept's screen follows the same [screen contract](#screen-contract) and is written as if it were alone: the build gives each template its own id and runs each script in its own scope, so names can't collide, and keeps each one's `ultrahandSetup` for that concept.
+
+- **Compare view.** The page opens with every concept at the same preset: in a row, or in a scrolling column when a row would make each frame under 200px wide on screen and one at a time would be much larger. The concept bar says which, and in the column which concept is in view. Size, rotation, scheme, text size and state apply to all of them. Each frame is labelled with its letter, label and position; a frame under 200px wide shows only the letter and label, and under 120px only the letter, with the rest in the label's tooltip. In a short window the concept bar stays one row and scrolls sideways.
+- **Concept bar.** Under the toolbar, `#uh-concept-btns` holds Compare and one button per concept (A, B, C…, `aria-pressed`). Selecting a concept, or a frame's label, shows it on its own; Compare goes back. `#uh-concept-pos` says what's showing: the selected concept's position, or a line about the compare view. With `section` set, buttons and notes say "Option" and the line starts "Options for <section>".
+- **Selection.** One concept is selected at a time (a bar under its label in the compare view). The Go to picker, whose options start with the concept's letter, the comment layer and `window.ultrahandCanvas` follow it; clicking or focusing inside another frame selects that one. In Comment mode, a press on another frame selects it and drops the pin or starts the area there in the same press, and an open comment box is saved and closed first. The other concepts' pins show faintly on their frames; selecting one opens its note.
+- **Notes** carry `concept` (its id) and `conceptLabel`; their `where` starts with the concept, such as "Pin · concept B “Search first” · screen Results", and the Notes menu groups them by concept and screen.
+- **API.** Each concept's setup gets its own `canvas`: `$`, `root`, `viewport`, `screen`, `navigate`, `back`, `onNavigate` and `toast` work on that concept, and `canvas.concept` is its id. Size, scheme, text, state and notes are shared.
+
 ## Config
 
 All fields are optional except `presets`.
