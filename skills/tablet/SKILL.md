@@ -19,7 +19,8 @@ those mistakes. See [shared/learning/README.md](../../shared/learning/README.md)
 **Review gate:** the user never sees an unreviewed design. Every round (the first draft
 and every revision, however small) ends with step 7, which you start yourself without
 being asked. An independent reviewer checks the built canvas, you fix what holds up,
-and only then do you publish or present.
+and only then do you publish or present. The one exception is explore concepts (below):
+the owner reviews those, and the gate applies again to the direction they pick.
 
 ## 1. Gather requirements
 
@@ -49,6 +50,19 @@ Ask only for what you can't infer. Settle these before drawing:
   needs something the theme lacks, use the nearest token and list the addition under open
   questions; don't invent a value. With no theme, follow the non-negotiables in
   [shared/theme/rules.md](../../shared/theme/rules.md) and offer the `theme` skill.
+
+### Explore, when the request is open
+
+When the request leaves the structure open, or the owner asks for concepts or options,
+explore before the full design, following [shared/explore/README.md](../../shared/explore/README.md).
+Make 2–3 concepts that take different positions on the decisions that matter
+(navigation, density, how the main task works, what the screen leads with). State each
+position in one line. Build each concept in its own subagent from a brief with only the
+requirements, the theme and that position. Each concept is the key screen plus one
+transition at `ipad`. Show the concepts side by side in one canvas, built with
+`--concepts`, and let the owner pick or mix. Then run steps 2–9 on the chosen direction.
+Skip explore for a specific spec, a correction or notes. When the owner asks for "N
+options for <section>", vary only that section, as the README describes.
 
 ## 2. Read the references
 

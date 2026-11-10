@@ -61,6 +61,8 @@ Platform guidelines are living documents; they were checked in November 2026.
 | BAYMARD-KEYBOARD | Baymard Institute, "'Touch Keyboard' Implementations Have Improved Just 9% Since 2013", 2015. 54% of 48 benchmarked mobile sites failed to invoke the right keyboard for phone, ZIP or card fields. https://baymard.com/research-articles/mobile-touch-keyboards |
 | BAYMARD-LABELS | Baymard Institute, "Field Label UX: Place Labels Above the Field", 2013. https://baymard.com/research-articles/mobile-form-usability-label-position |
 | BAYMARD-INLINE | Baymard Institute, "Usability Testing of Inline Form Validation", 2024. https://baymard.com/research-articles/inline-form-validation |
+| DOW-PARALLEL | Steven P. Dow et al., "Parallel prototyping leads to better design results, more divergence, and increased self-efficacy", *ACM TOCHI* 17(4), 2010 (several prototypes made and critiqued in parallel beat serial iteration on one). Used by the explore stage. https://doi.org/10.1145/1879831.1879836 |
+| NNG-PARALLEL | Jakob Nielsen, "Parallel & Iterative Design + Competitive Testing = High Usability", NN/g, 17 Jan 2011 (3–5 rough alternatives at once, then merge the best ideas). Used by the explore stage. https://www.nngroup.com/articles/parallel-and-iterative-design/2011/ |
 
 ## Usage data
 

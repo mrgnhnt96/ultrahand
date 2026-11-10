@@ -49,6 +49,8 @@ Platform guidelines are living documents; they were checked in November 2026.
 | --- | --- |
 | NNG-IPAD | Jakob Nielsen, "iPad Usability: Year One", NN/g, 22 May 2011. Read–tap asymmetry (targets too small and close), hidden navigation, accidental touches, swipe ambiguity, shared devices. https://www.nngroup.com/articles/ipad-usability-year-one/ |
 | HOOBER-TOUCH | Steven Hoober, "Design for Fingers, Touch, and People, Part 1", *UXmatters*, 6 Mar 2017. Includes tablet observations. People prefer to view and touch the centre; about 7 mm targets in the centre and 12 mm in the corners. https://www.uxmatters.com/mt/archives/2017/03/design-for-fingers-touch-and-people-part-1.php |
+| DOW-PARALLEL | Steven P. Dow et al., "Parallel prototyping leads to better design results, more divergence, and increased self-efficacy", *ACM TOCHI* 17(4), 2010 (several prototypes made and critiqued in parallel beat serial iteration on one). Used by the explore stage. https://doi.org/10.1145/1879831.1879836 |
+| NNG-PARALLEL | Jakob Nielsen, "Parallel & Iterative Design + Competitive Testing = High Usability", NN/g, 17 Jan 2011 (3–5 rough alternatives at once, then merge the best ideas). Used by the explore stage. https://www.nngroup.com/articles/parallel-and-iterative-design/2011/ |
 
 ## Platform changes (press)
 

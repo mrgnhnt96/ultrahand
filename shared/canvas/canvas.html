@@ -53,7 +53,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   /* minmax(0, …) keeps a wide toolbar from widening the page, which pushed the frame off-centre. */
   grid-template-columns: minmax(0, 1fr);
   background: var(--bg);
@@ -210,7 +210,7 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 .uh-stage:focus:not(:focus-visible) { outline: none; }
 .uh-stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .uh-stage {
-  grid-row: 3;
+  grid-row: 4;
   position: relative;
   min-height: 0;
   overflow: auto;
@@ -439,9 +439,90 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 body.uh-dragging, body.uh-dragging * { user-select: none !important; }
 body.uh-dragging .uh-host { pointer-events: none; }
 
+/* Explore. The concept bar sits under the toolbar on a page that holds concepts (or options
+   for one section): Compare shows them all side by side, a concept's button shows it alone,
+   and the line beside them says what's on the stage. In compare mode each concept is a copy
+   of the frame under a label with its position; the labels are counter-scaled like the
+   grips, so they stay readable at any zoom. */
+.uh-concepts {
+  --quiet: color-mix(in srgb, var(--ink) 11%, var(--surface));
+  grid-row: 2; position: relative; z-index: 1;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  padding: 6px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.uh-concepts[hidden] { display: none; }
+.uh-concepts .uh-seg { flex-wrap: wrap; }
+.uh-concept-btn { max-width: 18em; }
+.uh-concept-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The concept's letter: a plain bold letter, not a keycap, since it isn't a shortcut. */
+.uh-key { flex: none; font: 700 13px/1.3 var(--font-ui); color: var(--ink); }
+.uh-concept-pos { flex: 1 1 18em; min-width: 0; margin: 0; font-size: 13px; color: var(--muted); }
+.uh-concept-pos strong { color: var(--ink); font-weight: 600; }
+.uh-compare { display: none; }
+.uh-rig[data-compare] > .uh-frame, .uh-rig[data-compare] > .uh-handle { display: none; }
+.uh-rig[data-compare] > .uh-compare { display: flex; align-items: flex-start; gap: calc(32px / var(--s)); }
+.uh-rig[data-compare][data-column] > .uh-compare { flex-direction: column; }
+.uh-cell { flex: none; }
+/* The label is as wide as its frame on screen and as tall as its position needs, up to a
+   quarter of the stage; fit() measures the tallest one and keeps that much room above
+   the frames (--uh-head). Where a label would be under 200px wide or taller than that,
+   it shows only the letter and name, and under 120px only the letter; the rest stays in
+   its tooltip. */
+.uh-cell-head { position: relative; height: calc(var(--uh-head, 76px) / var(--s)); }
+.uh-cell-label {
+  position: absolute; left: 0; top: 0;
+  width: calc(100% * var(--s));
+  transform: scale(calc(1 / var(--s))); transform-origin: 0 0;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; gap: 2px 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  text-align: left; cursor: pointer;
+}
+.uh-cell-label:hover { border-color: var(--muted); }
+.uh-cell-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The selected concept (the one Go to and comments act on): a bar under its label, so a
+   focus ring around the label still reads as focus. */
+.uh-cell[data-selected] .uh-cell-label { box-shadow: inset 0 -3px 0 var(--accent); }
+.uh-cell-label .uh-key { grid-row: span 2; }
+.uh-cell-name { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.uh-cell-pos { font-size: 12px; line-height: 1.3; color: var(--muted); overflow-wrap: anywhere; }
+.uh-rig[data-compact] .uh-cell-pos { display: none; }
+.uh-rig[data-compact] .uh-cell-label .uh-key { grid-row: auto; }
+.uh-rig[data-compact="key"] .uh-cell-name { display: none; }
+.uh-rig[data-compact="key"] .uh-cell-label { width: auto; min-width: 32px; }
+.uh-cell-body { position: relative; }
+/* In comment mode a press on another concept selects it and starts the pin or area there. */
+.uh-shield { position: absolute; inset: 0; z-index: 4; display: none; cursor: crosshair; }
+body.uh-commenting .uh-cell:not([data-selected]) .uh-shield { display: block; }
+body.uh-commenting .uh-cell:not([data-selected]) .uh-shield:hover { outline: calc(1px / var(--s)) solid var(--muted); }
+body.uh-space .uh-shield, body.uh-panning .uh-shield, body.uh-dragging .uh-shield { pointer-events: none; }
+/* The other concepts' notes, over their own frames, fainter; their pins still open them. */
+.uh-ghost { z-index: 5; pointer-events: none; opacity: 0.75; }
+.uh-ghost .uh-pin { pointer-events: auto; }
+body.uh-space .uh-ghost .uh-pin, body.uh-panning .uh-ghost .uh-pin, body.uh-dragging .uh-ghost .uh-pin { pointer-events: none; }
+@media (max-width: 599px) {
+  .uh-concepts { padding: 6px 8px; gap: 4px 8px; }
+  .uh-concept-btn { max-width: 10em; }
+}
+/* A short window keeps the bar to one row that scrolls sideways; each button's title
+   still gives the position. A faded edge shows there's more, and the focused or selected
+   button is scrolled into view. */
+@media (max-height: 479px) {
+  .uh-concept-pos { display: none; }
+  .uh-concepts, .uh-concepts .uh-seg { flex-wrap: nowrap; }
+  .uh-concepts .uh-seg { min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: -4px; }
+  .uh-concept-btn { flex: none; }
+  .uh-seg[data-more="end"] { mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
+  .uh-seg[data-more="start"] { mask-image: linear-gradient(to left, #000 calc(100% - 24px), transparent); }
+  .uh-seg[data-more="both"] { mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent); }
+}
+
 /* Errors sit in the page flow between the toolbar and the stage, so they cover nothing. */
 .uh-error {
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -457,7 +538,7 @@ body.uh-dragging .uh-host { pointer-events: none; }
 }
 .uh-error strong { color: var(--warn); }
 /* A config that doesn't parse leaves nothing to show but the problem. */
-body[data-broken] .uh-bar, body[data-broken] .uh-stage, body[data-broken] .uh-error-dismiss { display: none; }
+body[data-broken] .uh-bar, body[data-broken] .uh-concepts, body[data-broken] .uh-stage, body[data-broken] .uh-error-dismiss { display: none; }
 
 /* Notes. Comment mode lets the viewer pin a comment to a point (click) or an area (drag)
    of the screen, so feedback names the spot instead of needing a screenshot. The layer
@@ -844,6 +925,10 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
     <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
   </div>
 </header>
+<div class="uh-concepts" id="uh-concepts" hidden>
+  <div class="uh-seg" id="uh-concept-btns" role="group"></div>
+  <p class="uh-concept-pos" id="uh-concept-pos" aria-live="polite"></p>
+</div>
 <div class="uh-error" id="uh-error" hidden>
   <div class="uh-error-text" id="uh-error-text" role="alert"></div>
   <button class="uh-btn uh-error-dismiss" type="button" id="uh-error-dismiss">Dismiss</button>
@@ -880,6 +965,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
         </div>
       </div>
+      <div class="uh-compare" id="uh-compare"></div>
     </div>
   </div>
 </main>
@@ -1207,7 +1293,8 @@ window.ultrahandSetup = function (canvas) {
     gFrame: byId('uh-g-frame'), sizeBtn: byId('uh-size-btn'), sizeSum: byId('uh-size-sum'),
     gZoom: byId('uh-g-zoom'), zoomWrap: byId('uh-zoomwrap'), zoomBtn: byId('uh-zoom-btn'), zoomSum: byId('uh-zoom-sum'), zoomLive: byId('uh-zoom-live'),
     preview: byId('uh-g-preview'), previewBtn: byId('uh-preview-btn'), previewSum: byId('uh-preview-sum'),
-    help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys')
+    help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys'),
+    concepts: byId('uh-concepts'), conceptBtns: byId('uh-concept-btns'), conceptPos: byId('uh-concept-pos'), compare: byId('uh-compare')
   };
   var errors = [];
   /* Problems show in a banner between the toolbar and the stage, so they cover nothing.
@@ -1229,6 +1316,8 @@ window.ultrahandSetup = function (canvas) {
   el.errorDismiss.addEventListener('click', function () { showProblems(false); el.problems.focus(); });
   el.problems.addEventListener('click', function () { showProblems(true); el.errorDismiss.focus(); });
   window.addEventListener('error', function (e) {
+    /* The browser's note that a resize settled over two frames isn't a fault. */
+    if (/ResizeObserver loop/.test(e.message || '')) return;
     report('Script error: ' + e.message + (e.lineno ? ' (line ' + e.lineno + ')' : ''));
   });
 
@@ -1293,9 +1382,11 @@ window.ultrahandSetup = function (canvas) {
   el.wintitle.textContent = cfg.title || '';
 
   /* ---------- Screen mount ---------- */
-  var root = el.host.attachShadow({ mode: 'open' });
-  var base = document.createElement('style');
-  base.textContent = [
+  /* A page holds one screen, or for explore several concepts (or options for one section),
+     each its own screen in its own shadow root. The runtime works on one at a time, the
+     active one, whose parts are in root, viewport, screens and the rest below. Outside
+     withConcept() the active concept is the selected one (sel). */
+  var BASE_CSS = [
     ':host { display: block; }',
     '.uh-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; container: screen / size; contain: layout paint;',
     '  color-scheme: light; background: Canvas; color: CanvasText; font: 1rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;',
@@ -1314,20 +1405,55 @@ window.ultrahandSetup = function (canvas) {
     '[data-screen] { height: 100%; overflow: auto; }',
     '[data-screen][hidden], [hidden] { display: none !important; }'
   ].join('\n');
-  var viewport = document.createElement('div');
-  viewport.className = 'uh-viewport';
-  viewport.setAttribute('part', 'viewport');
-  root.append(base, viewport);
-  var tpl = byId('uh-screen');
-  if (tpl && tpl.content) viewport.append(tpl.content.cloneNode(true));
-  else report('No <template id="uh-screen"> found. Put the screen markup in the SCREEN region.');
+  var root, viewport, screens = [], currentScreen = null, stack = [], scrolls = {};
+  var act = null, sel = null;
+  function activate(c) {
+    if (act) act.currentScreen = currentScreen;
+    act = c;
+    root = c.root; viewport = c.viewport; screens = c.screens; currentScreen = c.currentScreen;
+    stack = c.stack; scrolls = c.scrolls; el.host = c.host;
+  }
+  function withConcept(c, fn) {
+    if (c === act) return fn();
+    var prev = act;
+    activate(c);
+    try { return fn(); } finally { activate(prev); }
+  }
+  function screenOf(c) { return c === act ? currentScreen : c.currentScreen; }
+  function mount(spec, i) {
+    var c = {
+      id: spec.id || null, key: String.fromCharCode(65 + i), label: String(spec.label || ''), position: String(spec.position || ''),
+      host: i === 0 ? el.host : document.createElement('div'), currentScreen: null, stack: [], scrolls: {},
+      navListeners: [], resizeListeners: [], stateListeners: []
+    };
+    c.host.className = 'uh-host';
+    c.root = c.host.attachShadow({ mode: 'open' });
+    var base = document.createElement('style');
+    base.textContent = BASE_CSS;
+    c.viewport = document.createElement('div');
+    c.viewport.className = 'uh-viewport';
+    c.viewport.setAttribute('part', 'viewport');
+    c.root.append(base, c.viewport);
+    var tpl = byId(c.id ? 'uh-screen-' + c.id : 'uh-screen');
+    if (tpl && tpl.content) c.viewport.append(tpl.content.cloneNode(true));
+    else if (c.id) report('No <template id="uh-screen-' + c.id + '"> found for concept "' + c.id + '". Build the page with build.mjs --concepts.');
+    else report('No <template id="uh-screen"> found. Put the screen markup in the SCREEN region.');
+    c.screens = Array.prototype.slice.call(c.viewport.querySelectorAll('[data-screen]'));
+    c.screens.forEach(function (s) { s.hidden = true; });
+    c.root.addEventListener('click', function (e) { withConcept(c, function () { screenClick(e); }); });
+    /* Forms have nowhere to submit inside an artifact: handle submit in setup. */
+    c.root.addEventListener('submit', function (e) { e.preventDefault(); });
+    return c;
+  }
+  var concepts = (Array.isArray(cfg.concepts) && cfg.concepts.length ? cfg.concepts : [{}]).map(mount);
+  var exploring = concepts.length > 1;
+  var NOUN = cfg.conceptSection ? 'Option' : 'Concept';
+  function conceptById(id) { return concepts.filter(function (c) { return c.id === id; })[0] || null; }
+  function conceptName(c) { return NOUN + ' ' + c.key + ' · ' + c.label; }
+  sel = concepts[0];
+  activate(sel);
 
   /* ---------- Navigation between [data-screen] sections ---------- */
-  var screens = Array.prototype.slice.call(viewport.querySelectorAll('[data-screen]'));
-  var currentScreen = null;
-  var stack = [];
-  var scrolls = {};
-  var navListeners = [];
   function screenById(id) {
     for (var i = 0; i < screens.length; i++) if (screens[i].dataset.screen === id) return screens[i];
     return null;
@@ -1345,12 +1471,12 @@ window.ultrahandSetup = function (canvas) {
     next.hidden = false;
     next.scrollTop = scrolls[id] || 0;
     currentScreen = next;
-    el.nav.value = id;
+    if (act === sel) el.nav.value = id;
     return true;
   }
   function emitNav(from) {
     var info = { screen: currentScreen ? currentScreen.dataset.screen : null, from: from, depth: stack.length };
-    navListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onNavigate handler: ' + err.message); } });
+    act.navListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onNavigate handler: ' + err.message); } });
     if (typeof measureTargets === 'function') measureTargets();
     layoutNotes();
   }
@@ -1366,20 +1492,28 @@ window.ultrahandSetup = function (canvas) {
     var prev = stack.pop();
     if (prev && show(prev)) emitNav(from);
   }
-  if (screens.length) {
+  /* The Go to picker lists the selected concept's screens. */
+  function buildNav() {
+    el.nav.replaceChildren();
     screens.forEach(function (s) {
-      s.hidden = true;
       var opt = document.createElement('option');
       opt.value = s.dataset.screen;
-      opt.textContent = s.dataset.title || s.dataset.screen;
+      /* On an explore page the options name the concept they belong to. */
+      opt.textContent = (exploring ? sel.key + ' · ' : '') + (s.dataset.title || s.dataset.screen);
       el.nav.append(opt);
     });
     el.navWrap.hidden = screens.length < 2;
-    show(screenById(cfg.initialScreen) ? cfg.initialScreen : screens[0].dataset.screen);
+    if (currentScreen) el.nav.value = currentScreen.dataset.screen;
   }
+  concepts.forEach(function (c) {
+    withConcept(c, function () {
+      if (screens.length) show(screenById(cfg.initialScreen) ? cfg.initialScreen : screens[0].dataset.screen);
+    });
+  });
+  buildNav();
   el.nav.addEventListener('change', function () { navigate(el.nav.value); });
 
-  root.addEventListener('click', function (e) {
+  function screenClick(e) {
     var nav = e.target.closest('[data-nav], [data-nav-back]');
     if (nav) {
       e.preventDefault();
@@ -1389,9 +1523,7 @@ window.ultrahandSetup = function (canvas) {
     }
     var a = e.target.closest('a[href]');
     if (a && a.getAttribute('href').charAt(0) === '#') e.preventDefault();
-  });
-  /* Forms have nowhere to submit inside an artifact: handle submit in setup. */
-  root.addEventListener('submit', function (e) { e.preventDefault(); });
+  }
 
   /* ---------- Size model ---------- */
   function classFor(list, v) {
@@ -1523,7 +1655,6 @@ window.ultrahandSetup = function (canvas) {
   }
 
   /* ---------- Render ---------- */
-  var resizeListeners = [];
   var notifyQueued = false;
   function sizeInfo() {
     return {
@@ -1547,17 +1678,25 @@ window.ultrahandSetup = function (canvas) {
     targetsQueued = true;
     requestAnimationFrame(function () {
       targetsQueued = false;
-      var n = 0, under = 0;
-      var caps = el.wincaps.hidden ? null : el.wincaps.getBoundingClientRect();
-      Array.prototype.forEach.call(viewport.querySelectorAll(TARGETS), function (t) {
-        var r = t.getBoundingClientRect();
-        if (caps && r.width > 0 && r.height > 0 && r.left < caps.right && r.right > caps.left && r.top < caps.bottom && r.bottom > caps.top) under++;
-        var w = r.width / st.s, h = r.height / st.s;
-        var small = w > 0 && h > 0 && !t.hasAttribute('data-uh-ignore-target') && (w < st.minTarget - 0.5 || h < st.minTarget - 0.5);
-        if (small && st.showTargets) t.setAttribute('data-uh-small', ''); else t.removeAttribute('data-uh-small');
-        if (small) n++;
+      var n = 0, under = 0, by = [];
+      /* In compare mode every concept on the stage counts, under its own window controls. */
+      concepts.forEach(function (c) {
+        var wc = comparing() ? c.parts['uh-wincaps'] : el.wincaps;
+        var caps = wc.hidden ? null : wc.getBoundingClientRect();
+        var mine = 0;
+        Array.prototype.forEach.call(c.viewport.querySelectorAll(TARGETS), function (t) {
+          var r = t.getBoundingClientRect();
+          if (caps && r.width > 0 && r.height > 0 && r.left < caps.right && r.right > caps.left && r.top < caps.bottom && r.bottom > caps.top) under++;
+          var w = r.width / st.s, h = r.height / st.s;
+          var small = w > 0 && h > 0 && !t.hasAttribute('data-uh-ignore-target') && (w < st.minTarget - 0.5 || h < st.minTarget - 0.5);
+          if (small && st.showTargets) t.setAttribute('data-uh-small', ''); else t.removeAttribute('data-uh-small');
+          if (small) mine++;
+        });
+        n += mine;
+        if (mine) by.push(c.key + ' ' + mine);
       });
       st.smallTargets = n;
+      st.smallBy = comparing() && by.length ? ' (' + by.join(', ') + ')' : '';
       st.underControls = under;
       showFlags();
     });
@@ -1569,7 +1708,7 @@ window.ultrahandSetup = function (canvas) {
     if (st.showTargets) el.bar.dataset.targets = ''; else delete el.bar.dataset.targets;
     var n = st.smallTargets;
     el.targetsResult.textContent = n
-      ? n + (n === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px'
+      ? n + (n === 1 ? ' target' : ' targets') + ' under ' + st.minTarget + 'px' + (st.smallBy || '')
       : 'all ≥ ' + st.minTarget + 'px';
     var u = st.underControls;
     if (u) el.targetsResult.textContent += ', ' + u + ' under window controls';
@@ -1584,8 +1723,10 @@ window.ultrahandSetup = function (canvas) {
     requestAnimationFrame(function () {
       notifyQueued = false;
       var info = sizeInfo();
-      resizeListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onResize handler: ' + err.message); } });
-      viewport.dispatchEvent(new CustomEvent('uh:resize', { detail: info }));
+      concepts.forEach(function (c) {
+        c.resizeListeners.forEach(function (fn) { try { fn(info); } catch (err) { report('onResize handler: ' + err.message); } });
+        c.viewport.dispatchEvent(new CustomEvent('uh:resize', { detail: info }));
+      });
     });
   }
   function render() {
@@ -1607,16 +1748,18 @@ window.ultrahandSetup = function (canvas) {
       el.area.style.gridTemplateColumns = sp.side === 'leading'
         ? st.w + 'px ' + sp.divider + 'px minmax(0, 1fr)'
         : 'minmax(0, 1fr) ' + sp.divider + 'px ' + st.w + 'px';
-      el.host.style.order = sp.side === 'leading' ? 0 : 2;
+      concepts.forEach(function (c) { c.host.style.order = sp.side === 'leading' ? 0 : 2; });
       el.divider.style.order = 1;
       el.other.style.order = sp.side === 'leading' ? 2 : 0;
     } else {
       delete el.area.dataset.split;
       delete el.rig.dataset.split;
       el.area.style.gridTemplateColumns = '';
-      el.host.style.order = '';
+      concepts.forEach(function (c) { c.host.style.order = ''; });
     }
 
+    concepts.forEach(function (c) {
+    var viewport = c.viewport;
     viewport.dataset.scheme = st.scheme;
     viewport.dataset.widthClass = info.widthClass;
     viewport.dataset.heightClass = info.heightClass;
@@ -1632,6 +1775,7 @@ window.ultrahandSetup = function (canvas) {
     ['top', 'right', 'bottom', 'left'].forEach(function (k) { viewport.style.setProperty('--uh-safe-' + k, (sa[k] || 0) + 'px'); });
     viewport.style.setProperty('--uh-width', st.w + 'px');
     viewport.style.setProperty('--uh-height', st.h + 'px');
+    });
 
     var tone = st.statusTone === 'auto' ? (st.scheme === 'dark' ? 'light' : 'dark') : st.statusTone;
     var showStatus = st.statusBar && st.statusTone !== 'hidden' && sa.top > 0;
@@ -1648,9 +1792,11 @@ window.ultrahandSetup = function (canvas) {
       el.wincaps.style.height = wcr.height + 'px';
     }
     if (st.showTargets && wcr) el.wincaps.dataset.targets = ''; else delete el.wincaps.dataset.targets;
-    viewport.style.setProperty('--uh-window-controls-width', (wcr ? wcr.width : 0) + 'px');
-    viewport.style.setProperty('--uh-window-controls-height', (wcr ? wcr.height : 0) + 'px');
-    if (wcr) viewport.dataset.windowControls = ''; else delete viewport.dataset.windowControls;
+    concepts.forEach(function (c) {
+      c.viewport.style.setProperty('--uh-window-controls-width', (wcr ? wcr.width : 0) + 'px');
+      c.viewport.style.setProperty('--uh-window-controls-height', (wcr ? wcr.height : 0) + 'px');
+      if (wcr) c.viewport.dataset.windowControls = ''; else delete c.viewport.dataset.windowControls;
+    });
     el.homebar.hidden = !st.homeBar;
     el.homebar.dataset.tone = tone;
     el.area.style.setProperty('--uh-toast-bottom', (sa.bottom || 0) + 'px');
@@ -1712,6 +1858,7 @@ window.ultrahandSetup = function (canvas) {
     el.divider.setAttribute('aria-valuenow', st.w);
     el.divider.setAttribute('aria-valuetext', 'App width ' + st.w + ' pixels');
 
+    syncCells();
     if (drag) fit({ scale: drag.s, anchor: drag.anchor }); else fit();
     notify();
     measureTargets();
@@ -1754,18 +1901,61 @@ window.ultrahandSetup = function (canvas) {
   function fit(opts) {
     opts = opts || {};
     var stage = el.stage;
+    var cmp = comparing(), k = cmp ? concepts.length : 1;
+    var fw = cmp ? concepts[0].parts['uh-frame'].offsetWidth : el.frame.offsetWidth;
+    var fh = cmp ? concepts[0].parts['uh-frame'].offsetHeight : el.frame.offsetHeight;
+    var inner = stageInner();
+    /* Compare mode: the frames in a row, with a fixed gap and the labels' height in stage
+       px. When a row would leave each frame under 200px wide on screen, and one frame
+       alone fits much larger, they stack in a column that scrolls, and Fit fits one frame.
+       The labels' height depends on the zoom, so it's measured and the fit worked out
+       again once. */
+    var gap = cmp ? CELL_GAP * (k - 1) : 0, column = false, s;
+    for (var pass = 0; pass < 2; pass++) {
+      var head = cmp ? st.head || CELL_HEAD : 0;
+      var rowFit = Math.min(1, (inner.w - 2 * MARGIN - gap) / (k * fw), (inner.h - 2 * MARGIN - head) / fh);
+      var oneFit = Math.min(1, (inner.w - 2 * MARGIN) / fw, (inner.h - 2 * MARGIN - head) / fh);
+      column = cmp && rowFit * fw < 200 && oneFit > 1.5 * rowFit;
+      if (opts.scale) s = opts.scale;
+      else if (st.zoom === 'fit') s = column ? oneFit : rowFit;
+      else s = Number(st.zoom) || 1;
+      s = Math.min(ZMAX, Math.max(ZMIN, s));
+      if (!cmp) break;
+      el.rig.toggleAttribute('data-column', column);
+      el.rig.style.setProperty('--s', s);
+      var cap = Math.max(CELL_HEAD, inner.h / 4);
+      var compact = fw * s < 200;
+      if (compact) el.rig.setAttribute('data-compact', fw * s < 120 ? 'key' : '');
+      else el.rig.removeAttribute('data-compact');
+      var tall = labelHeight();
+      if (!compact && tall + 12 > cap) {
+        el.rig.setAttribute('data-compact', '');
+        tall = labelHeight();
+      }
+      var want = Math.min(cap, tall + 12);
+      if (Math.abs(want - head) < 1) break;
+      st.head = want;
+      el.rig.style.setProperty('--uh-head', want + 'px');
+    }
+    if (!cmp) { el.rig.removeAttribute('data-column'); el.rig.removeAttribute('data-compact'); }
+    /* Going between a row and a column puts the view back at the start. */
+    var flipped = (cmp && column) !== !!st.column;
+    if (cmp && flipped && !opts.anchor) st.recenter = true;
+    st.column = cmp && column;
+    if (flipped) { st.inView = null; updateConceptBar(); }
+    /* Fit with everything in view is always centred: a resize can leave the scroll
+       position from a half-finished layout, which would shift the frames. */
+    if (st.zoom === 'fit' && !column && !opts.scale && !opts.anchor) st.recenter = true;
+    var recentred = st.recenter;
     if (st.recenter) view = { x: 0.5, y: 0.5 };
     st.recenter = false;
     var a = opts.anchor || { fx: view.x, fy: view.y, cx: stage.clientWidth / 2, cy: stage.clientHeight / 2 };
-    var rw = el.frame.offsetWidth;
-    var rh = el.frame.offsetHeight;
-    var inner = stageInner();
-    var s;
-    if (opts.scale) s = opts.scale;
-    else if (st.zoom === 'fit') s = Math.min(1, (inner.w - 2 * MARGIN) / rw, (inner.h - 2 * MARGIN) / rh);
-    else s = Number(st.zoom) || 1;
-    s = Math.min(ZMAX, Math.max(ZMIN, s));
     st.s = s;
+    head = cmp ? st.head || CELL_HEAD : 0;
+    var rw = column ? fw : k * fw + gap / s;
+    var rh = column ? k * fh + (k * head + gap) / s : fh + head / s;
+    /* A column starts at its top, with the first concept in view. */
+    if (recentred && column && !opts.anchor) a.fy = view.y = Math.min(0.5, (a.cy - MARGIN) / (rh * s));
     el.rig.style.width = rw + 'px';
     el.rig.style.height = rh + 'px';
     el.rig.style.setProperty('--s', s);
@@ -1791,6 +1981,9 @@ window.ultrahandSetup = function (canvas) {
     el.zoomIn.setAttribute('aria-disabled', String(s >= ZMAX - 0.001));
     rovingTabs();
     layoutNotes();
+  }
+  function labelHeight() {
+    return concepts.reduce(function (m, c) { return Math.max(m, c.cell.firstChild.firstChild.offsetHeight); }, 0);
   }
   function setZoom(z, anchor) {
     st.zoom = z;
@@ -1983,14 +2176,17 @@ window.ultrahandSetup = function (canvas) {
   }
   /* States (default, loading, empty, error…): elements with data-show-state="a b" are
      shown only in those states; setup code can also listen with onState. */
-  var stateListeners = [];
   function setState(id) {
     if (!states.some(function (s) { return s.id === id; })) { report('No state named "' + id + '".'); return; }
     st.state = id;
-    Array.prototype.forEach.call(viewport.querySelectorAll('[data-show-state]'), function (n) {
-      n.hidden = n.getAttribute('data-show-state').split(/\s+/).indexOf(id) < 0;
+    concepts.forEach(function (c) {
+      Array.prototype.forEach.call(c.viewport.querySelectorAll('[data-show-state]'), function (n) {
+        n.hidden = n.getAttribute('data-show-state').split(/\s+/).indexOf(id) < 0;
+      });
+      withConcept(c, function () {
+        c.stateListeners.forEach(function (fn) { try { fn(id); } catch (err) { report('onState handler: ' + err.message); } });
+      });
     });
-    stateListeners.forEach(function (fn) { try { fn(id); } catch (err) { report('onState handler: ' + err.message); } });
     render();
   }
   states.forEach(function (s) {
@@ -2150,12 +2346,13 @@ window.ultrahandSetup = function (canvas) {
   Array.prototype.forEach.call(document.querySelectorAll('.uh-seg'), function (g) {
     g.addEventListener('keydown', function (e) {
       var dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (!dir) return;
+      var end = e.key === 'Home' ? 'first' : e.key === 'End' ? 'last' : '';
+      if (!dir && !end) return;
       var bs = Array.prototype.filter.call(g.querySelectorAll('.uh-btn'), function (b) { return !b.disabled && !b.hidden; });
       var i = bs.indexOf(document.activeElement);
       if (i < 0) return;
       e.preventDefault();
-      var next = bs[(i + dir + bs.length) % bs.length];
+      var next = end === 'first' ? bs[0] : end === 'last' ? bs[bs.length - 1] : bs[(i + dir + bs.length) % bs.length];
       bs.forEach(function (b) { b.tabIndex = b === next ? 0 : -1; });
       next.focus();
     });
@@ -2196,11 +2393,12 @@ window.ultrahandSetup = function (canvas) {
   var help = disclosure(el.help, el.helpBtn,
     function () { return !el.keys.hidden; },
     function (v) { el.keys.hidden = !v; });
+  function inScreen(path) { return concepts.some(function (c) { return path.indexOf(c.host) >= 0; }); }
   /* "?" opens the list, except while typing or in the screen, whose keys are its own. */
   document.addEventListener('keydown', function (e) {
     if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || drag) return;
     var path = e.composedPath ? e.composedPath() : [];
-    if (path.indexOf(el.host) >= 0) return;
+    if (inScreen(path)) return;
     var t = path[0] || e.target;
     if (t && t.closest && t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
     e.preventDefault();
@@ -2380,8 +2578,9 @@ window.ultrahandSetup = function (canvas) {
     drawNotes();
   }
   function screenId() { return currentScreen ? currentScreen.dataset.screen : ''; }
-  function screenLabel(id) {
-    var s = id ? screenById(id) : null;
+  function screenLabel(id, conceptId) {
+    var c = exploring && conceptId ? conceptById(conceptId) : null;
+    var s = !id ? null : c ? withConcept(c, function () { return screenById(id); }) : screenById(id);
     return (s && s.dataset.title) || id || 'Screen';
   }
   function stateLabel(id) {
@@ -2439,9 +2638,12 @@ window.ultrahandSetup = function (canvas) {
       fw: st.w, fh: st.h,
       preset: st.preset ? presetName(st.preset) + (st.landscape ? ', landscape' : '') + (st.resized ? ', resized' : '') : 'custom size',
       presetId: st.preset ? st.preset.id : null, landscape: st.landscape,
-      created: new Date().toISOString(), author: me
+      created: new Date().toISOString(), author: me,
+      concept: exploring ? sel.id : undefined, conceptLabel: exploring ? conceptName(sel) : undefined
     };
   }
+  /* On an explore page each note belongs to the concept it was left on. */
+  function onSel(n) { return !exploring || !n.concept || n.concept === act.id; }
   function makePin(cx, cy) {
     var n = baseNote('pin');
     var l = toLocal(cx, cy);
@@ -2518,7 +2720,7 @@ window.ultrahandSetup = function (canvas) {
     return n.kind !== 'screen' && n.fw != null && (n.fw !== st.w || n.fh !== st.h);
   }
   function noteBox(n) {
-    if (n.kind === 'screen') return null;
+    if (n.kind === 'screen' || !onSel(n)) return null;
     if ((n.screen || '') !== screenId() || (n.state || null) !== (st.state || null)) return null;
     if (n.kind === 'area' && n.coverSels && n.coverSels.length) {
       var u = unionRect(n.coverSels.map(findEl).filter(Boolean));
@@ -2558,7 +2760,7 @@ window.ultrahandSetup = function (canvas) {
   function drawNotes() {
     var L = nel.layer;
     L.hidden = !commenting;
-    if (!commenting) { placeComposer(); return; }
+    if (!commenting) { drawGhosts(); placeComposer(); return; }
     L.style.left = el.host.offsetLeft + 'px';
     L.style.top = el.host.offsetTop + 'px';
     L.style.width = el.host.offsetWidth + 'px';
@@ -2610,7 +2812,70 @@ window.ultrahandSetup = function (canvas) {
     } else if (sketchEl) { sketchEl.remove(); sketchEl = null; }
     drawTarget();
     if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
+    drawGhosts();
     placeComposer();
+  }
+  /* In compare view the other concepts' pins and areas show on their own frames, fainter.
+     Their pins are buttons: one selects its concept and opens the note. */
+  function drawGhosts() {
+    if (!exploring || !concepts[0].parts) return;
+    concepts.forEach(function (c) {
+      var show = commenting && comparing() && c !== sel;
+      if (!c.ghost) {
+        c.ghost = document.createElement('div');
+        c.ghost.className = 'uh-notes uh-ghost';
+        c.ghostEls = {};
+        c.ghost.addEventListener('click', function (e) {
+          var pin = e.target.closest('.uh-pin');
+          var n = pin && notes.filter(function (x) { return x.id === pin.dataset.id; })[0];
+          if (!n) return;
+          selectConcept(c);
+          openComposer(n, false);
+        });
+      }
+      var G = c.ghost, area = c.parts['uh-area'];
+      G.hidden = !show;
+      if (!show) return;
+      if (G.parentNode !== area) area.insertBefore(G, c.parts['uh-toast']);
+      G.style.left = c.host.offsetLeft + 'px';
+      G.style.top = c.host.offsetTop + 'px';
+      G.style.width = c.host.offsetWidth + 'px';
+      G.style.height = c.host.offsetHeight + 'px';
+      var seen = {};
+      withConcept(c, function () {
+        notes.forEach(function (n) {
+          if (n.concept !== c.id) return;
+          var b = noteBox(n);
+          if (!b) return;
+          seen[n.id] = true;
+          var g = c.ghostEls[n.id];
+          if (!g) {
+            g = c.ghostEls[n.id] = { pin: document.createElement('button') };
+            g.pin.type = 'button';
+            g.pin.className = 'uh-pin';
+            g.pin.dataset.id = n.id;
+            G.append(g.pin);
+          }
+          if (n.kind === 'area') {
+            if (!g.box) { g.box = document.createElement('div'); g.box.className = 'uh-region'; G.prepend(g.box); }
+            placeBox(g.box, b.x, b.y, b.x2, b.y2);
+          }
+          var num = noteNumber(n), size = 26 / st.s;
+          g.pin.textContent = num;
+          g.pin.setAttribute('aria-label', 'Comment ' + num + ' on ' + conceptName(c) + ': ' + n.text);
+          g.pin.title = n.text;
+          g.pin.style.left = (n.kind === 'area' ? Math.min(Math.max(b.x, b.x2), c.host.offsetWidth - size) : b.x) + 'px';
+          g.pin.style.top = (n.kind === 'area' ? Math.max(Math.min(b.y, b.y2), size) : b.y) + 'px';
+          g.pin.toggleAttribute('data-elsewhere', sizeDiffers(n));
+        });
+      });
+      Object.keys(c.ghostEls).forEach(function (id) {
+        if (seen[id]) return;
+        c.ghostEls[id].pin.remove();
+        if (c.ghostEls[id].box) c.ghostEls[id].box.remove();
+        delete c.ghostEls[id];
+      });
+    });
   }
   /* The comment box sits beside its pin, inside the window; a whole-screen note centres it. */
   /* The client rect of the element a pin is on, if it's small enough to keep in view. */
@@ -2691,8 +2956,9 @@ window.ultrahandSetup = function (canvas) {
       : n.kind === 'area' ? 'Area ' + Math.round(n.aw) + '×' + Math.round(n.ah) +
         (n.covers && n.covers.length === 1 ? ' over ' + n.covers[0] : n.within ? ' in ' + n.within : '')
       : 'The whole screen';
-    var where = screenLabel(n.screen) + (n.state && states.length > 1 ? ' · ' + stateLabel(n.state) : '');
-    return at + ' · ' + where;
+    var where = screenLabel(n.screen, n.concept) + (n.state && states.length > 1 ? ' · ' + stateLabel(n.state) : '');
+    var c = exploring && n.concept && conceptById(n.concept);
+    return (c ? conceptName(c) + ' · ' : '') + at + ' · ' + where;
   }
   function showComposerSize() {
     var n = editing && editing.note;
@@ -2790,7 +3056,7 @@ window.ultrahandSetup = function (canvas) {
     /* A saved note goes with Undo, the same as the row's trash button. */
     if (!wasNew && notes.some(function (x) { return x.id === n.id; })) {
       removeWithUndo(notes.filter(function (x) { return x.id !== n.id; }), 'Note ' + noteNumber(n) + ' deleted.');
-      canvas.toast('Note ' + noteNumber(n) + ' deleted. Undo it from Notes.');
+      sel.api.toast('Note ' + noteNumber(n) + ' deleted. Undo it from Notes.');
     }
     focusCommentControl();
   });
@@ -2820,7 +3086,7 @@ window.ultrahandSetup = function (canvas) {
     var path = e.composedPath ? e.composedPath() : [];
     var t = path[0] || e.target;
     var typing = t && t.closest && t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
-    if ((e.key === 'c' || e.key === 'C') && !typing && path.indexOf(el.host) < 0 && !editing) {
+    if ((e.key === 'c' || e.key === 'C') && !typing && !inScreen(path) && !editing) {
       e.preventDefault();
       setCommenting(!commenting);
     } else if (e.key === 'Escape' && sketch) {
@@ -2830,7 +3096,7 @@ window.ultrahandSetup = function (canvas) {
     } else if (e.key === 'Escape' && commenting && !editing && !typing) {
       e.preventDefault();
       setCommenting(false);
-    } else if (e.key === 'Escape' && path.indexOf(el.host) >= 0) {
+    } else if (e.key === 'Escape' && inScreen(path)) {
       leaveScreenIfUnused(e);
     }
   });
@@ -2855,14 +3121,17 @@ window.ultrahandSetup = function (canvas) {
 
   /* A press on the layer: a click drops a pin, a drag of more than a few px marks an area. */
   nel.layer.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0 || document.body.classList.contains('uh-space')) return;
     if (e.target.closest('.uh-pin')) return;
+    startSketch(e);
+  });
+  function startSketch(e) {
+    if (e.button !== 0 || document.body.classList.contains('uh-space')) return;
     e.preventDefault();
     clearHover();
     if (editing) closeComposer(true, false);
     nel.layer.setPointerCapture(e.pointerId);
     sketch = { id: e.pointerId, x: e.clientX, y: e.clientY, x2: e.clientX, y2: e.clientY, moved: false };
-  });
+  }
   /* Hovering shows the element a click would pin to (mouse and pen only). */
   var hoverEl = null, hoverAt = null, hoverRaf = 0;
   function clearHover() {
@@ -2932,17 +3201,20 @@ window.ultrahandSetup = function (canvas) {
     if (sc.scrollTop !== t0 || sc.scrollLeft !== l0) e.preventDefault();
     if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
   }, { passive: false });
-  root.addEventListener('scroll', function () {
-    if (!commenting) return;
-    layoutNotes();
-    if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
-  }, true);
+  concepts.forEach(function (c) {
+    c.root.addEventListener('scroll', function () {
+      if (!commenting || c !== sel) return;
+      layoutNotes();
+      if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
+    }, true);
+  });
 
   /* ---------- Notes list and storage ---------- */
   /* One note, in words Claude can act on: stored with it as `where`. */
   function describeNote(n) {
     var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
-    var lines = [noteNumber(n) + '. ' + kind + ' · screen ' + screenLabel(n.screen) +
+    var c = exploring && n.concept && conceptById(n.concept);
+    var lines = [noteNumber(n) + '. ' + kind + (c ? ' · ' + NOUN.toLowerCase() + ' ' + c.key + ' “' + c.label + '”' : '') + ' · screen ' + screenLabel(n.screen, n.concept) +
       (n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
       (n.textScale !== 1 ? ' · text ' + Math.round(n.textScale * 100) + '%' : '')];
     if (n.kind === 'pin') {
@@ -3029,14 +3301,16 @@ window.ultrahandSetup = function (canvas) {
     var fId = fRow && fRow.querySelector('.uh-note-open').dataset.id;
     var fDel = fa && fa.classList.contains('uh-note-del');
     nel.list.replaceChildren();
-    /* Group by screen, the current screen first, once the notes span more than one. */
+    /* Group by screen (and concept, on an explore page), the current one first, once the
+       notes span more than one. */
     var order = [], groups = {};
+    function groupKey(note) { return (exploring ? (note.concept || '') + '\n' : '') + (note.screen || ''); }
     notes.forEach(function (note) {
-      var k = note.screen || '';
+      var k = groupKey(note);
       if (!groups[k]) { groups[k] = []; order.push(k); }
       groups[k].push(note);
     });
-    var cur = screenId();
+    var cur = groupKey({ concept: sel.id, screen: screenId() });
     if (groups[cur]) order = [cur].concat(order.filter(function (k) { return k !== cur; }));
     function byNum(a, b) { return noteNumber(a) - noteNumber(b); }
     order.forEach(function (k) {
@@ -3047,7 +3321,8 @@ window.ultrahandSetup = function (canvas) {
       var h = document.createElement('h3');
       h.className = 'uh-note-group';
       h.id = 'uh-note-group-' + order.indexOf(k);
-      h.textContent = screenLabel(k) + (k === cur ? ' · this screen' : '');
+      var g = groups[k][0], gc = exploring && g.concept && conceptById(g.concept);
+      h.textContent = (gc ? conceptName(gc) + ' · ' : '') + screenLabel(g.screen, g.concept) + (k === cur ? ' · this screen' : '');
       var ul = document.createElement('ul');
       ul.setAttribute('aria-labelledby', h.id);
       ul.append.apply(ul, rows);
@@ -3091,6 +3366,8 @@ window.ultrahandSetup = function (canvas) {
   /* Opening a note from the list goes to its screen and state and opens its comment box. */
   function showNote(n) {
     notesMenu.close(false);
+    var nc = exploring && n.concept && conceptById(n.concept);
+    if (nc && nc !== sel) { if (comparing()) selectConcept(nc); else focusConcept(nc); }
     if (n.screen && n.screen !== screenId() && screenById(n.screen)) navigate(n.screen);
     if (n.state && n.state !== st.state && states.some(function (s) { return s.id === n.state; })) setState(n.state);
     var e = n.anchor && findEl(n.anchor.sel);
@@ -3155,61 +3432,303 @@ window.ultrahandSetup = function (canvas) {
   }
   renderNotesUI();
 
-  /* ---------- Public API handed to the screen's setup function ---------- */
-  var toastTimer = 0;
-  var canvas = {
-    root: root,
-    viewport: viewport,
-    $: function (sel) { return viewport.querySelector(sel); },
-    $$: function (sel) { return Array.prototype.slice.call(viewport.querySelectorAll(sel)); },
-    get size() { return sizeInfo(); },
-    get screen() { return currentScreen ? currentScreen.dataset.screen : null; },
-    onResize: function (fn) {
-      resizeListeners.push(fn);
-      try { fn(sizeInfo()); } catch (err) { report('onResize handler: ' + err.message); }
-      return function () { resizeListeners = resizeListeners.filter(function (f) { return f !== fn; }); };
-    },
-    onNavigate: function (fn) {
-      navListeners.push(fn);
-      return function () { navListeners = navListeners.filter(function (f) { return f !== fn; }); };
-    },
-    navigate: navigate,
-    back: back,
-    setSize: function (w, h) { setSize(w, h == null ? st.h : h, 'api'); },
-    usePreset: function (id) {
-      var p = presets.filter(function (x) { return x.id === id; })[0];
-      if (p) usePreset(p); else report('No preset named "' + id + '".');
-    },
-    setScheme: function (s) { st.scheme = s === 'dark' ? 'dark' : 'light'; render(); },
-    get state() { return st.state; },
-    setState: setState,
-    onState: function (fn) {
-      stateListeners.push(fn);
-      if (st.state) { try { fn(st.state); } catch (err) { report('onState handler: ' + err.message); } }
-      return function () { stateListeners = stateListeners.filter(function (f) { return f !== fn; }); };
-    },
-    setTextScale: function (n) { st.textScale = Number(n) > 0 ? Number(n) : 1; render(); },
-    /* Call after changing the DOM in a way that moves hit areas (e.g. opening a sheet). */
-    refresh: function () { measureTargets(); layoutNotes(); },
-    /* The viewer's notes (Comment mode), and the same as text for Claude. */
-    get notes() { return JSON.parse(JSON.stringify(notes)); },
-    notesText: function () {
-      return notes.map(function (n) { return describeNote(n).concat('Note: ' + n.text).join('\n'); }).join('\n\n');
-    },
-    setStatusBar: function (tone) {
-      st.statusTone = ['light', 'dark', 'hidden'].indexOf(tone) >= 0 ? tone : 'auto';
-      render();
-    },
-    toast: function (text, ms) {
-      el.toast.textContent = text;
-      el.toast.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, ms || 2400);
+  /* ---------- Public API handed to each screen's setup function ---------- */
+  /* Size, scheme, text size and state are shared, so every concept stays in sync; the
+     rest is the concept's own. */
+  function toastIn(c, text, ms) {
+    var node = comparing() ? c.parts['uh-toast'] : el.toast;
+    node.textContent = text;
+    node.classList.add('show');
+    clearTimeout(node.uhTimer);
+    node.uhTimer = setTimeout(function () { node.classList.remove('show'); }, ms || 2400);
+  }
+  function makeApi(c) {
+    function off(list, fn) { return function () { var i = c[list].indexOf(fn); if (i >= 0) c[list].splice(i, 1); }; }
+    return {
+      root: c.root,
+      viewport: c.viewport,
+      concept: c.id,
+      $: function (s) { return c.viewport.querySelector(s); },
+      $$: function (s) { return Array.prototype.slice.call(c.viewport.querySelectorAll(s)); },
+      get size() { return sizeInfo(); },
+      get screen() { var s = screenOf(c); return s ? s.dataset.screen : null; },
+      onResize: function (fn) {
+        c.resizeListeners.push(fn);
+        try { fn(sizeInfo()); } catch (err) { report('onResize handler: ' + err.message); }
+        return off('resizeListeners', fn);
+      },
+      onNavigate: function (fn) { c.navListeners.push(fn); return off('navListeners', fn); },
+      navigate: function (id, opts) { withConcept(c, function () { navigate(id, opts); }); },
+      back: function () { withConcept(c, back); },
+      setSize: function (w, h) { setSize(w, h == null ? st.h : h, 'api'); },
+      usePreset: function (id) {
+        var p = presets.filter(function (x) { return x.id === id; })[0];
+        if (p) usePreset(p); else report('No preset named "' + id + '".');
+      },
+      setScheme: function (s) { st.scheme = s === 'dark' ? 'dark' : 'light'; render(); },
+      get state() { return st.state; },
+      setState: setState,
+      onState: function (fn) {
+        c.stateListeners.push(fn);
+        if (st.state) { try { fn(st.state); } catch (err) { report('onState handler: ' + err.message); } }
+        return off('stateListeners', fn);
+      },
+      setTextScale: function (n) { st.textScale = Number(n) > 0 ? Number(n) : 1; render(); },
+      /* Call after changing the DOM in a way that moves hit areas (e.g. opening a sheet). */
+      refresh: function () { measureTargets(); layoutNotes(); },
+      /* The viewer's notes (Comment mode), and the same as text for Claude. */
+      get notes() { return JSON.parse(JSON.stringify(notes)); },
+      notesText: function () {
+        return notes.map(function (n) { return describeNote(n).concat('Note: ' + n.text).join('\n'); }).join('\n\n');
+      },
+      setStatusBar: function (tone) {
+        st.statusTone = ['light', 'dark', 'hidden'].indexOf(tone) >= 0 ? tone : 'auto';
+        render();
+      },
+      toast: function (text, ms) { toastIn(c, text, ms); }
+    };
+  }
+  concepts.forEach(function (c) { c.api = makeApi(c); });
+
+  /* ---------- Explore: compare and focus ---------- */
+  /* Compare shows a copy of the frame per concept, side by side, each under a label with
+     its position; the copies follow the real frame's size, kind and chrome (syncCells).
+     Focus puts one concept's screen back in the real frame, with the handles. */
+  var CELL_GAP = 32, CELL_HEAD = 76;
+  var SYNCED = ['uh-frame', 'uh-titlebar', 'uh-wintitle', 'uh-area', 'uh-divider', 'uh-other', 'uh-statusbar', 'uh-wincaps', 'uh-homebar'];
+  function comparing() { return exploring && !!st.compare; }
+  function buildCells() {
+    concepts.forEach(function (c) {
+      var cell = document.createElement('div');
+      cell.className = 'uh-cell';
+      cell.dataset.concept = c.key;
+      var head = document.createElement('div');
+      head.className = 'uh-cell-head';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'uh-cell-label';
+      var key = document.createElement('span'), name = document.createElement('span'), pos = document.createElement('span');
+      key.className = 'uh-key'; key.textContent = c.key;
+      name.className = 'uh-cell-name'; name.textContent = c.label;
+      pos.className = 'uh-cell-pos'; pos.textContent = c.position;
+      b.append(key, name, pos);
+      var said = conceptName(c) + ': ' + c.position.replace(/[.\s]+$/, '');
+      b.title = said + '. Click to see it on its own.';
+      b.setAttribute('aria-label', said + '. Show on its own');
+      b.addEventListener('click', function () { focusConcept(c); });
+      head.append(b);
+      var body = document.createElement('div');
+      body.className = 'uh-cell-body';
+      var frame = el.frame.cloneNode(true);
+      var parts = {};
+      [frame].concat(Array.prototype.slice.call(frame.querySelectorAll('[id]'))).forEach(function (n) {
+        parts[n.id] = n;
+        n.dataset.uhRef = n.id;
+        n.removeAttribute('id');
+      });
+      parts['uh-host'].remove();
+      parts['uh-notes'].remove();
+      /* The copy's chrome is a picture: only the concept's screen takes focus. */
+      Array.prototype.forEach.call(frame.querySelectorAll('[tabindex], button, a[href], input, select'), function (n) {
+        n.tabIndex = -1;
+        n.setAttribute('aria-hidden', 'true');
+      });
+      parts['uh-divider'].removeAttribute('role');
+      var shield = document.createElement('div');
+      shield.className = 'uh-shield';
+      shield.setAttribute('aria-hidden', 'true');
+      /* Only a press selects another concept, never a pointer passing over; the same
+         press then drops the pin or starts the area there. */
+      /* The concept's own pins show through the shield: a press on one opens it. */
+      function ghostPinAt(e) {
+        shield.style.pointerEvents = 'none';
+        var under = document.elementFromPoint(e.clientX, e.clientY);
+        shield.style.pointerEvents = '';
+        return under && under.closest && under.closest('.uh-ghost .uh-pin');
+      }
+      shield.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        var pin = ghostPinAt(e);
+        if (pin) { pin.click(); return; }
+        selectConcept(c);
+        if (sel === c) startSketch(e);
+      });
+      shield.addEventListener('pointermove', function (e) {
+        shield.style.cursor = ghostPinAt(e) ? 'pointer' : '';
+      });
+      body.append(frame, shield);
+      cell.append(head, body);
+      c.cell = cell;
+      c.parts = parts;
+      if (c !== sel) parts['uh-area'].insertBefore(c.host, parts['uh-divider']);
+      el.compare.append(cell);
+      function pick() { if (sel !== c) selectConcept(c); }
+      c.host.addEventListener('pointerdown', pick);
+      c.host.addEventListener('focusin', pick);
+    });
+  }
+  function copyLook(from, to) {
+    to.hidden = from.hidden;
+    to.className = from.className;
+    to.style.cssText = from.style.cssText;
+    Array.prototype.slice.call(to.attributes).forEach(function (a) {
+      if (a.name.indexOf('data-') === 0 && a.name !== 'data-uh-ref' && !from.hasAttribute(a.name)) to.removeAttribute(a.name);
+    });
+    Array.prototype.forEach.call(from.attributes, function (a) {
+      if (a.name.indexOf('data-') === 0) to.setAttribute(a.name, a.value);
+    });
+  }
+  function syncCells() {
+    if (!exploring || !concepts[0].parts) return;
+    concepts.forEach(function (c) {
+      SYNCED.forEach(function (id) { copyLook(byId(id), c.parts[id]); });
+      c.parts['uh-wintitle'].textContent = el.wintitle.textContent;
+      c.cell.toggleAttribute('data-selected', c === sel);
+    });
+  }
+  /* The comment layer sits over the selected concept's screen. */
+  function placeLayer() {
+    var area = comparing() ? sel.parts['uh-area'] : el.area;
+    var before = comparing() ? sel.parts['uh-toast'] : el.toast;
+    if (nel.layer.parentNode !== area || nel.layer.nextSibling !== before) area.insertBefore(nel.layer, before);
+  }
+  function selectConcept(c) {
+    if (c === sel) return;
+    /* An open comment box belongs to its concept: keep what was typed and close it, the
+       same as a click elsewhere, so it never floats over another concept's screen. */
+    if (editing && editing.note.concept !== c.id) closeComposer(true, false);
+    var from = document.activeElement;
+    var pinId = from && from.classList && from.classList.contains('uh-pin') ? from.dataset.id : null;
+    activate(c);
+    sel = c;
+    buildNav();
+    syncCells();
+    placeLayer();
+    updateConceptBar();
+    drawNotes();
+    renderNotesUI();
+    /* A focused pin is redrawn on the other layer: keep focus on it, or on the bar. */
+    if (pinId || (from && from !== document.activeElement)) {
+      var to = pinId && (pinEls[pinId] || concepts.map(function (x) { return x.ghostEls && x.ghostEls[pinId] && x.ghostEls[pinId].pin; }).filter(Boolean)[0]);
+      if (to && to.isConnected) to.focus({ preventScroll: true });
+      else if (document.activeElement === document.body) c.btn.focus({ preventScroll: true });
     }
-  };
-  window.ultrahandCanvas = canvas;
+  }
+  function setCompare(on) {
+    st.compare = on;
+    concepts.forEach(function (c) {
+      var area = on || c !== sel ? c.parts['uh-area'] : el.area;
+      var before = on || c !== sel ? c.parts['uh-divider'] : el.divider;
+      if (c.host.parentNode === area) return;
+      var s = screenOf(c), top = s ? s.scrollTop : 0;
+      area.insertBefore(c.host, before);
+      if (s) s.scrollTop = top;
+    });
+    el.rig.toggleAttribute('data-compare', on);
+    placeLayer();
+    updateConceptBar();
+    st.recenter = true;
+    render();
+  }
+  function focusConcept(c) {
+    var from = document.activeElement;
+    selectConcept(c);
+    setCompare(false);
+    /* A label in the compare view is gone now: keep focus on the bar, at this concept. */
+    if (from && el.compare.contains(from)) c.btn.focus({ preventScroll: true });
+  }
+  function conceptBtn(text, label) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'uh-btn uh-concept-btn';
+    b.setAttribute('aria-pressed', 'false');
+    if (label) b.setAttribute('aria-label', label);
+    b.append.apply(b, text);
+    return b;
+  }
+  function buildConceptBar() {
+    el.concepts.hidden = false;
+    /* The comment-mode hint hangs below the bars, so it doesn't cover the position line. */
+    el.concepts.append(nel.hint);
+    el.conceptBtns.setAttribute('aria-label', cfg.conceptSection ? 'Options' : 'Concepts');
+    var all = conceptBtn(['Compare'], 'Compare all ' + concepts.length);
+    all.dataset.compare = '';
+    all.title = 'All ' + concepts.length + ' at the same size';
+    all.addEventListener('click', function () { setCompare(true); });
+    el.conceptBtns.append(all);
+    concepts.forEach(function (c) {
+      var key = document.createElement('span'), name = document.createElement('span');
+      key.className = 'uh-key'; key.textContent = c.key;
+      name.className = 'uh-concept-name'; name.textContent = c.label;
+      var b = conceptBtn([key, name], conceptName(c));
+      b.dataset.key = c.key;
+      b.title = conceptName(c) + ': ' + c.position;
+      b.addEventListener('click', function () { focusConcept(c); });
+      c.btn = b;
+      el.conceptBtns.append(b);
+    });
+    var bar = el.conceptBtns;
+    bar.addEventListener('focusin', function (e) { revealConceptBtn(e.target); });
+    bar.addEventListener('scroll', markConceptOverflow, { passive: true });
+    bar.addEventListener('wheel', function (e) {
+      if (bar.scrollWidth <= bar.clientWidth || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      bar.scrollLeft += e.deltaY;
+    }, { passive: false });
+    new ResizeObserver(function () { markConceptOverflow(); revealConceptBtn(bar.querySelector('[aria-pressed="true"]')); }).observe(bar);
+  }
+  /* When the bar scrolls sideways, keep a button in view and fade the clipped edges. */
+  function revealConceptBtn(b) {
+    var bar = el.conceptBtns;
+    if (!b || bar.scrollWidth <= bar.clientWidth) return;
+    var r = b.getBoundingClientRect(), p = bar.getBoundingClientRect(), pad = 28;
+    if (r.left < p.left + pad) bar.scrollLeft -= p.left + pad - r.left;
+    else if (r.right > p.right - pad) bar.scrollLeft += r.right - (p.right - pad);
+    markConceptOverflow();
+  }
+  function markConceptOverflow() {
+    var bar = el.conceptBtns, max = bar.scrollWidth - bar.clientWidth;
+    var start = max > 1 && bar.scrollLeft > 1, end = max > 1 && bar.scrollLeft < max - 1;
+    if (start || end) bar.dataset.more = start && end ? 'both' : start ? 'start' : 'end';
+    else delete bar.dataset.more;
+  }
+  function updateConceptBar() {
+    if (!exploring) return;
+    var cmp = comparing();
+    el.conceptBtns.querySelector('[data-compare]').setAttribute('aria-pressed', String(cmp));
+    concepts.forEach(function (c) { c.btn.setAttribute('aria-pressed', String(!cmp && c === sel)); });
+    revealConceptBtn(el.conceptBtns.querySelector('[aria-pressed="true"]'));
+    var lead = cfg.conceptSection ? 'Options for ' + cfg.conceptSection + ': ' : '';
+    if (cmp) {
+      var n = concepts.length + ' ' + NOUN.toLowerCase() + 's';
+      var seen = st.inView || concepts[0];
+      el.conceptPos.textContent = lead + (st.column
+        ? 'Stacked: ' + n + ' at the same size, showing ' + conceptName(seen) + '. Scroll for the others. '
+        : 'All ' + n + ' at the same size. ') +
+        'Go to and comments act on ' + sel.key + '. Select a label to see one on its own.';
+    } else {
+      var strong = document.createElement('strong');
+      strong.textContent = conceptName(sel);
+      el.conceptPos.replaceChildren(lead, strong, ': ' + sel.position);
+    }
+    rovingTabs();
+  }
+  /* In a column, the line follows the concept nearest the middle of the stage. */
+  el.stage.addEventListener('scroll', function () {
+    if (!comparing() || !st.column) return;
+    var r = el.stage.getBoundingClientRect(), mid = r.top + r.height / 2, best = null, bestD = Infinity;
+    concepts.forEach(function (c) {
+      var b = c.cell.getBoundingClientRect(), d = mid < b.top ? b.top - mid : mid > b.bottom ? mid - b.bottom : 0;
+      if (d < bestD) { bestD = d; best = c; }
+    });
+    if (best && best !== (st.inView || concepts[0])) { st.inView = best; updateConceptBar(); }
+  }, { passive: true });
+  /* The setup API of the selected concept (the only one on a page without concepts). */
+  Object.defineProperty(window, 'ultrahandCanvas', { configurable: true, get: function () { return sel.api; } });
 
   /* ---------- Start ---------- */
+  if (exploring) { buildCells(); buildConceptBar(); }
   buildPresets();
   var first = presets.filter(function (p) { return p.id === cfg.initialPreset; })[0] || presets[0];
   if (first) {
@@ -3218,11 +3737,16 @@ window.ultrahandSetup = function (canvas) {
     var init = cfg.initial || {};
     setSize(init.width || 390, init.height || 844, 'preset');
   }
-  if (typeof window.ultrahandSetup === 'function') {
-    try { window.ultrahandSetup(canvas); } catch (err) { report('Screen setup failed: ' + err.message); }
-  }
-  if (currentScreen) emitNav(null);
+  concepts.forEach(function (c) {
+    var setup = c.id ? (window.ultrahandConcepts || {})[c.id] : window.ultrahandSetup;
+    if (typeof setup !== 'function') return;
+    withConcept(c, function () {
+      try { setup(c.api); } catch (err) { report((c.id ? conceptName(c) + ': ' : '') + 'Screen setup failed: ' + err.message); }
+    });
+  });
+  concepts.forEach(function (c) { withConcept(c, function () { if (currentScreen) emitNav(null); }); });
   if (st.state) setState(cfg.initialState && states.some(function (s) { return s.id === cfg.initialState; }) ? cfg.initialState : st.state);
+  if (exploring) setCompare(true);
 })();
 </script>
 </body>
