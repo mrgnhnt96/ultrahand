@@ -86,6 +86,8 @@ Platform guidelines are living documents; they were checked in November 2026.
 | NNG-FITTS | Nielsen Norman Group, *Fitts's Law and Its Applications in UX*. https://www.nngroup.com/articles/fitts-law/ |
 | NNG-SCROLL | Nielsen Norman Group, *Scrolling and Attention* (57% of viewing time above the fold, 74% in the first two screenfuls, measured on 1920 × 1080). https://www.nngroup.com/articles/scrolling-and-attention/ |
 | NNG-CANCEL | Nielsen Norman Group, *Cancel vs Close: Design to Distinguish the Difference*. https://www.nngroup.com/articles/cancel-vs-close/ |
+| DOW-PARALLEL | Steven P. Dow et al., "Parallel prototyping leads to better design results, more divergence, and increased self-efficacy", *ACM TOCHI* 17(4), 2010 (several prototypes made and critiqued in parallel beat serial iteration on one). Used by the explore stage. https://doi.org/10.1145/1879831.1879836 |
+| NNG-PARALLEL | Jakob Nielsen, "Parallel & Iterative Design + Competitive Testing = High Usability", NN/g, 17 Jan 2011 (3–5 rough alternatives at once, then merge the best ideas). Used by the explore stage. https://www.nngroup.com/articles/parallel-and-iterative-design/2011/ |
 
 ## Usage data
 
