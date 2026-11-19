@@ -18,8 +18,8 @@ those mistakes. See [shared/learning/README.md](../../shared/learning/README.md)
 **Review gate:** the user never sees an unreviewed design. Every round (the first draft
 and every revision, however small) ends with step 7, which you start yourself without
 being asked. An independent reviewer checks the built canvas, you fix what holds up,
-and only then do you publish or present. The one exception is explore concepts (below):
-the owner reviews those, and the gate applies again to the direction they pick.
+and only then do you publish or present. The two exceptions are explore concepts and the
+blueprint (below): the owner reviews those, and the gate applies again to the full design.
 
 ## 1. Gather requirements
 
@@ -53,8 +53,10 @@ Make 2–3 concepts that take different positions on the decisions that matter
 (navigation, density, how the main task works, what the screen leads with). State each
 position in one line. Build each concept in its own subagent from a brief with only the
 requirements, the theme and that position. Each concept is the key screen plus one
-transition at `medium`. Show the concepts side by side in one canvas, built with
-`--concepts`, and let the owner pick or mix. Then run steps 2–9 on the chosen direction.
+transition at `medium`, built as a greybox when the bets are about structure (then up to 5)
+or as a screen when one depends on how it looks or feels. Show the concepts side by side
+in one canvas, built with `--concepts`, and let the owner pick or mix. Then compose the
+chosen direction (steps 2–3) and show its blueprint.
 Skip explore for a specific spec, a correction or notes. When the owner asks for "N
 options for <section>", vary only that section, as the README describes.
 
@@ -81,6 +83,19 @@ plugin's composition rules in
 - **Keep it small.** About three type sizes, one fact in one place, frequent members in
   view and rare ones behind a menu. When a change adds something, reorganise first and
   add only what earns its place.
+
+### Blueprint, before the full design
+
+Before you build, show the owner a blueprint, following
+[shared/blueprint/README.md](../../shared/blueprint/README.md#the-blueprint-stage). Write
+the section map as `blueprint.json` and the components it needs as `parts.json`: reuse
+the theme's inventory first, and propose a new part only for what it can't do. Build the
+greybox with `--blueprint` and the parts sheet with `parts.mjs`, check them lightly (no
+independent review: the owner reviews it), publish both with the `db` capability, present,
+read the owner's notes and iterate. Build the full design only from the approved
+blueprint, and fold the approved new parts into the theme with the `theme` skill's evolve
+flow. Skip it for a correction, notes on a published design, a small change, or when the
+owner says to go straight to the design, and say so in one line.
 
 ## 4. Build the canvas artifact
 
