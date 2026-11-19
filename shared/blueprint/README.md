@@ -126,6 +126,8 @@ a few lines:
 - Ask the owner to comment (Comment or `C`, then pin or drag) or to approve. Say that the
   full design follows their approval.
 
+Then stop and wait for the owner. Don't start the full design until they approve.
+
 ### 6. Iterate
 
 When the owner says they left notes, read them from both artifacts with `ArtifactData`

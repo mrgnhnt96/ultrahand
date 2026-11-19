@@ -95,14 +95,15 @@ plugin's composition rules in
 
 Before you build, show the owner a blueprint, following
 [shared/blueprint/README.md](../../shared/blueprint/README.md#the-blueprint-stage). Write
-the section map as `blueprint.json` and the components it needs as `parts.json`: reuse
-the theme's inventory first, and propose a new part only for what it can't do. Build the
+the section map as `blueprint.json` and the components it needs as `parts.json`: reuse the
+theme's inventory first, and propose a new part only for what it can't do. Build the
 greybox with `--blueprint` and the parts sheet with `parts.mjs`, check them lightly (no
-independent review: the owner reviews it), publish both with the `db` capability, present,
-read the owner's notes and iterate. Build the full design only from the approved
-blueprint, and fold the approved new parts into the theme with the `theme` skill's evolve
-flow. Skip it for a correction, notes on a published design, a small change, or when the
-owner says to go straight to the design, and say so in one line.
+independent review: the owner reviews it), publish both with the `db` capability and
+present them. Then stop and wait for the owner: read their notes, iterate, and go on to
+step 4 only once they approve. Build the full design from the approved blueprint, and fold
+the approved new parts into the theme with the `theme` skill's evolve flow. Skip it for a
+correction, notes on a published design, a small change, or when the owner says to go
+straight to the design, and say so in one line.
 
 ## 4. Build the canvas artifact
 
