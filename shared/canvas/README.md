@@ -56,9 +56,11 @@ The page gives the viewer:
 
 `--head head.html` injects extra `<head>` content, such as a Google Fonts `<link>`. `--presets` also accepts a plain `.json` file.
 
+`--blueprint blueprint.json`, in place of `--screen`, builds a greybox from a section map (see [shared/blueprint](../blueprint/README.md)). The page is titled `Blueprint · <title>` and shows a Blueprint label under the toolbar, so nobody takes it for the final design.
+
 ### Concepts side by side
 
-For the explore stage and section options ([shared/explore](../explore/README.md)), pass `--concepts concepts.json` in place of `--screen`. The file lists 2 to 5 concepts, each `{ id, label, position, screen }`, with `screen` relative to the file, plus an optional `section` for section options. Each concept's screen follows the same [screen contract](#screen-contract) and is written as if it were alone: the build gives each template its own id and runs each script in its own scope, so names can't collide, and keeps each one's `ultrahandSetup` for that concept.
+For the explore stage and section options ([shared/explore](../explore/README.md)), pass `--concepts concepts.json` in place of `--screen`. The file lists 2 to 5 concepts, each `{ id, label, position, screen }`, with `screen` relative to the file, plus an optional `section` for section options. A concept can name a `blueprint` in place of `screen`, which makes it a greybox; then every concept in the file does. Each concept's screen follows the same [screen contract](#screen-contract) and is written as if it were alone: the build gives each template its own id and runs each script in its own scope, so names can't collide, and keeps each one's `ultrahandSetup` for that concept.
 
 - **Compare view.** The page opens with every concept at the same preset: in a row, or in a scrolling column when a row would make each frame under 200px wide on screen and one at a time would be much larger. The concept bar says which, and in the column which concept is in view. Size, rotation, scheme, text size and state apply to all of them. Each frame is labelled with its letter, label and position; a frame under 200px wide shows only the letter and label, and under 120px only the letter, with the rest in the label's tooltip. In a short window the concept bar stays one row and scrolls sideways.
 - **Concept bar.** Under the toolbar, `#uh-concept-btns` holds Compare and one button per concept (A, B, C…, `aria-pressed`). Selecting a concept, or a frame's label, shows it on its own; Compare goes back. `#uh-concept-pos` says what's showing: the selected concept's position, or a line about the compare view. With `section` set, buttons and notes say "Option" and the line starts "Options for <section>".
@@ -85,6 +87,7 @@ All fields are optional except `presets`.
 | `initialState` | The state to open in. Defaults to the first state. |
 | `initialScreen` | The `data-screen` id to open on. Defaults to the first screen. |
 | `scheme` | Opens in `light` or `dark`. |
+| `blueprint` | `true` marks the canvas as a blueprint: the Blueprint label shows under the toolbar. `--blueprint` sets it. |
 | `minTarget` | The tap-target minimum in CSS px for every preset. Without it, the minimum comes from each preset's platform. |
 
 ### Preset fields
@@ -213,6 +216,7 @@ The toolbar lives in the page document, outside the shadow root, so a review scr
 | `#uh-zoom-out`, `#uh-zoom`, `#uh-zoom-in`, `[data-zoom="fit"]`, `[data-zoom="1"]` | A step out, the current zoom (text such as "71%", `aria-hidden`), a step in, zoom to fit, and 100%. At 10% or 400% the step button has `aria-disabled="true"` and ignores clicks. |
 | `#uh-zoom-live` | A polite live region that says "Zoom 75%" half a second after the zoom stops changing. |
 | `#uh-help-btn`, `#uh-keys` | The `?` button and the popover it opens: the shortcuts and the canvas colours. |
+| `#uh-bp` | The Blueprint tag and "not the final look" at the start of the bar under the toolbar, with what to comment on in its tooltip. Shown only when `blueprint` is set; without concepts, the bar holds just the tag and, from 600px wide and 480px tall, a line on what to comment on. |
 | `#uh-error`, `#uh-error-dismiss`, `#uh-problems` | The problem banner, its Dismiss button, and the toolbar button that reopens it. |
 | `[data-edge]` | The frame's resize strips; the `e`, `s` and `divider` ones are focusable sliders. |
 | `#uh-theme` | The canvas's own colours, inside `#uh-keys`: `auto`, `light` or `dark`. |

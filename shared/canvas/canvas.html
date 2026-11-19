@@ -460,6 +460,17 @@ body.uh-dragging .uh-host { pointer-events: none; }
 .uh-key { flex: none; font: 700 13px/1.3 var(--font-ui); color: var(--ink); }
 .uh-concept-pos { flex: 1 1 18em; min-width: 0; margin: 0; font-size: 13px; color: var(--muted); }
 .uh-concept-pos strong { color: var(--ink); font-weight: 600; }
+/* A blueprint (a greybox from shared/blueprint) leads the bar with a status tag and a short
+   gloss. The dashed tag is neither a group label nor a button, so it reads as a fact about
+   the page; extra space keeps it apart from the concept buttons. */
+.uh-bp { flex: none; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--muted); }
+.uh-bp[hidden] { display: none; }
+.uh-bp-tag {
+  padding: 1px 8px; border: 1px dashed var(--muted); border-radius: 4px;
+  font: 700 12px/1.4 var(--font-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink);
+}
+.uh-bp:has(+ #uh-concept-btns:not(:empty)) { margin-inline-end: 16px; }
+#uh-concept-btns:empty { display: none; }
 .uh-compare { display: none; }
 .uh-rig[data-compare] > .uh-frame, .uh-rig[data-compare] > .uh-handle { display: none; }
 .uh-rig[data-compare] > .uh-compare { display: flex; align-items: flex-start; gap: calc(32px / var(--s)); }
@@ -506,12 +517,14 @@ body.uh-space .uh-ghost .uh-pin, body.uh-panning .uh-ghost .uh-pin, body.uh-drag
 @media (max-width: 599px) {
   .uh-concepts { padding: 6px 8px; gap: 4px 8px; }
   .uh-concept-btn { max-width: 10em; }
+  .uh-concepts[data-blueprint] .uh-concept-pos { display: none; }
 }
 /* A short window keeps the bar to one row that scrolls sideways; each button's title
    still gives the position. A faded edge shows there's more, and the focused or selected
    button is scrolled into view. */
 @media (max-height: 479px) {
   .uh-concept-pos { display: none; }
+  .uh-bp:has(+ #uh-concept-btns:not(:empty)) .uh-bp-gloss { display: none; }
   .uh-concepts, .uh-concepts .uh-seg { flex-wrap: nowrap; }
   .uh-concepts .uh-seg { min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: -4px; }
   .uh-concept-btn { flex: none; }
@@ -926,6 +939,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   </div>
 </header>
 <div class="uh-concepts" id="uh-concepts" hidden>
+  <p class="uh-bp" id="uh-bp" hidden title="Layout and real words in grey, not the final look. Comment on what goes where, the order and the wording."><span class="uh-bp-tag">Blueprint</span><span class="uh-bp-gloss">not the final look</span></p>
   <div class="uh-seg" id="uh-concept-btns" role="group"></div>
   <p class="uh-concept-pos" id="uh-concept-pos" aria-live="polite"></p>
 </div>
@@ -1294,7 +1308,7 @@ window.ultrahandSetup = function (canvas) {
     gZoom: byId('uh-g-zoom'), zoomWrap: byId('uh-zoomwrap'), zoomBtn: byId('uh-zoom-btn'), zoomSum: byId('uh-zoom-sum'), zoomLive: byId('uh-zoom-live'),
     preview: byId('uh-g-preview'), previewBtn: byId('uh-preview-btn'), previewSum: byId('uh-preview-sum'),
     help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys'),
-    concepts: byId('uh-concepts'), conceptBtns: byId('uh-concept-btns'), conceptPos: byId('uh-concept-pos'), compare: byId('uh-compare')
+    concepts: byId('uh-concepts'), bp: byId('uh-bp'), conceptBtns: byId('uh-concept-btns'), conceptPos: byId('uh-concept-pos'), compare: byId('uh-compare')
   };
   var errors = [];
   /* Problems show in a banner between the toolbar and the stage, so they cover nothing.
@@ -3729,6 +3743,17 @@ window.ultrahandSetup = function (canvas) {
 
   /* ---------- Start ---------- */
   if (exploring) { buildCells(); buildConceptBar(); }
+  /* A blueprint says so in the bar under the toolbar, so nobody takes the greybox for the design. */
+  if (cfg.blueprint) {
+    el.bp.hidden = false;
+    el.concepts.setAttribute('data-blueprint', '');
+    if (!exploring) {
+      el.concepts.hidden = false;
+      el.concepts.append(nel.hint);
+      el.conceptPos.removeAttribute('aria-live');
+      el.conceptPos.textContent = 'Layout and real words in grey. Comment on what goes where, the order and the wording.';
+    }
+  }
   buildPresets();
   var first = presets.filter(function (p) { return p.id === cfg.initialPreset; })[0] || presets[0];
   if (first) {

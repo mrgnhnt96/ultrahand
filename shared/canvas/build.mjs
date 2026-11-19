@@ -5,6 +5,7 @@
 //   node build.mjs --screen screen.html [--config config.json] [--presets presets.md]
 //                  [--head head.html] [--title "Checkout"] [--out index.html]
 //   node build.mjs --concepts concepts.json [same options]   (explore: concepts side by side)
+//   node build.mjs --blueprint blueprint.json [same options] (a greybox from shared/blueprint)
 //
 // --presets takes a .json file, or a .md file whose first ```json block holds the presets.
 // Its fields are merged under --config, so the config wins on any key both set.
@@ -13,6 +14,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { greybox, readBlueprint } from '../blueprint/greybox.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FRAMES = ['phone', 'tablet', 'window', 'none'];
@@ -145,6 +147,17 @@ function templateRange(screen) {
   return null;
 }
 
+/* A blueprint's greybox screen, its warnings prefixed with `at`. */
+function blueprintScreen(file, at, warnings) {
+  try {
+    const r = greybox(readBlueprint(file), { file });
+    warnings.push(...r.warnings.map((w) => `${at}${w}`));
+    return r;
+  } catch (err) {
+    fail(err.message);
+  }
+}
+
 /* Several concepts share one page, so each one's template gets its own id and each inline
    script runs in its own function scope: top-level names can't collide, and the setup
    each one assigns to window.ultrahandSetup is kept under its concept's id. */
@@ -179,16 +192,19 @@ function readConcepts(path) {
     ids.add(c.id);
     if (!c.label) errors.push(`${at} needs a label`);
     if (!c.position) errors.push(`${at} needs a one-line position`);
-    if (!c.screen) errors.push(`${at} needs a screen file`);
+    if (!c.screen === !c.blueprint) errors.push(`${at} needs a screen file or a blueprint file, not both`);
   });
+  if (Array.isArray(list) && list.some((c) => c && c.blueprint) && list.some((c) => c && c.screen)) {
+    errors.push('concepts are all blueprints or all screens: a greybox beside a finished screen would be judged on looks');
+  }
   if (spec.section !== undefined && (typeof spec.section !== 'string' || !spec.section.trim())) errors.push('section must be a section name');
   if (errors.length) fail(`concepts problems in ${path}:\n  - ${errors.join('\n  - ')}`);
-  return { section: spec.section, concepts: list.map((c) => ({ ...c, file: join(dirname(resolve(path)), c.screen) })) };
+  return { section: spec.section, concepts: list.map((c) => ({ ...c, file: join(dirname(resolve(path)), c.screen || c.blueprint) })) };
 }
 
 const opt = args(process.argv.slice(2));
-if (opt.help || (!opt.screen && !opt.concepts)) {
-  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 11).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
+if (opt.help || (!opt.screen && !opt.concepts && !opt.blueprint)) {
+  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 12).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
   process.exit(opt.help ? 0 : 1);
 }
 
@@ -198,21 +214,40 @@ if (opt.title) cfg.title = opt.title;
 const errors = validate(cfg);
 if (errors.length) fail(`config problems:\n  - ${errors.join('\n  - ')}`);
 
-if (opt.screen && opt.concepts) fail('pass --screen or --concepts, not both');
-let screen, lintWarnings = [];
+if ([opt.screen, opt.concepts, opt.blueprint].filter(Boolean).length > 1) fail('pass one of --screen, --concepts or --blueprint');
+let screen, lintWarnings = [], bpWarnings = [], bpTitle, bpStates;
 if (opt.concepts) {
   const spec = readConcepts(opt.concepts);
   cfg.concepts = spec.concepts.map(({ id, label, position }) => ({ id, label, position }));
   if (spec.section) cfg.conceptSection = spec.section;
   screen = spec.concepts.map((c) => {
+    if (c.blueprint) {
+      cfg.blueprint = true;
+      const r = blueprintScreen(c.file, `${c.id}: `, bpWarnings);
+      bpStates = bpStates || r.states;
+      bpTitle = bpTitle || r.title;
+      return conceptScreen(r.html, c, c.blueprint);
+    }
     const s = read(c.file, `concept "${c.id}" screen`);
     lintWarnings.push(...lint(s).map((w) => `${c.id}: ${w}`));
     return conceptScreen(s, c, c.screen);
   }).join('\n\n');
+} else if (opt.blueprint) {
+  cfg.blueprint = true;
+  const r = blueprintScreen(opt.blueprint, '', bpWarnings);
+  screen = r.html;
+  bpTitle = r.title;
+  bpStates = r.states;
 } else {
   screen = read(opt.screen, 'screen');
   if (!templateRange(screen)) fail(`${opt.screen} needs a <template id="uh-screen">`);
   lintWarnings = lint(screen);
+}
+/* A blueprint says so in its title, wherever the title shows, so nobody takes it for the design. */
+if (cfg.blueprint) {
+  if (cfg.states === undefined && bpStates) cfg.states = bpStates;
+  const name = cfg.title || bpTitle || 'Untitled';
+  cfg.title = /^blueprint\b/i.test(name) ? name : `Blueprint · ${name}`;
 }
 const head = opt.head ? read(opt.head, 'head') : '';
 
@@ -226,6 +261,6 @@ const out = resolve(opt.out || 'index.html');
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, html);
 
-for (const w of lintWarnings) console.warn(`warning: ${w}`);
+for (const w of [...bpWarnings, ...lintWarnings]) console.warn(`warning: ${w}`);
 const kb = (Buffer.byteLength(html) / 1024).toFixed(1);
-console.log(`Wrote ${out} (${kb} KiB, ${cfg.presets.length} presets${cfg.extraChecks ? ` + ${cfg.extraChecks.length} checks` : ''}${cfg.concepts ? `, ${cfg.concepts.length} ${cfg.conceptSection ? 'options' : 'concepts'}` : ''})`);
+console.log(`Wrote ${out} (${kb} KiB, ${cfg.presets.length} presets${cfg.extraChecks ? ` + ${cfg.extraChecks.length} checks` : ''}${cfg.concepts ? `, ${cfg.concepts.length} ${cfg.conceptSection ? 'options' : 'concepts'}` : ''}${cfg.blueprint ? ', blueprint' : ''})`);

@@ -1,0 +1,180 @@
+{
+  "title": "Pantry",
+  "states": ["default", "empty"],
+  "screens": [
+    {
+      "id": "lists",
+      "title": "Lists",
+      "sections": [
+        {
+          "name": "Header",
+          "job": "Say which screen this is",
+          "role": "chrome",
+          "place": "top",
+          "members": [
+            { "kind": "title", "text": "Lists" }
+          ]
+        },
+        {
+          "name": "Tabs",
+          "job": "Move between the app's areas",
+          "role": "chrome",
+          "place": "side",
+          "compactPlace": "bottom",
+          "members": [
+            { "kind": "nav", "items": [
+              { "text": "Lists", "nav": "lists" },
+              { "text": "Settings", "nav": "settings" }
+            ] }
+          ]
+        },
+        {
+          "name": "Your lists",
+          "job": "Open the list you're shopping from",
+          "role": "content",
+          "states": ["default"],
+          "members": [
+            { "kind": "list", "items": [
+              { "text": "Weekend shop", "meta": "12 items · 4 left", "nav": "list" },
+              { "text": "Hardware store", "meta": "3 items" },
+              { "text": "Birthday party", "meta": "18 items · shared with Sam" }
+            ] },
+            { "kind": "button", "text": "New list", "emphasis": true }
+          ]
+        },
+        {
+          "name": "No lists yet",
+          "job": "Get someone to their first list",
+          "role": "content",
+          "states": ["empty"],
+          "members": [
+            { "kind": "text", "text": "Make a list for your next shop. Items you buy often come back as suggestions." },
+            { "kind": "button", "text": "Make your first list", "emphasis": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "list",
+      "title": "Weekend shop",
+      "sections": [
+        {
+          "name": "Header",
+          "job": "Say which list this is and get back",
+          "role": "chrome",
+          "place": "top",
+          "members": [
+            { "kind": "button", "text": "Lists", "back": true },
+            { "kind": "title", "text": "Weekend shop" },
+            { "kind": "button", "text": "Share", "rare": true },
+            { "kind": "button", "text": "Rename list", "rare": true },
+            { "kind": "button", "text": "Delete list", "rare": true }
+          ]
+        },
+        {
+          "name": "Still to get",
+          "job": "Tick items off while shopping",
+          "role": "content",
+          "members": [
+            { "kind": "toggle", "label": "Oat milk, 2 litres" },
+            { "kind": "toggle", "label": "Sourdough loaf" },
+            { "kind": "toggle", "label": "Cherry tomatoes" },
+            { "kind": "toggle", "label": "Free-range eggs, a dozen" },
+            { "kind": "button", "text": "Add item", "nav": "add", "emphasis": true }
+          ]
+        },
+        {
+          "name": "Already in the basket",
+          "job": "Show what's done",
+          "role": "content",
+          "pane": "secondary",
+          "members": [
+            { "kind": "stat", "text": "8 of 12", "label": "items in the basket" },
+            { "kind": "list", "items": ["Bananas", "Greek yoghurt", "Coffee beans", "Spinach", "Lemons", "Pasta", "Parmesan", "Olive oil"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "add",
+      "title": "Add item",
+      "sections": [
+        {
+          "name": "Header",
+          "job": "Say what this sheet does and leave it",
+          "role": "chrome",
+          "place": "top",
+          "members": [
+            { "kind": "button", "text": "Cancel", "back": true },
+            { "kind": "title", "text": "Add item" }
+          ]
+        },
+        {
+          "name": "Item",
+          "job": "Name the item and how much",
+          "role": "content",
+          "members": [
+            { "kind": "field", "label": "Item", "placeholder": "e.g. Basmati rice" },
+            { "kind": "field", "label": "Quantity", "text": "1 bag" },
+            { "kind": "field", "label": "Note for whoever shops", "multiline": true, "placeholder": "Brand, size, or what to get if it's out", "rare": true }
+          ]
+        },
+        {
+          "name": "Suggestions",
+          "job": "Re-add something bought before in one tap",
+          "role": "content",
+          "members": [
+            { "kind": "list", "items": ["Basmati rice", "Bananas", "Dishwasher tablets"] }
+          ]
+        },
+        {
+          "name": "Actions",
+          "job": "Save the item",
+          "role": "chrome",
+          "place": "bottom",
+          "members": [
+            { "kind": "button", "text": "Add to Weekend shop", "back": true, "emphasis": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "Settings",
+      "sections": [
+        {
+          "name": "Header",
+          "job": "Say which screen this is",
+          "role": "chrome",
+          "place": "top",
+          "members": [
+            { "kind": "title", "text": "Settings" }
+          ]
+        },
+        {
+          "name": "Tabs",
+          "job": "Move between the app's areas",
+          "role": "chrome",
+          "place": "side",
+          "compactPlace": "bottom",
+          "members": [
+            { "kind": "nav", "items": [
+              { "text": "Lists", "nav": "lists" },
+              { "text": "Settings", "nav": "settings" }
+            ] }
+          ]
+        },
+        {
+          "name": "Shopping",
+          "job": "Set how lists behave in the shop",
+          "role": "content",
+          "members": [
+            { "kind": "toggle", "label": "Move ticked items to the bottom", "on": true },
+            { "kind": "toggle", "label": "Keep the screen on while shopping" },
+            { "kind": "toggle", "label": "Suggest items I buy often", "on": true }
+          ]
+        }
+      ]
+    }
+  ]
+}
