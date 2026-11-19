@@ -6,7 +6,8 @@ runs: 3
 execution:
   prompt: >-
     Design the notification settings screen for our iPhone app: a master switch, then
-    switches for replies, mentions and the weekly digest, and quiet hours.
+    switches for replies, mentions and the weekly digest, and quiet hours. We've settled the
+    layout, so go straight to the design.
   max_turns: 30
   timeout_seconds: 600
   allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]

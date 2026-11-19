@@ -2,8 +2,9 @@
 
 Before the deep pipeline, when the request is open, build 2–3 concepts that make
 different structural bets. Show them side by side and let the owner pick or mix. Only
-then put the chosen direction through every preset, the checks and the independent
-review.
+then turn the chosen direction into a blueprint
+([shared/blueprint](../blueprint/README.md#the-blueprint-stage)), and once the owner
+approves it, put it through every preset, the checks and the independent review.
 
 **Why.** In Dow et al. (2010), designers who made several prototypes in parallel and got
 feedback on all of them produced better results and more varied designs than designers
@@ -27,7 +28,9 @@ ideas from each, rather than polishing the first idea that came to mind. Sources
 ## How many
 
 Make 2 concepts when only one structural decision is open, and 3 when two or more are.
-When the owner names a number, make that many (up to 5). Nielsen suggests at most 5.
+Greybox concepts (below) cost less, so with three or more decisions open you may make up
+to 5 of them. When the owner names a number, make that many (up to 5). Nielsen suggests
+at most 5.
 
 ## Pick the axes, then the positions
 
@@ -61,18 +64,35 @@ Never put the other concepts, their positions, or how many concepts there are in
 brief. A designer who knows the alternatives drifts toward them or away from them, and
 the concepts stop being independent.
 
-The subagent reads the skill's `references/principles.md` and the screen contract in
-[shared/canvas/README.md](../canvas/README.md). Then it writes
-`explore/<id>/screen.html`. Where the Agent tool isn't available, build the concepts
+The subagent reads the skill's `references/principles.md`, then writes the concept as a
+greybox or a screen (see [Greybox or screen](#greybox-or-screen)): a greybox as
+`explore/<id>/blueprint.json` in the format in
+[shared/blueprint/README.md](../blueprint/README.md#format), a screen as
+`explore/<id>/screen.html` following the screen contract in
+[shared/canvas/README.md](../canvas/README.md). Where the Agent tool isn't available, build the concepts
 one after another. Start each from its brief alone, and don't reopen the others' files
 while you build it.
 
+### Greybox or screen
+
+Decide once for the whole set: every concept in one canvas is a greybox, or none is.
+
+- **Greybox** when the positions differ in structure: the navigation model, what the
+  screen leads with, which sections there are and in what order, or how much each one
+  holds. A greybox shows those with the real words and no styling, so the owner compares
+  the bets and not the polish. It's quicker to make, which is why up to 5 is fine.
+- **Screen** when a position depends on how it looks or feels in use: direct
+  manipulation, a gesture, motion, or a visual treatment that is the bet itself (a
+  photo-led feed against a text list).
+
 **Fidelity:**
 - Build the key screen and one transition: the main task's next screen, a sheet, or a
-  state change.
+  state change. In a greybox the transition is a second screen it navigates to.
 - Use one preset, the most common one (the skill's first).
 - Use real content.
-- The theme's non-negotiables apply: tokens only, contrast, and target sizes.
+- In a screen, the theme's non-negotiables apply: tokens only, contrast, and target
+  sizes. A greybox has no colours of its own; its checks (one job and at most one
+  emphasis per section, real words) apply instead.
 
 Skip the preset sweep, the self-check list and the independent review. The owner
 reviews the concepts, and that is this stage's one exception to the review gate. If
@@ -90,6 +110,9 @@ the owner asks for more screens of a concept, add them at the same fidelity.
   ]
 }
 ```
+
+For greybox concepts, each one names `"blueprint": "<id>/blueprint.json"` in place of
+`screen`.
 
 Build one canvas with every concept in it. Pass `--concepts` in place of `--screen`:
 
@@ -111,10 +134,12 @@ skill); each note's `where` names its concept.
 
 ## After the pick
 
-Merge what the owner chose into one screen. Then run the full pipeline on it, from
-"Compose the screen" onward: the section map, every preset, the self-check and the
-independent review. The first round after explore is a first round, so review it
-whole.
+Merge what the owner chose into one direction and write its section map ("Compose the
+screen"). Then show its blueprint: after greybox concepts, start from the chosen
+concept's `blueprint.json` and fold in what the owner took from the others. Once the
+owner approves the blueprint, run the rest of the pipeline: every preset, the self-check
+and the independent review. The first full design after explore is a first round, so
+review it whole.
 
 ## Section options
 

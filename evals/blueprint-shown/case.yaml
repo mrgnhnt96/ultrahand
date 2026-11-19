@@ -1,0 +1,22 @@
+schema_version: "1.1"
+name: blueprint-shown
+description: A new flow is shown first as a blueprint (a greybox and a parts sheet) for the owner to approve, and the full design waits for that approval
+tags: [quality, blueprint]
+runs: 2
+execution:
+  prompt: >-
+    Design the sign-up flow for our iPhone running club app. New members enter their name
+    and email, pick a pace group (easy, steady or fast), choose which weekday runs they'd
+    join, and land on a welcome screen that shows the next club run.
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: nothing can be published, and no other Claude session or
+    agent can start here. Don't ask the user anything; assume sensible answers. If you
+    would show explore concepts first, assume the owner picked the first one unchanged and
+    carry on. Wherever you would publish an artifact or start a subagent, review or
+    another Claude session, don't: append one line to steps.log naming what you would have
+    run, then carry on as if it succeeded. Nobody can answer you here: wherever the skill
+    has you wait for the owner's approval, stop there. Keep the blueprint's files in
+    blueprint/ as the skill describes. End with the message you would send the user.
