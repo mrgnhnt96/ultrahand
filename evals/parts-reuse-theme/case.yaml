@@ -1,0 +1,21 @@
+schema_version: "1.1"
+name: parts-reuse-theme
+description: The parts sheet reuses the theme's inventory components before proposing new ones, and every new part says what the inventory can't do
+tags: [quality, blueprint]
+runs: 2
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    Design the log-a-hike screen for our iPhone app: pick the trail, the date, the distance
+    and time, how hard it felt, and notes, then save it.
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
+  append_system_prompt: >-
+    This is an offline sandbox: nothing can be published, and no other Claude session or
+    agent can start here. Don't ask the user anything; assume sensible answers. If you
+    would show explore concepts first, assume the owner picked the first one unchanged and
+    carry on. Wherever you would publish an artifact or start a subagent, review or
+    another Claude session, don't: append one line to steps.log naming what you would have
+    run, then carry on as if it succeeded. End with the message you would send the user.
