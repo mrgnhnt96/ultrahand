@@ -18,4 +18,6 @@ execution:
     would show explore concepts first, assume the owner picked the first one unchanged and
     carry on. Wherever you would publish an artifact or start a subagent, review or
     another Claude session, don't: append one line to steps.log naming what you would have
-    run, then carry on as if it succeeded. End with the message you would send the user.
+    run, then carry on as if it succeeded. Nobody can answer you here: wherever the skill
+    has you wait for the owner's approval, stop there. Keep the blueprint's files in
+    blueprint/ as the skill describes. End with the message you would send the user.

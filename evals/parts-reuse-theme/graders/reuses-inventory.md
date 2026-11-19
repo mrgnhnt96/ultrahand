@@ -1,11 +1,14 @@
 ---
 type: llm
 weight: 3
+focus:
+  source: file
+  path: blueprint/parts.json
 ---
 
 The workspace's design/THEME.md lists three components in its inventory: Button
 (primary, secondary, text), Text field (default, multiline) and Card. Judge the
-parts.json the run wrote, as it appears in the trace.
+parts.json the run wrote.
 
 PASS if the save action uses Button as a `reused` part and the text inputs (such as the
 distance or the notes) use Text field as a `reused` part, each naming that inventory
