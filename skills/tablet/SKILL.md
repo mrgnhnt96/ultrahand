@@ -261,6 +261,8 @@ instead of asking them to paste. Each note has its `text` and a `where` naming t
 state, frame size, element and selector: act on them as change requests, without asking for
 images. If the list comes back empty, the page may not have the `db` capability or the
 viewer couldn't write to it: ask them to check they're signed in.
+If you can't read them at all (the tool isn't available or fails), say so, name the read
+you need, and stop there: don't offer pasting, copying or screenshots as a way round it.
 
 ## 9. Learn
 
