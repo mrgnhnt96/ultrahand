@@ -460,17 +460,6 @@ body.uh-dragging .uh-host { pointer-events: none; }
 .uh-key { flex: none; font: 700 13px/1.3 var(--font-ui); color: var(--ink); }
 .uh-concept-pos { flex: 1 1 18em; min-width: 0; margin: 0; font-size: 13px; color: var(--muted); }
 .uh-concept-pos strong { color: var(--ink); font-weight: 600; }
-/* A blueprint (a greybox from shared/blueprint) leads the bar with a status tag and a short
-   gloss. The dashed tag is neither a group label nor a button, so it reads as a fact about
-   the page; extra space keeps it apart from the concept buttons. */
-.uh-bp { flex: none; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--muted); }
-.uh-bp[hidden] { display: none; }
-.uh-bp-tag {
-  padding: 1px 8px; border: 1px dashed var(--muted); border-radius: 4px;
-  font: 700 12px/1.4 var(--font-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink);
-}
-.uh-bp:has(+ #uh-concept-btns:not(:empty)) { margin-inline-end: 16px; }
-#uh-concept-btns:empty { display: none; }
 .uh-compare { display: none; }
 .uh-rig[data-compare] > .uh-frame, .uh-rig[data-compare] > .uh-handle { display: none; }
 .uh-rig[data-compare] > .uh-compare { display: flex; align-items: flex-start; gap: calc(32px / var(--s)); }
@@ -517,14 +506,12 @@ body.uh-space .uh-ghost .uh-pin, body.uh-panning .uh-ghost .uh-pin, body.uh-drag
 @media (max-width: 599px) {
   .uh-concepts { padding: 6px 8px; gap: 4px 8px; }
   .uh-concept-btn { max-width: 10em; }
-  .uh-concepts[data-blueprint] .uh-concept-pos { display: none; }
 }
 /* A short window keeps the bar to one row that scrolls sideways; each button's title
    still gives the position. A faded edge shows there's more, and the focused or selected
    button is scrolled into view. */
 @media (max-height: 479px) {
   .uh-concept-pos { display: none; }
-  .uh-bp:has(+ #uh-concept-btns:not(:empty)) .uh-bp-gloss { display: none; }
   .uh-concepts, .uh-concepts .uh-seg { flex-wrap: nowrap; }
   .uh-concepts .uh-seg { min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: -4px; }
   .uh-concept-btn { flex: none; }
@@ -740,6 +727,9 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   font-size: 12px; font-weight: 500;
 }
 .uh-composer:has(.uh-composer-size:not([hidden])) { background: var(--surface); }
+/* A note whose element isn't in this view: said in words, since there's no pin to point at. */
+.uh-composer-away { margin: 6px 6px 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.uh-composer-away[hidden] { display: none; }
 .uh-composer-size .uh-btn:hover { background: color-mix(in srgb, var(--warn) 22%, transparent); }
 .uh-composer-bar {
   display: flex; align-items: center; gap: 6px;
@@ -939,7 +929,6 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   </div>
 </header>
 <div class="uh-concepts" id="uh-concepts" hidden>
-  <p class="uh-bp" id="uh-bp" hidden title="Layout and real words in grey, not the final look. Comment on what goes where, the order and the wording."><span class="uh-bp-tag">Blueprint</span><span class="uh-bp-gloss">not the final look</span></p>
   <div class="uh-seg" id="uh-concept-btns" role="group"></div>
   <p class="uh-concept-pos" id="uh-concept-pos" aria-live="polite"></p>
 </div>
@@ -987,7 +976,8 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   <h2 class="uh-vh" id="uh-composer-title">Comment</h2>
   <p class="uh-vh" id="uh-composer-where"></p>
   <p class="uh-composer-size" id="uh-composer-size" hidden><button class="uh-btn" type="button" id="uh-composer-size-go"></button></p>
-  <textarea id="uh-composer-text" rows="3" maxlength="2000" aria-labelledby="uh-composer-title" aria-describedby="uh-composer-where" placeholder="What should change here?"></textarea>
+  <p class="uh-composer-away" id="uh-composer-away" hidden></p>
+  <textarea id="uh-composer-text" rows="3" maxlength="2000" aria-labelledby="uh-composer-title" aria-describedby="uh-composer-where uh-composer-away" placeholder="What should change here?"></textarea>
   <div class="uh-composer-bar">
     <span class="uh-badge" id="uh-composer-num" aria-hidden="true"></span>
     <button class="uh-btn uh-ghost uh-icon uh-danger" type="button" id="uh-composer-delete" aria-label="Delete comment" title="Delete comment"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 4.5h11M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6M6.8 7v4.5M9.2 7v4.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -1308,7 +1298,7 @@ window.ultrahandSetup = function (canvas) {
     gZoom: byId('uh-g-zoom'), zoomWrap: byId('uh-zoomwrap'), zoomBtn: byId('uh-zoom-btn'), zoomSum: byId('uh-zoom-sum'), zoomLive: byId('uh-zoom-live'),
     preview: byId('uh-g-preview'), previewBtn: byId('uh-preview-btn'), previewSum: byId('uh-preview-sum'),
     help: document.querySelector('.uh-help'), helpBtn: byId('uh-help-btn'), keys: byId('uh-keys'),
-    concepts: byId('uh-concepts'), bp: byId('uh-bp'), conceptBtns: byId('uh-concept-btns'), conceptPos: byId('uh-concept-pos'), compare: byId('uh-compare')
+    concepts: byId('uh-concepts'), conceptBtns: byId('uh-concept-btns'), conceptPos: byId('uh-concept-pos'), compare: byId('uh-compare')
   };
   var errors = [];
   /* Problems show in a banner between the toolbar and the stage, so they cover nothing.
@@ -2447,7 +2437,7 @@ window.ultrahandSetup = function (canvas) {
     list: byId('uh-note-list'), scroll: byId('uh-note-scroll'), total: byId('uh-notes-total'), empty: byId('uh-notes-empty'), screenNote: byId('uh-note-screen'),
     clear: byId('uh-notes-clear'), where: byId('uh-notes-where'), foot: byId('uh-notes-foot'), saveNow: byId('uh-notes-save'), status: byId('uh-notes-status'), undo: byId('uh-notes-undo'),
     composer: byId('uh-composer'), cTitle: byId('uh-composer-title'), cWhere: byId('uh-composer-where'),
-    cText: byId('uh-composer-text'), cSize: byId('uh-composer-size'), cSizeGo: byId('uh-composer-size-go'), cDelete: byId('uh-composer-delete'), cNum: byId('uh-composer-num'), cHint: byId('uh-composer-hint'), cCancel: byId('uh-composer-cancel'), cSave: byId('uh-composer-save')
+    cText: byId('uh-composer-text'), cSize: byId('uh-composer-size'), cAway: byId('uh-composer-away'), cSizeGo: byId('uh-composer-size-go'), cDelete: byId('uh-composer-delete'), cNum: byId('uh-composer-num'), cHint: byId('uh-composer-hint'), cCancel: byId('uh-composer-cancel'), cSave: byId('uh-composer-save')
   };
   var NOTES_KEY = 'uh-notes:' + (cfg.title || 'canvas');
   var notes = [];
@@ -2636,6 +2626,56 @@ window.ultrahandSetup = function (canvas) {
     if (!sel) return null;
     try { return viewport.querySelector(sel); } catch (err) { return null; }
   }
+  /* The start of the text an element shows. */
+  function printOf(e) { return (e.innerText || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80); }
+  function shown(e) {
+    var r = e.getBoundingClientRect();
+    return !!(r.width && r.height) && (!e.checkVisibility || e.checkVisibility({ visibilityProperty: true, opacityProperty: true }));
+  }
+  /* Which item an element belongs to: the text of the row, card or link holding it, or else
+     of the nearest heading above it in its section ("Cedar Ridge Loop" for the Save button
+     on that trail's page). A screen that shows another item in the same elements (another
+     trail in the detail view, a list that re-sorted) keeps the selector working, so this is
+     what tells the item a note was left on from the one there now. */
+  var ITEM = 'li, tr, article, a[href], button, [role="listitem"], [role="row"], [role="option"], [role="tab"]';
+  function itemOf(e) {
+    var it = e.parentElement && e.parentElement.closest(ITEM);
+    if (it && viewport.contains(it) && !it.dataset.screen) return printOf(it);
+    for (var x = e; x && x !== viewport && !(x.dataset && x.dataset.screen); x = x.parentElement) {
+      var h = x.querySelector('h1, h2, h3, h4, h5, h6, [role="heading"]');
+      if (h) return printOf(h);
+    }
+    return '';
+  }
+  /* What a note keeps to find its element again: tag, own text, item, and a name to show. */
+  function idOf(e, into) {
+    into.tag = e.tagName.toLowerCase();
+    into.print = printOf(e);
+    into.item = itemOf(e);
+    var lab = e.labels && e.labels[0];
+    into.name = into.print || e.getAttribute('aria-label') || (lab && printOf(lab)) || e.getAttribute('alt') || '';
+    return into;
+  }
+  function sameAs(e, id) {
+    if (id.item != null && id.item !== '') return itemOf(e) === id.item && (id.print === '' || !id.print || printOf(e) === id.print || e.tagName.toLowerCase() === id.tag);
+    return id.print == null || printOf(e) === id.print;
+  }
+  /* The element a note was left on (id: sel plus what idOf kept), if it's showing now and
+     belongs to the same item. The element the selector finds may change its own text (a
+     toggle's label) and still count. Otherwise the one element of the same tag, text and
+     item on this screen (innermost, if they nest) stands in; with none, or several, the
+     note isn't drawn. Notes made before ids were kept skip the check. */
+  function anchorEl(id) {
+    var e = findEl(id.sel);
+    if (e && shown(e) && sameAs(e, id)) return e;
+    if (!id.tag || !currentScreen || (!id.print && !id.item)) return null;
+    var hits = Array.prototype.filter.call(currentScreen.querySelectorAll(id.tag), function (x) {
+      return shown(x) && printOf(x) === id.print && (!id.item || itemOf(x) === id.item);
+    });
+    hits = hits.filter(function (x) { return !hits.some(function (o) { return o !== x && x.contains(o); }); });
+    return hits.length === 1 ? hits[0] : null;
+  }
+  function noteEl(n) { return n.anchor ? anchorEl(n.anchor) : null; }
   function describe(e) {
     var name = e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') +
       Array.prototype.slice.call(e.classList, 0, 2).map(function (c) { return '.' + c; }).join('');
@@ -2666,7 +2706,7 @@ window.ultrahandSetup = function (canvas) {
     var t = hitAt(cx, cy);
     if (t) {
       var r = t.getBoundingClientRect();
-      n.anchor = { sel: cssPath(t), fx: frac((cx - r.left) / (r.width || 1)), fy: frac((cy - r.top) / (r.height || 1)) };
+      n.anchor = idOf(t, { sel: cssPath(t), fx: frac((cx - r.left) / (r.width || 1)), fy: frac((cy - r.top) / (r.height || 1)) });
       n.target = describe(t);
       var hit = t.closest(TARGETS);
       if (hit && hit !== t) n.inside = describe(hit);
@@ -2701,6 +2741,7 @@ window.ultrahandSetup = function (canvas) {
     var u = unionRect(covers.slice(0, 8));
     if (u) {
       n.coverSels = covers.slice(0, 8).map(cssPath);
+      n.coverIds = covers.slice(0, 8).map(function (x) { return idOf(x, {}); });
       n.pad = { l: round1((u.left - c.l) / st.s), t: round1((u.top - c.t) / st.s), r: round1((c.r - u.right) / st.s), b: round1((c.b - u.bottom) / st.s) };
     }
     if (covers.length > 8) n.covers.push('and ' + (covers.length - 8) + ' more');
@@ -2709,11 +2750,11 @@ window.ultrahandSetup = function (canvas) {
     var anchorEl = covers.length === 1 ? covers[0] : e;
     if (anchorEl && viewport.contains(anchorEl)) {
       var r = anchorEl.getBoundingClientRect();
-      n.anchor = {
+      n.anchor = idOf(anchorEl, {
         sel: cssPath(anchorEl),
         fx: frac((c.l - r.left) / (r.width || 1)), fy: frac((c.t - r.top) / (r.height || 1)),
         fx2: frac((c.r - r.left) / (r.width || 1)), fy2: frac((c.b - r.top) / (r.height || 1))
-      };
+      });
     }
     return n;
   }
@@ -2737,23 +2778,53 @@ window.ultrahandSetup = function (canvas) {
     if (n.kind === 'screen' || !onSel(n)) return null;
     if ((n.screen || '') !== screenId() || (n.state || null) !== (st.state || null)) return null;
     if (n.kind === 'area' && n.coverSels && n.coverSels.length) {
-      var u = unionRect(n.coverSels.map(findEl).filter(Boolean));
+      var found = n.coverSels.map(function (cs, i) {
+        var id = n.coverIds ? n.coverIds[i] : {};
+        return anchorEl({ sel: cs, tag: id.tag, print: id.print, item: id.item });
+      });
+      /* One of what it covers isn't here: the area is about another view, so it isn't drawn. */
+      if (n.coverIds && !found.every(Boolean)) return null;
+      var u = unionRect(found.filter(Boolean));
       if (u) {
         var p0 = toLocal(u.left, u.top), p1 = toLocal(u.right, u.bottom);
         return { x: p0.x - n.pad.l, y: p0.y - n.pad.t, x2: p1.x + n.pad.r, y2: p1.y + n.pad.b };
       }
     }
-    var a = n.anchor, e = a && findEl(a.sel);
+    var a = n.anchor, e = noteEl(n);
     var r = e && e.getBoundingClientRect();
-    if (r && r.width && r.height) {
+    if (r) {
       var p = toLocal(r.left + a.fx * r.width, r.top + a.fy * r.height);
       if (n.kind === 'pin') return { x: p.x, y: p.y };
       var q = toLocal(r.left + a.fx2 * r.width, r.top + a.fy2 * r.height);
       return { x: p.x, y: p.y, x2: q.x, y2: q.y };
     }
+    /* What it was left on is gone, hidden or shows something else: the screen is in another
+       view of its own (a tab, another selected item, a re-sorted list), not a [data-screen]
+       the canvas knows. Drawn at its old position it would sit on whatever is there now, so
+       it isn't drawn; the list and the comment box say so (awayHere). */
+    if (a) return null;
     var dy = scrollTopNow();
     if (n.kind === 'pin') return { x: n.x, y: n.y - dy };
     return { x: n.x, y: n.y - dy, x2: n.x + n.aw, y2: n.y + n.ah - dy };
+  }
+  /* A saved note for the screen and state on show that isn't drawn, because what it was left
+     on isn't in this view. */
+  function awayHere(n) {
+    return n.kind !== 'screen' && !!n.anchor && onSel(n) && (n.screen || '') === screenId() &&
+      (n.state || null) === (st.state || null) && !(editing && editing.isNew && editing.note === n) && !noteBox(n);
+  }
+  /* The text of what a note was left on, from its description ('h1 "Cedar Ridge Loop"'). */
+  function leftOn(n) {
+    var a = n.anchor || {}, name = a.name;
+    if (name == null) {
+      var d = n.kind === 'pin' ? n.target : n.covers && n.covers.length === 1 ? n.covers[0] : n.within;
+      var m = d && /"(.*)"$/.exec(d);
+      name = m ? m[1] : '';
+    }
+    if (name.length > 60) name = name.slice(0, 57) + '…';
+    var item = a.item && a.item !== a.print ? a.item : '';
+    if (item.length > 40) item = item.slice(0, 37) + '…';
+    return { name: name, item: item };
   }
   function nextNumber() {
     return notes.reduce(function (m, x) { return Math.max(m, x.num || 0); }, 0) + 1;
@@ -2894,7 +2965,7 @@ window.ultrahandSetup = function (canvas) {
   /* The comment box sits beside its pin, inside the window; a whole-screen note centres it. */
   /* The client rect of the element a pin is on, if it's small enough to keep in view. */
   function targetRect(n) {
-    var e = n.anchor && findEl(n.anchor.sel);
+    var e = noteEl(n);
     if (!e) return null;
     var q = e.getBoundingClientRect(), f = el.host.getBoundingClientRect();
     if (!q.width || q.width * q.height > 0.4 * f.width * f.height) return null;
@@ -2916,7 +2987,7 @@ window.ultrahandSetup = function (canvas) {
   var targetEl = null;
   function drawTarget() {
     var n = editing && editing.note;
-    var t = n && n.kind === 'pin' && !nel.layer.hidden && n.anchor && outlineRect(findEl(n.anchor.sel));
+    var t = n && n.kind === 'pin' && !nel.layer.hidden && n.anchor && outlineRect(noteEl(n));
     if (!t) { if (targetEl) { targetEl.remove(); targetEl = null; } return; }
     if (!targetEl) { targetEl = document.createElement('div'); targetEl.className = 'uh-target'; nel.layer.append(targetEl); }
     placeOutline(targetEl, t);
@@ -2981,6 +3052,13 @@ window.ultrahandSetup = function (canvas) {
     if (differs) {
       nel.cSizeGo.textContent = 'View at ' + n.fw + '×' + n.fh;
       nel.cSizeGo.title = 'Left at ' + n.fw + '×' + n.fh + ' (' + n.preset + '). Put the frame back to that size.';
+    }
+    var away = !!n && !editing.isNew && awayHere(n), on = away ? leftOn(n) : null;
+    nel.cAway.hidden = !away;
+    if (away) {
+      var what = on.name ? '“' + on.name + '”' + (on.item ? ' in “' + on.item + '”' : '') : on.item ? '“' + on.item + '”' : '';
+      nel.cAway.textContent = what ? 'Not in this view. It was left on ' + what + ': show that again to see it.'
+        : 'Not in this view. What it was left on isn’t showing now.';
     }
   }
   /* Put the frame back the way it was when the note was left. */
@@ -3261,6 +3339,7 @@ window.ultrahandSetup = function (canvas) {
   function rowMeta(n) {
     var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
     return kind + (n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') +
+      (awayHere(n) ? ' · Not in this view' : '') +
       (!mine(n) ? ' · Someone else’s' : '') +
       (storeState === 'ok' || storeState === 'readonly' ? (n.synced ? '' : ' · This browser only') : '');
   }
@@ -3384,7 +3463,7 @@ window.ultrahandSetup = function (canvas) {
     if (nc && nc !== sel) { if (comparing()) selectConcept(nc); else focusConcept(nc); }
     if (n.screen && n.screen !== screenId() && screenById(n.screen)) navigate(n.screen);
     if (n.state && n.state !== st.state && states.some(function (s) { return s.id === n.state; })) setState(n.state);
-    var e = n.anchor && findEl(n.anchor.sel);
+    var e = noteEl(n);
     if (e && e.scrollIntoView) e.scrollIntoView({ block: 'nearest' });
     if (n.kind !== 'screen' && !commenting) setCommenting(true);
     openComposer(n, false);
@@ -3743,17 +3822,6 @@ window.ultrahandSetup = function (canvas) {
 
   /* ---------- Start ---------- */
   if (exploring) { buildCells(); buildConceptBar(); }
-  /* A blueprint says so in the bar under the toolbar, so nobody takes the greybox for the design. */
-  if (cfg.blueprint) {
-    el.bp.hidden = false;
-    el.concepts.setAttribute('data-blueprint', '');
-    if (!exploring) {
-      el.concepts.hidden = false;
-      el.concepts.append(nel.hint);
-      el.conceptPos.removeAttribute('aria-live');
-      el.conceptPos.textContent = 'Layout and real words in grey. Comment on what goes where, the order and the wording.';
-    }
-  }
   buildPresets();
   var first = presets.filter(function (p) { return p.id === cfg.initialPreset; })[0] || presets[0];
   if (first) {
