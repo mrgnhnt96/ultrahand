@@ -22,6 +22,8 @@ Sources: [sources](#sources).
 | --- | --- |
 | `greybox.mjs` | The generator. Checks a blueprint and writes a `screen.html` that follows the [canvas screen contract](../canvas/README.md#screen-contract). Node 18+, no dependencies. |
 | `example/blueprint.json` | A small four-screen shopping-list app ("Pantry") with tabs, a back stack, a sheet, a secondary pane, rare actions and an empty state. |
+| `parts.mjs` | The parts sheet generator: a canvas page of the components a design will use, in their states. See [Parts sheet](#parts-sheet). |
+| `parts-example/` | A trail log's `parts.json` and `THEME.md`. |
 
 ## Build it
 
@@ -159,6 +161,128 @@ queries on the canvas viewport, so the greybox holds at every preset:
   44px.
 - The greys come from `light-dark()`, so the Light/Dark toggle works. No theme colour is
   used, so the greybox can't be mistaken for the final look.
+
+## Parts sheet
+
+`parts.mjs` builds a canvas page of every component a design will use, before the full design is drawn. Each part is either **reused** from the theme's component inventory (the `## Components` table in `design/THEME.md`) or proposed **new**. Each part is shown in each of its states, with one line on why the design needs it. The owner comments on it like any canvas design, and once they approve it the new parts join the theme's inventory.
+
+```sh
+# With the theme: the head file from shared/theme/css.mjs --style
+node shared/blueprint/parts.mjs design/parts.json --inventory design/THEME.md \
+  --head theme.html --presets skills/mobile/references/presets.md --out parts/index.html
+
+# No theme yet: neutral stand-in roles that keep the non-negotiables in shared/theme/rules.md
+node shared/blueprint/parts.mjs design/parts.json --presets skills/mobile/references/presets.md --out parts/index.html
+
+# Only check parts.json
+node shared/blueprint/parts.mjs design/parts.json --check
+```
+
+| Option | Means |
+|---|---|
+| `--inventory <THEME.md>` | The theme's component inventory. Defaults to `inventory` in parts.json, relative to that file. |
+| `--head <theme.html>` | The theme's custom properties, passed on to `build.mjs --head`. A head that declares `--color-surface` counts as a theme; without one the sheet draws with the neutral fallback. |
+| `--presets`, `--title`, `--out` | Passed on to `shared/canvas/build.mjs`. |
+| `--work <dir>` | Where `parts.screen.html` and `parts.config.json` go (default: the folder of `--out`). |
+| `--no-build` | Write those two files and stop. |
+| `--check` | Check parts.json and stop. |
+
+Problems stop the build and are listed one a line. Warnings print but don't stop it.
+
+### parts.json
+
+`parts-example/` is a small one: a trail log with two new parts and two reused from its `THEME.md`.
+
+```json
+{
+  "title": "Trail log · parts",
+  "inventory": "THEME.md",
+  "states": ["default", "pressed", "focus", "disabled"],
+  "css": ".label-type { font-size: var(--type-label-font-size); }",
+  "parts": [
+    {
+      "name": "Button",
+      "variant": "primary",
+      "status": "reused",
+      "why": "Saves the hike at the end of the log form.",
+      "usedIn": ["Log hike"],
+      "html": "<button class=\"btn\" type=\"button\" {{attrs}}>{{text}}</button>",
+      "text": "Save hike",
+      "long": "Save hike and share it with the group",
+      "css": ".btn { background: var(--button-primary-bg, var(--color-primary)); } .btn:active { … }"
+    }
+  ]
+}
+```
+
+Top level:
+
+| Field | Means |
+|---|---|
+| `title` | The sheet's heading and page title. |
+| `inventory` | Path to `THEME.md`, relative to parts.json. |
+| `states` | The states a part shows when it doesn't list its own. Default: `default`, `hover`, `pressed`, `focus`, `disabled`. |
+| `css` | Styles shared by every part, such as a type-role class. |
+| `parts` | The parts, in any order. The sheet shows new parts first, then reused ones. |
+
+Each part:
+
+| Field | Means |
+|---|---|
+| `name` | Required. For a reused part, the inventory's component name unless `component` gives it. |
+| `status` | Required: `reused` or `new`. A reused part must be in the inventory. A new part that has the name of an inventory component gets a warning: reuse the component unless it can't do the job. |
+| `why` | Required. One line on why the design needs this part. |
+| `html` | Required. A snippet that draws the part, with the placeholders below. |
+| `css` | The part's styles. They may use theme custom properties only: a raw colour is a problem (NN-1), and raw spacing or px type gets a warning (NN-1, NN-2, NN-6). |
+| `id` | The screen id is `part-<id>`. Default: the name in lowercase with dashes. |
+| `component`, `variant` | The inventory component and the variant used. A variant the inventory doesn't list gets a warning, because it is a theme change. |
+| `usedIn` | The screens that use it. |
+| `size` | `fit` (default): the states sit side by side. `full`: each state takes the full width, as a list row does. |
+| `text` | The usual text, which fills `{{text}}`. |
+| `long` | The longest plausible text, used by the `long` state. Without it, a part that has `{{text}}` gets a warning. |
+| `error` | The error message, which fills `{{message}}` in the `error` state. Setting it adds the `error` state. |
+| `states` | The part's own states, in place of the top-level list: an array of ids, or an object of id → overrides. |
+
+Placeholders in `html`: `{{text}}` and `{{message}}` are escaped. `{{attrs}}` is inserted as written. `{{uid}}` is unique to each copy the sheet draws, so a field can be tied to its label and message: `<label for="{{uid}}">…<input id="{{uid}}" aria-describedby="{{uid}}-msg">`. `{{#key}}…{{/key}}` is kept only when that value isn't empty, as in `{{#message}}…{{/message}}`. Any other placeholder is a problem.
+
+### States
+
+| Id | Shows it by |
+|---|---|
+| `default` | Nothing added. |
+| `hover` | Forcing `:hover`. |
+| `pressed` | Forcing `:hover` and `:active`. |
+| `focus` | Forcing `:focus`, `:focus-visible` and `:focus-within`. |
+| `disabled` | `{{attrs}}` = `disabled`. |
+| `error` | `{{attrs}}` = `aria-invalid="true"` and `{{message}}` = `error`. |
+| `long` | `{{text}}` = `long`. |
+
+A state override can set `label`, `force` (`"hover"`, `"active"`, `"focus"`, or several separated by spaces), `attrs`, `html`, `text`, `message` and `note`, a line shown under that state. Any other id is a state of your own, such as a level or variant: `"hard": { "attrs": "data-level=\"hard\"", "note": "…" }`. It shows on the part's screen only, not in the canvas's State picker.
+
+A forced state is real CSS. The sheet rewrites each selector in the parts' styles so that `:hover`, `:active` and `:focus*` also match an element marked `data-pt-hover`, `data-pt-active` or `data-pt-focus`, or one that contains that element. Write the part's styles as you would in the app. The forced element is the one marked `data-pt-target` in the snippet, else its first focusable element, else its first element. Real pointer and keyboard input still work.
+
+### Theme or no theme
+
+With `--head`, every `var(--…)` must be a property the theme declares. A var with a fallback, such as `var(--chip-bg, var(--color-surface))`, gets a warning when the theme lacks it.
+
+Without a theme the sheet sets neutral grey stand-ins on `:host` for these roles:
+
+- `--color-surface`, `-surface-raised`, `-on-surface`, `-on-surface-variant`, `-outline`, `-primary`, `-on-primary`, `-primary-container`, `-on-primary-container`, `-error`, `-on-error`, `-focus-ring`
+- `--space-inset-tight`, `-inset`, `-inset-loose`, `-gap-related`, `-gap-group`, `-gap-section`
+- `--radius-control`, `-container`, `-pill`
+- `--focus-width`, `--focus-offset`
+- `--motion-duration-feedback`, `-move`, `--motion-easing`
+- `--type-{headline,title,body,label}-{font-family,font-size,font-weight,letter-spacing,line-height}`
+
+They keep the non-negotiables: the required roles in both schemes with measured contrast, 8-point spacing, rem type and a 2px focus ring. A component token can't exist yet, so give it a role as its fallback: `var(--button-primary-bg, var(--color-primary))`. That draws now and picks up the theme's token later.
+
+### The sheet
+
+- **All parts** (`parts`) groups the parts as new or reused. Each card shows the part in the state chosen in the canvas's State picker, or "No … state" when the part doesn't have that state.
+- One screen per part (`part-<id>`, titled `<name> · new` or `<name> · reused`) shows every state side by side, then the part's facts. A reused part lists its variants, tokens and file from the inventory. A new part lists the theme roles it uses, grouped by family, in a closed section.
+- Moving between screens puts focus on the new screen's heading, or back on the card the part was opened from.
+
+Canvas notes name the part. On a part's screen, `where` starts with the screen title, `Button · reused`, and the selector names the state cell, `#button--pressed > button`. On the overview, a pin lands on the part's card, `li.pt-card "Trail row, new part"`. The state in `where` is the canvas's State picker; on a part's screen, the cell id in the selector (`--pressed`) is the state the pin is on.
 
 ## Sources
 

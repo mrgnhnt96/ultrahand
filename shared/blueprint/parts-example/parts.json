@@ -1,0 +1,64 @@
+{
+  "title": "Trail log · parts",
+  "inventory": "THEME.md",
+  "states": ["default", "pressed", "focus", "disabled"],
+  "css": ".label-type { font-family: var(--type-label-font-family); font-size: var(--type-label-font-size); font-weight: var(--type-label-font-weight); line-height: var(--type-label-line-height); }",
+  "parts": [
+    {
+      "name": "Trail row",
+      "status": "new",
+      "why": "The trail list needs a tappable row with name, distance and difficulty; Card isn't tappable.",
+      "usedIn": ["Trail list"],
+      "size": "full",
+      "html": "<button class=\"trail-row\" type=\"button\"><span class=\"trail-name\">{{text}}</span><span class=\"trail-meta label-type\">7.4 km · 2 h 10 min</span><span class=\"tag label-type\">Moderate</span></button>",
+      "text": "Mount Tam loop",
+      "long": "Dipsea, Steep Ravine and Matt Davis loop via Stinson Beach",
+      "states": ["default", "pressed", "focus", "long"],
+      "css": ".trail-row { box-sizing: border-box; width: 100%; min-height: 64px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-gap-related) var(--space-gap-group); align-items: center; padding: var(--card-padding, var(--space-inset)); border: 1px solid var(--color-outline); border-radius: var(--card-radius, var(--radius-container)); background: var(--card-bg, var(--color-surface-raised)); color: var(--color-on-surface); font: inherit; text-align: start; cursor: pointer; }\n.trail-row:hover { background: color-mix(in srgb, var(--card-bg, var(--color-surface-raised)) 92%, var(--color-on-surface)); }\n.trail-row:active { background: color-mix(in srgb, var(--card-bg, var(--color-surface-raised)) 84%, var(--color-on-surface)); }\n.trail-row:focus-visible { outline: var(--focus-width) solid var(--color-focus-ring); outline-offset: var(--focus-offset); }\n.trail-name { font-family: var(--type-title-font-family); font-size: var(--type-body-font-size); font-weight: var(--type-title-font-weight); }\n.trail-meta { grid-column: 1; color: var(--color-on-surface-variant); }\n.trail-row .tag { grid-column: 2; grid-row: 1 / span 2; }"
+    },
+    {
+      "name": "Difficulty tag",
+      "status": "new",
+      "why": "Hikers pick trails by effort first, so difficulty sits on every row.",
+      "usedIn": ["Trail list", "Trail detail"],
+      "html": "<span class=\"tag label-type\" {{attrs}}>{{text}}</span>",
+      "text": "Moderate",
+      "long": "Strenuous, with scrambling",
+      "states": {
+        "default": { "note": "Easy and moderate trails." },
+        "hard": { "text": "Hard", "attrs": "data-level=\"hard\"", "note": "Hard trails add a mark and an outline, so the level never relies on colour alone." },
+        "long": {}
+      },
+      "css": ".tag { display: inline-flex; align-items: center; padding: 0 var(--space-inset-tight); border: 1px solid transparent; border-radius: var(--radius-pill); background: var(--color-primary-container); color: var(--color-on-primary-container); }\n.tag[data-level=\"hard\"] { background: transparent; border-color: var(--color-on-surface); color: var(--color-on-surface); }\n.tag[data-level=\"hard\"]::before { content: \"▲\" / \"\"; margin-inline-end: var(--space-gap-related); }"
+    },
+    {
+      "name": "Button",
+      "variant": "primary",
+      "status": "reused",
+      "why": "Saves the hike at the end of the log form.",
+      "usedIn": ["Log hike"],
+      "html": "<button class=\"btn label-type\" type=\"button\" {{attrs}}>{{text}}</button>",
+      "text": "Save hike",
+      "long": "Save hike and share it with the group",
+      "css": ".btn { min-height: 48px; max-width: 100%; padding: var(--space-inset-tight) var(--button-padding-x, var(--space-inset)); border: 0; border-radius: var(--button-radius, var(--radius-control)); background: var(--button-primary-bg, var(--color-primary)); color: var(--button-primary-fg, var(--color-on-primary)); cursor: pointer; }\n.btn:hover { background: color-mix(in srgb, var(--button-primary-bg, var(--color-primary)) 92%, var(--color-on-surface)); }\n.btn:active { background: color-mix(in srgb, var(--button-primary-bg, var(--color-primary)) 80%, var(--color-on-surface)); }\n.btn:focus-visible { outline: var(--focus-width) solid var(--color-focus-ring); outline-offset: var(--focus-offset); }\n.btn:disabled { background: color-mix(in srgb, var(--color-on-surface) 12%, transparent); color: color-mix(in srgb, var(--color-on-surface) 50%, transparent); cursor: not-allowed; }"
+    },
+    {
+      "name": "Text field",
+      "status": "reused",
+      "why": "Names the hike; the only required field in the log form.",
+      "usedIn": ["Log hike"],
+      "html": "<div class=\"fld\"><label class=\"label-type\" for=\"{{uid}}\">Trail name (required)</label><input class=\"fld-input\" id=\"{{uid}}\" value=\"{{text}}\" required {{#message}}aria-describedby=\"{{uid}}-msg\" {{/message}}{{attrs}}>{{#message}}<span class=\"fld-error label-type\" id=\"{{uid}}-msg\"><span aria-hidden=\"true\">⚠</span> {{message}}</span>{{/message}}</div>",
+      "text": "Mount Tam loop",
+      "long": "Dipsea, Steep Ravine and Matt Davis loop via Stinson Beach",
+      "error": "Give the trail a name",
+      "states": {
+        "default": {},
+        "focus": {},
+        "disabled": {},
+        "error": { "text": "" },
+        "long": { "note": "A long name scrolls inside the field; the list row wraps it instead." }
+      },
+      "css": ".fld { display: grid; gap: var(--space-gap-related); }\n.fld-input { box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 var(--space-inset); border: 1px solid var(--color-outline); border-radius: var(--radius-control); background: var(--color-surface); color: var(--color-on-surface); font: inherit; }\n.fld-input:focus-visible { outline: var(--focus-width) solid var(--color-focus-ring); outline-offset: 0; border-color: var(--color-focus-ring); }\n.fld-input:disabled { border-style: dashed; color: var(--color-on-surface-variant); }\n.fld-input[aria-invalid=\"true\"] { border: 2px solid var(--color-error); }\n.fld-error { color: var(--color-error); }"
+    }
+  ]
+}
