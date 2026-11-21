@@ -9,7 +9,8 @@
 // in this order:
 //
 //   1. <data>/bin/ultrahand-<version>-<target>, checked against checksums.txt on every run.
-//   2. The release asset for this version, checked before it is written to disk.
+//   2. The release asset for this version, checked before it is written to disk. Once it
+//      is in place, the other versions' binaries in <data>/bin are removed.
 //   3. cargo build of the plugin's cli/ source, when the asset can't be fetched or the
 //      plugin has no checksum for it (a checkout between releases).
 //
@@ -20,7 +21,7 @@
 // ULTRAHAND_RELEASE_URL swaps the download base, for tests. Checksums still apply.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -106,6 +107,27 @@ function install(bytes, path) {
   }
 }
 
+// Each binary is several MB and only this version's runs, so the rest go once it's in. A
+// binary another version's launcher is running keeps running: removing it only unlinks it.
+// An install in progress (.partial) is left alone.
+function pruneOthers(binary) {
+  const bin = dirname(binary);
+  let names;
+  try {
+    names = readdirSync(bin);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.startsWith('ultrahand-') || name.endsWith('.partial') || join(bin, name) === binary) continue;
+    try {
+      rmSync(join(bin, name), { force: true });
+    } catch (error) {
+      console.error(`ultrahand: can't remove the old binary ${name}: ${error.message}`);
+    }
+  }
+}
+
 function buildFromSource(data) {
   const targetDir = join(data, 'cargo-target');
   mkdirSync(data, { recursive: true });
@@ -145,6 +167,7 @@ async function findBinary(data) {
   if (!bytes) return buildFromSource(data);
   requireChecksum(bytes, expected, url);
   install(bytes, cached);
+  pruneOthers(cached);
   return cached;
 }
 

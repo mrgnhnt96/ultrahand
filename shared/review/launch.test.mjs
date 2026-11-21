@@ -111,6 +111,33 @@ test('downloads the asset, checks it, runs it, and passes stdout and the exit co
   assert.ok(!existsSync(p.cargoLog));
 });
 
+test('a verified install removes the other versions\' binaries and leaves the rest', async (t) => {
+  const p = plugin();
+  const bin = join(p.data, 'bin');
+  mkdirSync(bin, { recursive: true });
+  const old = ['ultrahand-0.9.0-aarch64-apple-darwin', 'ultrahand-0.10.0-x86_64-unknown-linux-musl'];
+  const kept = ['ultrahand-0.10.0-aarch64-apple-darwin.123.partial', 'notes.txt'];
+  for (const name of [...old, ...kept]) writeFileSync(join(bin, name), 'old');
+  const server = await assetServer(t, serving(FAKE_BINARY));
+  const result = await launch(p, { url: server.url });
+  assert.equal(result.code, 7);
+  const left = readdirSync(bin).sort();
+  assert.equal(left.filter((name) => !kept.includes(name)).length, 1, left.join(', '));
+  assert.match(left.find((name) => !kept.includes(name)), new RegExp(`^ultrahand-${VERSION}-`));
+  for (const name of kept) assert.ok(left.includes(name), name);
+});
+
+test('a binary whose checksum fails removes nothing', async (t) => {
+  const p = plugin();
+  const bin = join(p.data, 'bin');
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, 'ultrahand-0.9.0-aarch64-apple-darwin'), 'old');
+  const server = await assetServer(t, serving(`${FAKE_BINARY}# tampered\n`));
+  const result = await launch(p, { url: server.url });
+  assert.equal(result.code, 4);
+  assert.deepEqual(readdirSync(bin), ['ultrahand-0.9.0-aarch64-apple-darwin']);
+});
+
 test('a binary already in the data folder runs with no download', async (t) => {
   const p = plugin();
   const server = await assetServer(t, serving(FAKE_BINARY));
