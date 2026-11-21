@@ -88,16 +88,16 @@ Every control in the inventory:
 - [ ] **Purpose:** its label or icon says what it does. Icon-only controls use a widely
       known icon or have a visible label [NNG-H2] [NNG-H6].
 - [ ] **Accessible name:** it has one, and the name contains the visible label text
-      [WCAG 4.1.2] [WCAG 2.5.3]. Images that carry meaning have text alternatives
-      [WCAG 1.1.1].
+      [WCAG-4.1.2] [WCAG-2.5.3]. Images that carry meaning have text alternatives
+      [WCAG-1.1.1].
 - [ ] **Role and state:** it exposes what it is (button, link, tab, switch) and its state
-      (selected, expanded, checked, disabled) [WCAG 4.1.2].
+      (selected, expanded, checked, disabled) [WCAG-4.1.2].
 - [ ] **Looks like what it is:** buttons look pressable, links look like links, and
       disabled controls look disabled. Its boundary has 3:1 contrast against what's next to
-      it [WCAG 1.4.11].
+      it [WCAG-1.4.11].
 - [ ] **Target size:** at least 44 × 44 pt on iOS and iPadOS, 48 × 48 dp on Android
       [mobile:HIG-A11Y] [mobile:AND-A11Y]. Never below WCAG's 24 × 24 CSS px floor (or
-      enough spacing), even for pointer-first desktop UI [WCAG 2.5.8]. Frequent and
+      enough spacing), even for pointer-first desktop UI [WCAG-2.5.8]. Frequent and
       adjacent targets are larger and spaced so people don't hit the neighbour [NNG-FITTS].
       `inspect` with `"min"` set to the platform size lists each one under it, with the
       2.5.8 verdict.
@@ -106,25 +106,25 @@ Every control in the inventory:
 - [ ] **Feedback:** pressing it responds visibly. A slow action shows progress
       [NNG-H1] [mobile:NNG-RESPONSE].
 - [ ] **Keyboard:** reachable with Tab, operable with Enter or Space, and arrows move
-      within groups (tabs, radios, lists, toolbars) [WCAG 2.1.1] [MS-KBD].
+      within groups (tabs, radios, lists, toolbars) [WCAG-2.1.1] [MS-KBD].
 - [ ] **Sliders and resize grips:** a slider takes Tab focus, its arrow keys change the
       value by a step, Home and End go to the ends, and Page Up and Page Down take a larger
       step. It exposes `aria-valuenow`, `aria-valuemin` and `aria-valuemax` (plus
       `aria-valuetext` when a bare number isn't clear) and has a name [APG-SLIDER]
-      [WCAG 4.1.2]. A grip that resizes a pane is a window splitter: a focusable
+      [WCAG-4.1.2]. A grip that resizes a pane is a window splitter: a focusable
       `separator` whose arrow keys move it, whose value says the primary pane's size,
       which names that pane with `aria-controls`, and where Enter collapses and restores
-      the pane [APG-SPLITTER]. Keys are the non-drag alternative [WCAG 2.5.7].
+      the pane [APG-SPLITTER]. Keys are the non-drag alternative [WCAG-2.5.7].
 - [ ] **No surprises:** focusing or changing it doesn't move focus, submit or navigate on
-      its own [WCAG 3.2.1] [WCAG 3.2.2].
+      its own [WCAG-3.2.1] [WCAG-3.2.2].
 - [ ] **Gestures and drags:** anything done by swipe, pinch, long-press or drag has a
-      single-tap or click alternative [WCAG 2.5.1] [WCAG 2.5.7].
+      single-tap or click alternative [WCAG-2.5.1] [WCAG-2.5.7].
 - [ ] **Destructive actions:** they are separated from safe ones, worded clearly, and can
       be undone or ask to confirm [NNG-H3] [NNG-H5].
 - [ ] **Undo holds up:** it lasts long enough to read and reach, or until the next action,
-      and a timed Undo can be extended [WCAG 2.2.1]. Two deletes in a row can both be
+      and a timed Undo can be extended [WCAG-2.2.1]. Two deletes in a row can both be
       undone. After a delete, focus moves to the next item, not to the page top, and Undo
-      puts the item back where it was, in the same pane [NNG-H3] [WCAG 2.4.3].
+      puts the item back where it was, in the same pane [NNG-H3] [WCAG-2.4.3].
 - [ ] **Unsaved input survives in-app actions:** switching items, tabs or modes, closing a
       panel or toggling a view keeps typed text, or saves it, or asks first. Test it: type
       a draft, then run every command and change every field on the same screen, and check
@@ -132,7 +132,7 @@ Every control in the inventory:
       sheet or dialog that holds typed input asks before discarding it [NNG-H3] [NNG-H5].
 - [ ] **Context menus have a touch route:** where touch is likely, touch-and-hold opens the
       same menu as right-click, and its commands also exist elsewhere [tablet:HIG-CONTEXT]
-      [WCAG 2.5.1].
+      [WCAG-2.5.1].
 - [ ] **Option count fits the control:** a segmented control or row of option buttons
       holds about five options on a phone and five to seven in a wide window
       [HIG-SEGMENTED] [AND-SEGMENTED]. Check it at the narrowest supported width: a row that
@@ -147,14 +147,14 @@ Every control in the inventory:
 Fields and forms:
 
 - [ ] Every field has a visible label that stays visible while typing; a placeholder isn't
-      a label [WCAG 3.3.2] [mobile:NNG-PLACEHOLDER].
+      a label [WCAG-3.3.2] [mobile:NNG-PLACEHOLDER].
 - [ ] Fields declare their purpose (name, email, one-time code) so autofill works, and use
-      the right keyboard [WCAG 1.3.5] [mobile:HIG-KEYBOARD].
+      the right keyboard [WCAG-1.3.5] [mobile:HIG-KEYBOARD].
 - [ ] Errors name the field, say what's wrong in words (not only colour), and say how to fix
-      it, next to the field [WCAG 3.3.1] [WCAG 3.3.3] [NNG-H9].
-- [ ] Information already given isn't asked for again in the same flow [WCAG 3.3.7].
+      it, next to the field [WCAG-3.3.1] [WCAG-3.3.3] [NNG-H9].
+- [ ] Information already given isn't asked for again in the same flow [WCAG-3.3.7].
 - [ ] Sign-in doesn't rely on remembering or transcribing: paste and password managers
-      work [WCAG 3.3.8].
+      work [WCAG-3.3.8].
 - [ ] Formats and constraints are stated before the user types, not only after an error
       [NNG-H5].
 
@@ -170,7 +170,7 @@ Scrolling (every scroller: page, panes, lists, sheets, previews):
       around it can't be scrolled from there [MDN-OVERSCROLL] [HIG-SCROLL].
 - [ ] **Scrolling works everywhere:** wheel, trackpad, touch and keys (arrows, Page Up and
       Down, Space) scroll whatever is under the pointer or focused [HIG-SCROLL]
-      [WCAG 2.1.1].
+      [WCAG-2.1.1].
 
 ## Pass 4: Nielsen's 10 heuristics
 
@@ -187,7 +187,7 @@ Each screen, and the flow as a whole [NNG-HEURISTICS]:
 | NNG-H7 | Flexibility and efficiency of use | Shortcuts, bulk actions, search and defaults for frequent users, without getting in a newcomer's way. |
 | NNG-H8 | Aesthetic and minimalist design | Every element earns its place. Clear hierarchy, one primary action per screen. |
 | NNG-H9 | Help users recognize, diagnose, and recover from errors | Plain-language errors that say what happened and what to do, without blame. |
-| NNG-H10 | Help and documentation | Help in context where it's needed, findable in the same place on every screen [WCAG 3.2.6]. |
+| NNG-H10 | Help and documentation | Help in context where it's needed, findable in the same place on every screen [WCAG-3.2.6]. |
 
 ## Pass 5: WCAG 2.2 AA
 
@@ -317,11 +317,11 @@ most often miss; the linked principles hold the rest.
       tab stop. Esc cancels transient UI (menus, dialogs, pickers) but doesn't navigate
       back [MS-KBD].
 - [ ] Panes can be reached from the keyboard without tabbing through everything (F6 on
-      Windows, landmarks on the web) [MS-KBD] [WCAG 2.4.1].
+      Windows, landmarks on the web) [MS-KBD] [WCAG-2.4.1].
 - [ ] Hover reveals extra detail but never the only path to a command. Right-click opens a
       context menu next to the item [NNG-FITTS] [desktop:HIG-POINTER]. Shift+F10 or the
       Menu key opens the same menu on the focused item, and its commands act on that
-      item, not on an earlier selection [desktop:HIG-CONTEXT] [WCAG 2.1.1].
+      item, not on an earlier selection [desktop:HIG-CONTEXT] [WCAG-2.1.1].
 - [ ] Frequent targets are large and close to where the pointer already is; related
       controls are grouped [NNG-FITTS].
 
@@ -340,7 +340,7 @@ queries. From a screenshot, say which sizes you couldn't see.
       typed text survive [tablet:HIG-MULTI] [tablet:AND-MW].
 - [ ] **Desktop window range:** the minimum and the maximum size both work; nothing
       stretches past a readable line length at the maximum.
-- [ ] **320 wide** reflow [WCAG 1.4.10] and **200% text** [WCAG 1.4.4]. A `label[for]`
+- [ ] **320 wide** reflow [WCAG-1.4.10] and **200% text** [WCAG-1.4.4]. A `label[for]`
       flagged as a small target passes when its field is big enough (the 2.5.8
       equivalent-control exception).
 - [ ] **Dark mode:** contrast rechecked; no hard-coded light colours, no lost borders or
@@ -348,7 +348,7 @@ queries. From a screenshot, say which sizes you couldn't see.
 - [ ] **Each data state** (loading, empty, error, offline, long content, one item, many
       items) at the smallest and the largest size, in every pane of a multi-pane layout.
 - [ ] **Keyboard up** on touch devices, in landscape: the focused field is still visible
-      [WCAG 2.4.11]. The canvas has no keyboard: simulate it with `setSize(w, h - 300)`
+      [WCAG-2.4.11]. The canvas has no keyboard: simulate it with `setSize(w, h - 300)`
       or the `keyboard-up` extra check, or list it under Not checked.
 - [ ] **Short heights** (compact height under 480, landscape phone): sticky headers and
       footers leave room for content.
@@ -356,10 +356,10 @@ queries. From a screenshot, say which sizes you couldn't see.
       views, then shrink the frame. It stays inside the screen, below the top inset, and its
       body still scrolls. Look for a height or `min-height` in px set from script: it beats
       `max-height`, so the overlay runs off the screen and the wheel scrolls the page behind
-      instead [mobile:CSS-MINMAX] [WCAG 1.4.10].
+      instead [mobile:CSS-MINMAX] [WCAG-1.4.10].
 - [ ] **Short height × 200% text together:** the sticky header plus footer stay well under
       the screen height. Overflow detectors miss content covered by sticky layers, so
-      look at the screenshot or measure the bars [WCAG 1.4.4] [WCAG 1.4.10].
+      look at the screenshot or measure the bars [WCAG-1.4.4] [WCAG-1.4.10].
 
 ## Pass 8: Tools
 
@@ -386,12 +386,12 @@ used in a browser window of any size, then add these checks.
       typing in a field, is shown in a tooltip or menu, and doesn't take keys the browser
       keeps [MS-KBD] [NNG-H7].
 - [ ] **Drags can be cancelled:** Esc during a drag (resize, pan, move) puts things back,
-      and every drag has a typed or keyboard alternative [NNG-H3] [WCAG 2.5.7].
+      and every drag has a typed or keyboard alternative [NNG-H3] [WCAG-2.5.7].
 - [ ] **Pass 7 for the tool's own chrome:** the toolbar, panels and menus of the tool
       itself get these pass 7 checks. Browser window sizes from the smallest the tool
       supports up to a large display, for the desktop window range. Browser page zoom at
-      200%, which is the 200% text check for chrome sized in px [WCAG 1.4.4], and at
-      400% of a 1280-wide window, which is the 320-wide reflow check [WCAG 1.4.10]. The
+      200%, which is the 200% text check for chrome sized in px [WCAG-1.4.4], and at
+      400% of a 1280-wide window, which is the 320-wide reflow check [WCAG-1.4.10]. The
       tool's own light and dark themes, for dark mode. Every data state of the tool
       (nothing loaded, loading, error, a very large file). The design's presets, split
       widths, orientations and on-screen keyboard apply to the design inside the tool, not

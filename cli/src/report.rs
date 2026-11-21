@@ -142,7 +142,7 @@ mod tests {
     fn finding() -> Value {
         json!({
             "id": "R1", "severity": 3, "title": "Low contrast", "element": "Search › hint",
-            "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG 1.4.3",
+            "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG-1.4.3",
             "fix": "Raise to #595959",
         })
     }
@@ -166,7 +166,7 @@ mod tests {
              - **Element:** Search › hint\n\
              - **Evidence:** Confirmed\n\
              - **Problem:** Hard to read\n\
-             - **Principle:** WCAG 1.4.3\n\
+             - **Principle:** WCAG-1.4.3\n\
              - **Fix:** Raise to #595959\n\n\
              ## What works\n\n- Clear focus\n\n\
              ## Not checked\n\nNone.\n"

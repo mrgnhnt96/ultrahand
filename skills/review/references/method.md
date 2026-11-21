@@ -165,7 +165,7 @@ and in flow order within a severity, using the template in the checklist:
   a composition finding), and the size, scheme or state where it shows
 - **Evidence:** Confirmed or Likely
 - **Problem:** what goes wrong for the user, in one or two sentences
-- **Principle:** the rule it breaks, with its source key (`WCAG 1.4.3`, `NNG-H4`,
+- **Principle:** the rule it breaks, with its source key (`WCAG-1.4.3`, `NNG-H4`,
   `tablet:AND-T2`)
 - **Fix:** a concrete change with values (`raise the label to #595959 for 7.0:1`, not
   `improve contrast`)
