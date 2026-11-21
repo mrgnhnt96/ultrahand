@@ -45,11 +45,16 @@ const NETWORK_KEPT: [&str; 11] = [
     "SSL_CERT_FILE",
     "SSL_CERT_DIR",
 ];
+/// The driver looks for Chrome here first, so a reviewer finds the same browser its parent does.
+const BROWSER_KEPT: [&str; 1] = ["CHROME_PATH"];
 const CACHE_TTL: (&str, &str) = ("CLAUDE_CODE_PROMPT_CACHE_TTL", "5m");
 /// drive.mjs reads it: under it, --out has to be inside this folder and the only steps
 /// script it runs is the composition audit. The child's shell only passes the driver, so the
 /// child can't change or drop it.
 const DRIVE_FOLDER: &str = "ULTRAHAND_DRIVE_FOLDER";
+/// Under DRIVE_FOLDER, drive.mjs drives only this port, so a child can't reach or close a
+/// sibling's browser by passing its --port.
+const DRIVE_PORT: &str = "ULTRAHAND_DRIVE_PORT";
 
 pub struct Options<'a> {
     pub system: &'a Path,
@@ -120,7 +125,7 @@ fn push_pairs(args: &mut Vec<OsString>, pairs: &[(&str, &OsStr)]) {
 pub fn child_env(parent: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsString, OsString)> {
     let kept = |name: &OsStr| {
         let listed = |list: &[&str]| list.iter().any(|keep| OsStr::new(keep) == name);
-        listed(&ALWAYS_KEPT) || listed(&AUTH_KEPT) || listed(&NETWORK_KEPT)
+        listed(&ALWAYS_KEPT) || listed(&AUTH_KEPT) || listed(&NETWORK_KEPT) || listed(&BROWSER_KEPT)
     };
     let mut env: Vec<_> = parent.filter(|(name, _)| kept(name)).collect();
     env.push((CACHE_TTL.0.into(), CACHE_TTL.1.into()));
@@ -128,13 +133,15 @@ pub fn child_env(parent: impl Iterator<Item = (OsString, OsString)>) -> Vec<(OsS
 }
 
 /// A reviewer's environment: the child's, plus `folder` as the one place its browser driver
-/// may write.
+/// may write and `port` as the one browser it may drive.
 pub fn reviewer_env(
     parent: impl Iterator<Item = (OsString, OsString)>,
     folder: &Path,
+    port: u16,
 ) -> Vec<(OsString, OsString)> {
     let mut env = child_env(parent);
     env.push((DRIVE_FOLDER.into(), folder.as_os_str().to_owned()));
+    env.push((DRIVE_PORT.into(), port.to_string().into()));
     env
 }
 
@@ -247,10 +254,13 @@ mod tests {
             ("CLAUDE_CODE_AUTO_COMPACT_WINDOW", "150000"),
             ("UH_SECTIONS", "x"),
             ("ULTRAHAND_DRIVE_FOLDER", "/"),
+            ("ULTRAHAND_DRIVE_PORT", "9333"),
+            ("CHROME_PATH", "/chrome"),
         ];
         let env = reviewer_env(
             parent.iter().map(|(k, v)| (k.into(), v.into())),
             Path::new("/unit"),
+            41234,
         );
         let names: Vec<_> = env.iter().map(|(k, _)| k.to_str().unwrap()).collect();
         assert_eq!(
@@ -259,10 +269,13 @@ mod tests {
                 "HOME",
                 "ANTHROPIC_API_KEY",
                 "https_proxy",
+                "CHROME_PATH",
                 "CLAUDE_CODE_PROMPT_CACHE_TTL",
-                "ULTRAHAND_DRIVE_FOLDER"
+                "ULTRAHAND_DRIVE_FOLDER",
+                "ULTRAHAND_DRIVE_PORT"
             ]
         );
-        assert_eq!(env.last().unwrap().1, "/unit");
+        assert_eq!(env[env.len() - 2].1, "/unit");
+        assert_eq!(env.last().unwrap().1, "41234");
     }
 }

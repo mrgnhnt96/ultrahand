@@ -20,11 +20,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
 // Overrides DEFAULT_PORT, so two sessions on one machine can each keep a browser open.
-// --port wins over it; the review CLI always passes one per child.
+// --port wins over it, except under LOCK_FOLDER, where the review CLI sets it to the child's
+// own port and any other --port is refused.
 const PORT_ENV = 'ULTRAHAND_DRIVE_PORT';
 // A locked review child's shell runs only this script, so it can't set or clear this
 // variable: the review CLI names the one folder the child may write in, and the only steps
 // script it may run is the composition audit (a script runs as Node, with no lock at all).
+// Under it the child drives only its own port, so it can't reach a sibling's browser, and
+// --chrome is refused, so the only program it starts is the Chrome found for it.
 const LOCK_FOLDER = 'ULTRAHAND_DRIVE_FOLDER';
 const AUDIT = fileURLToPath(new URL('../composition/audit.mjs', import.meta.url));
 const VERSION = 6;
@@ -247,9 +250,18 @@ async function pageSocket(port) {
 }
 
 function portOf(opts) {
+  if (lockedFolder()) return lockedPort(opts);
   const [value, from] = opts.port ? [opts.port, '--port'] : process.env[PORT_ENV] ? [process.env[PORT_ENV], PORT_ENV] : [DEFAULT_PORT];
   const port = Number(value);
   if (!Number.isInteger(port) || port < 1 || port > 65535) fail(`${from} must be a port number (1-65535), not ${value}`);
+  return port;
+}
+
+function lockedPort(opts) {
+  const value = process.env[PORT_ENV];
+  const port = Number(value);
+  if (!value || !Number.isInteger(port) || port < 1 || port > 65535) fail(`a review run needs its port in ${PORT_ENV}, not ${value ?? 'nothing'}`);
+  if (opts.port !== undefined && Number(opts.port) !== port) fail(`a review run drives only its own browser: pass --port ${port}`);
   return port;
 }
 
@@ -1346,6 +1358,7 @@ async function main() {
     return;
   }
   if (typeof WebSocket === 'undefined') fail('Needs Node 22 or later (built-in WebSocket)');
+  if (opts.chrome !== undefined && lockedFolder()) fail('a review run takes no --chrome: it uses CHROME_PATH or the installed Chrome');
   const port = portOf(opts);
   if (opts.sections) process.env.UH_SECTIONS = opts.sections;
   checkOut(opts.out);

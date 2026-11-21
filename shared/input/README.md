@@ -29,7 +29,7 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 
 `open` starts Chrome headless with a throwaway profile. Every command takes the same port, so set `ULTRAHAND_DRIVE_PORT` once to keep each session's browser apart from another's on the same machine; `--port` overrides it, and the review CLI passes each reviewer its own. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
 
-With `ULTRAHAND_DRIVE_FOLDER` set, as the review CLI sets it for each locked reviewer, `--out` has to be inside that folder and the only steps script `do` and `run` take is `shared/composition/audit.mjs`. Any other steps script runs as plain Node and could write anywhere.
+With `ULTRAHAND_DRIVE_FOLDER` set, as the review CLI sets it for each locked reviewer, `--out` has to be inside that folder and the only steps script `do` and `run` take is `shared/composition/audit.mjs`. Any other steps script runs as plain Node and could write anywhere. The reviewer also drives only its own browser: the port comes from `ULTRAHAND_DRIVE_PORT`, which the CLI sets with the folder, and a different `--port` is refused, so it can't drive or close another reviewer's browser. `--chrome` is refused too; Chrome comes from `CHROME_PATH` or the usual install paths.
 
 Each line echoes its step. A string in it longer than 160 characters is cut to its start and its length, so a long `eval` doesn't fill the output. A step with `"quiet": true` prints only `i`, the step, `ok` and any `error`, `warning` or `pageErrors`; a steps script still gets the whole result back.
 
