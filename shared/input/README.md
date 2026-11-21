@@ -27,7 +27,7 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 | `close` | `--port` |
 | `run <url> <steps>` | All of the above |
 
-`open` starts Chrome headless with a throwaway profile. Every command takes the same port, so set `ULTRAHAND_DRIVE_PORT` once to keep each session's browser apart from another's on the same machine; `--port` overrides it, and the review CLI passes each reviewer its own. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
+`open` starts Chrome headless with a throwaway profile in the temp folder, which `close` (and the end of a `run`) deletes; a browser that ended without a `close` has its profile deleted by the next `close` or `open` on its port. Every command takes the same port, so set `ULTRAHAND_DRIVE_PORT` once to keep each session's browser apart from another's on the same machine; `--port` overrides it, and the review CLI passes each reviewer its own. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
 
 With `ULTRAHAND_DRIVE_FOLDER` set, as the review CLI sets it for each locked reviewer, `--out` has to be inside that folder and the only steps script `do` and `run` take is `shared/composition/audit.mjs`. Any other steps script runs as plain Node and could write anywhere. The reviewer also drives only its own browser: the port comes from `ULTRAHAND_DRIVE_PORT`, which the CLI sets with the folder, and a different `--port` is refused, so it can't drive or close another reviewer's browser. `--chrome` is refused too; Chrome comes from `CHROME_PATH` or the usual install paths.
 

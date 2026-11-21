@@ -193,7 +193,7 @@ async function waitForPort(port, ms = 15000) {
       await new Promise((r) => setTimeout(r, 150));
     }
   }
-  fail(`Chrome did not open its debugging port ${port}`);
+  throw new Error(`Chrome did not open its debugging port ${port}`);
 }
 
 class Cdp {
@@ -204,6 +204,12 @@ class Cdp {
     cdp.pending = new Map();
     cdp.listeners = [];
     cdp.ws.addEventListener('message', (ev) => cdp.onMessage(JSON.parse(ev.data)));
+    // A call the socket closes on fails, rather than leaving Node nothing to wait for:
+    // Chrome drops the socket without answering Browser.close, and Node would exit there.
+    cdp.ws.addEventListener('close', () => {
+      for (const { bad, method } of cdp.pending.values()) bad(new Error(`${method}: the connection closed`));
+      cdp.pending.clear();
+    });
     await new Promise((ok, bad) => {
       cdp.ws.addEventListener('open', ok, { once: true });
       cdp.ws.addEventListener('error', () => bad(new Error(`Cannot connect to ${wsUrl}`)), { once: true });
@@ -269,6 +275,8 @@ async function launch(url, opts) {
   const port = portOf(opts);
   const busy = await getJson(port, '/json/version').then(() => true, () => false);
   if (busy) fail(`Port ${port} is already in use. Close it with: node drive.mjs close --port ${port}`);
+  // An earlier browser on this port that ended without a close left its profile behind.
+  removeProfile(port);
   const [w, h] = parseSize(opts.size || '1280x800');
   const profile = mkdtempSync(join(tmpdir(), 'ultrahand-drive-'));
   const args = [
@@ -278,7 +286,19 @@ async function launch(url, opts) {
   ].filter(Boolean);
   const child = spawn(findChrome(opts.chrome), args, { detached: true, stdio: 'ignore' });
   child.unref();
-  await waitForPort(port);
+  writeFileSync(browserFile(port), JSON.stringify({ pid: child.pid, profile }));
+  try {
+    await waitForPort(port);
+  } catch (err) {
+    try {
+      process.kill(child.pid, 'SIGKILL');
+    } catch {
+      // It already ended.
+    }
+    await ended(port, child.pid, 2000);
+    removeProfile(port);
+    throw err;
+  }
   rmSync(stateFile(port), { force: true });
   const cdp = await Cdp.connect(await pageSocket(port));
   const sized = await emulate(cdp, port, { size: [w, h], zoom: parseZoom(opts.zoom ?? 1),
@@ -286,6 +306,84 @@ async function launch(url, opts) {
   await navigate(cdp, toUrl(url));
   cdp.close();
   return { port, pid: child.pid, url: toUrl(url), ...sized };
+}
+
+// The throwaway profile each open makes and the Chrome using it, per port, so the close
+// that ends that browser can delete the profile. A headless profile is tens of MB, and a
+// fan-out review opens one per reviewer.
+const browserFile = (port) => join(tmpdir(), `ultrahand-drive-${port}.browser.json`);
+
+function alive(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    return err.code === 'EPERM';
+  }
+}
+
+const portOpen = (port) => getJson(port, '/json/version').then(() => true, () => false);
+
+// Waits up to `ms` for the recorded Chrome to exit and its port to free: Chrome writes to
+// its profile until it exits, which can be after the port has closed.
+async function ended(port, pid, ms = 5000) {
+  const end = Date.now() + ms;
+  while (alive(pid) || await portOpen(port)) {
+    if (Date.now() > end) return false;
+    await sleep(100);
+  }
+  return true;
+}
+
+// Deletes the port's recorded profile, then the record. Only a folder open made is deleted,
+// and when that fails the record stays, so the next open on the port tries again.
+function removeProfile(port) {
+  let record;
+  try {
+    record = JSON.parse(readFileSync(browserFile(port), 'utf8'));
+  } catch {
+    return;
+  }
+  const real = (path) => {
+    try {
+      return realpathSync(path);
+    } catch {
+      return null;
+    }
+  };
+  // Real paths, since one temp folder has two spellings on macOS (/var and /private/var).
+  const folder = typeof record?.profile === 'string' ? real(record.profile) : null;
+  if (folder && dirname(folder) === real(tmpdir()) && basename(folder).startsWith('ultrahand-drive-')) {
+    try {
+      rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
+    } catch (err) {
+      console.error(`drive: could not delete the browser profile ${folder}: ${err.message}`);
+      return;
+    }
+  }
+  rmSync(browserFile(port), { force: true });
+}
+
+// Asks the browser on the port to close and waits for it to end, so an open straight after
+// this one works, then deletes its profile. False when no browser answers there.
+async function closeBrowser(port) {
+  rmSync(stateFile(port), { force: true });
+  const version = await getJson(port, '/json/version').catch(() => null);
+  if (version) {
+    let pid;
+    try {
+      ({ pid } = JSON.parse(readFileSync(browserFile(port), 'utf8')));
+    } catch {
+      // A browser this version didn't open: wait for the port alone.
+    }
+    const cdp = await Cdp.connect(version.webSocketDebuggerUrl);
+    await cdp.send('Browser.close').catch(() => {});
+    cdp.close();
+    await ended(port, pid);
+  }
+  removeProfile(port);
+  return Boolean(version);
 }
 
 // Per-port state shared by `do` calls: the window's viewport size, the page zoom and the
@@ -1370,13 +1468,8 @@ async function main() {
   } else if (cmd === 'hold') {
     await hold(port, opts.token);
   } else if (cmd === 'close') {
-    rmSync(stateFile(port), { force: true });
-    const { webSocketDebuggerUrl } = await getJson(port, '/json/version').catch(() => fail(`No browser on port ${port}`));
-    const cdp = await Cdp.connect(webSocketDebuggerUrl);
-    await cdp.send('Browser.close').catch(() => {});
-    cdp.close();
-    // Wait for the port to free, so an open straight after this one works.
-    for (let t = 0; t < 50 && await getJson(port, '/json/version').then(() => true, () => false); t++) await sleep(100);
+    // A browser that already ended still has its profile deleted.
+    if (!await closeBrowser(port)) fail(`No browser on port ${port}`);
     console.log(JSON.stringify({ closed: port }));
   } else if (cmd === 'run') {
     if (!a || !b) fail('run needs a url and steps');
@@ -1385,11 +1478,7 @@ async function main() {
     try {
       process.exitCode = (await runSteps(port, steps, opts.out)) ? 1 : 0;
     } finally {
-      rmSync(stateFile(port), { force: true });
-      const { webSocketDebuggerUrl } = await getJson(port, '/json/version');
-      const cdp = await Cdp.connect(webSocketDebuggerUrl);
-      await cdp.send('Browser.close').catch(() => {});
-      cdp.close();
+      await closeBrowser(port);
     }
   } else fail(`Unknown command ${cmd}. Use open, do, close or run.`);
 }
