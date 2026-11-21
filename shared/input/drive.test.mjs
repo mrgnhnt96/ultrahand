@@ -1,7 +1,7 @@
 // node --test shared/input/drive.test.mjs   (needs Chrome; skips without it)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { test } from 'node:test';
@@ -173,6 +173,48 @@ test('ULTRAHAND_DRIVE_PORT sets the port, and --port overrides it', () => {
   const bad = drive('nope');
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /ULTRAHAND_DRIVE_PORT must be a port number/);
+});
+
+// A temp folder of the test's own, so what drive leaves in it is all that's there.
+function ownTmp(t) {
+  const dir = mkdtempSync(join(realpathSync(tmpdir()), 'uh-tmp-'));
+  const drive = (...args) => spawnSync(process.execPath, [DRIVE, ...args], {
+    encoding: 'utf8', timeout: 60_000, env: { ...process.env, TMPDIR: dir },
+  });
+  const left = () => readdirSync(dir).filter((name) => name.startsWith('ultrahand-drive-'));
+  return { dir, drive, left };
+}
+
+test('close deletes the profile of a browser that already ended, and only a folder open made', (t) => {
+  const { dir, drive, left } = ownTmp(t);
+  const outside = mkdtempSync(join(realpathSync(tmpdir()), 'uh-keep-'));
+  // No live process has this pid: it is past the largest pid macOS and Linux hand out.
+  const dead = 99_999_999;
+  mkdirSync(join(dir, 'ultrahand-drive-abc123', 'Default'), { recursive: true });
+  writeFileSync(join(dir, 'ultrahand-drive-9394.browser.json'), JSON.stringify({ pid: dead, profile: join(dir, 'ultrahand-drive-abc123') }));
+  writeFileSync(join(dir, 'ultrahand-drive-9393.browser.json'), JSON.stringify({ pid: dead, profile: outside }));
+  for (const port of ['9394', '9393']) {
+    const close = drive('close', '--port', port);
+    assert.equal(close.status, 1);
+    assert.match(close.stderr, new RegExp(`No browser on port ${port}`));
+  }
+  assert.deepEqual(left(), []);
+  assert.ok(existsSync(outside), 'a record naming a folder outside the temp folder deletes nothing');
+});
+
+test('open then close, and run, leave no profile behind', (t) => {
+  const { drive, left } = ownTmp(t);
+  const open = drive('open', 'about:blank', '--port', '9390');
+  if (/Chrome not found/.test(open.stderr)) return t.skip('no Chrome');
+  t.after(() => drive('close', '--port', '9390'));
+  assert.equal(open.status, 0, open.stderr);
+  assert.ok(left().some((name) => /^ultrahand-drive-\w{6}$/.test(name)), 'the profile is there while the browser is open');
+  const close = drive('close', '--port', '9390');
+  assert.equal(close.status, 0, close.stderr);
+  assert.deepEqual(left(), []);
+  const run = drive('run', 'about:blank', '[{"eval":"1"}]', '--port', '9390');
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(left(), []);
 });
 
 test('every documented composition audit run passes --out, which its screenshot needs', () => {
