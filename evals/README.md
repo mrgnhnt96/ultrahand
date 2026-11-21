@@ -38,6 +38,7 @@ every release and stops when a case passes fewer than 2 of its 3 runs.
 | `section-options` | quality | "3 options for the filter bar" on a design in progress changes only the filter bar in each option, builds them with `--concepts` and a `section`, and asks the user to pick before any review. |
 | `lessons-compacted` | quality | Over-limit LESSONS.md and THEME.md are compacted: superseded and closed items archived, overlapping lessons merged, a theme value promoted, the old changelog moved out, and no rule lost. |
 | `theme-extract` | quality | Extraction from drifting CSS keeps the brand, snaps to the grid, passes `check.mjs` and records its decisions. |
+| `audit-passes-out` | quality | A requested composition audit runs `audit.mjs` through `drive.mjs do` with `--out`, which its blurred screenshot needs, so the audit doesn't stop at `shot needs --out`. |
 | `sheet-fits-screen` | quality | A bottom sheet that keeps its height between views caps that height at the screen, so it still fits, and its list still scrolls, after the frame gets shorter. |
 | `theme-review-drift` | quality | A theme review finds a raw colour, off-grid spacing and a rebuilt button, and fixes them with the existing theme. |
 

@@ -22,12 +22,12 @@ node shared/input/drive.mjs run page.html steps.json --size 1440x900 --out shots
 
 | Command | Options |
 | --- | --- |
-| `open <url or file>` | `--size WxH` (default 1280x800), `--zoom` (`2` or `200%`, as the `zoom` step), `--scheme light\|dark` (as the `scheme` step), `--port` (default 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
+| `open <url or file>` | `--size WxH` (default 1280x800), `--zoom` (`2` or `200%`, as the `zoom` step), `--scheme light\|dark` (as the `scheme` step), `--port` (default `ULTRAHAND_DRIVE_PORT`, else 9333), `--headed` to watch, `--chrome <path>` (or `CHROME_PATH`) |
 | `do <steps>` | Steps as a JSON file, inline JSON, `-` for stdin, or a `.mjs` steps script (see [Steps files](#steps-files)). `--port`, `--out <dir>` for screenshots, `--sections <selectors>` for the composition audit |
 | `close` | `--port` |
 | `run <url> <steps>` | All of the above |
 
-`open` starts Chrome headless with a throwaway profile. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
+`open` starts Chrome headless with a throwaway profile. Every command takes the same port, so set `ULTRAHAND_DRIVE_PORT` once to keep each session's browser apart from another's on the same machine; `--port` overrides it, and the review CLI passes each reviewer its own. Every step prints one JSON line. A failed step stops the batch unless it has `"optional": true`, and the exit code is 1 when any step failed.
 
 With `ULTRAHAND_DRIVE_FOLDER` set, as the review CLI sets it for each locked reviewer, `--out` has to be inside that folder and the only steps script `do` and `run` take is `shared/composition/audit.mjs`. Any other steps script runs as plain Node and could write anywhere.
 
