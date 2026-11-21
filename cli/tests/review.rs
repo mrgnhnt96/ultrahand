@@ -35,7 +35,7 @@ fn findings() -> Value {
         "verdict": "Ship after R1.",
         "findings": [{
             "id": "R1", "severity": 3, "title": "Low contrast", "element": "Search › hint",
-            "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG 1.4.3",
+            "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG-1.4.3",
             "fix": "Raise to #595959",
         }],
         "what_works": ["Clear focus"],

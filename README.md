@@ -24,6 +24,19 @@ claude plugin install ultrahand@<marketplace> --scope user
 
 Installs take whatever is on `main`.
 
+## Requirements
+
+- **Claude Code**, with `claude` on your `PATH`: the review program starts each reviewer as
+  its own `claude -p` session.
+- **Node 22 or later**, for the canvas build, the input driver and the review launcher.
+- **Google Chrome or Chromium**, for the input driver, which reviews and audits use to see
+  and operate a design. It finds a standard install; otherwise set `CHROME_PATH`.
+- **macOS or Linux, on arm64 or x86-64.** The review program is a prebuilt binary,
+  downloaded and checksum-checked on first use. There is no Windows build yet. On a
+  platform without a prebuilt binary, or in a checkout between releases, it's built from
+  `cli/` with `cargo`, so you'll need a Rust toolchain. Without a binary, the review skill
+  falls back to a general-purpose agent.
+
 ## Skills
 
 | Skill | Use it for |
@@ -79,6 +92,20 @@ offers to compact them: anything removed goes to an archive file, so no rule is 
 wrong becomes a report for this repo. See `shared/learning/`. The eval suite in `evals/`
 (`scripts/eval.sh`) checks skill routing, the lessons loop and theme quality, and its
 quick cases gate every release.
+
+## Docs
+
+| Doc | What it covers |
+| --- | --- |
+| [shared/canvas](shared/canvas/README.md) | The resizable canvas every design renders into, and its toolbar |
+| [shared/theme](shared/theme/README.md) | The theme format, its rules and scripts |
+| [shared/blueprint](shared/blueprint/README.md) | The section map and greybox drawn before a full design |
+| [shared/explore](shared/explore/README.md) | Two or three divergent concepts for an open request |
+| [shared/composition](shared/composition/principles.md) | Composition rules for sections and screens, and their audit |
+| [shared/input](shared/input/README.md) | The real-input browser driver |
+| [shared/review](shared/review/README.md) | The review loop, the `ultrahand` program and how it's launched |
+| [shared/learning](shared/learning/README.md) | Project lessons and reports back to this repo |
+| [evals](evals/README.md) | The eval suite and how to run it |
 
 ## License
 

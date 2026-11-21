@@ -21,7 +21,7 @@ appendFileSync(new URL('./calls', import.meta.url), process.argv.slice(2).join('
 fn finding(id: &str, severity: u8, title: &str) -> Value {
     json!({
         "id": id, "severity": severity, "title": title, "element": "Search › hint",
-        "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG 1.4.3",
+        "evidence": "Confirmed", "problem": "Hard to read", "principle": "WCAG-1.4.3",
         "fix": "Raise to #595959",
     })
 }
