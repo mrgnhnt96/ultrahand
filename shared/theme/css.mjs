@@ -4,7 +4,9 @@
 //
 // Emits the semantic and component tiers (primitives stay private, so screens can't reach
 // for them). Colours become light-dark(light, dark), so the canvas Light / Dark toggle
-// works. Typography composites become one property per field:
+// works. light-dark() only picks the dark value where color-scheme allows dark, so the
+// output also sets color-scheme: light dark under :where(sel). Zero specificity: the
+// canvas's own scheme rules, or a project's own color-scheme, win over it. Typography composites become one property per field:
 //   semantic.type.body -> --type-body-font-family, --type-body-font-size, ...
 // --style wraps the output in <style>, ready for build.mjs --head; the screen's shadow root
 // inherits the properties. --selector scopes them (default :root). To compare theme
@@ -27,6 +29,7 @@ if (!file) {
 
 const index = loadTheme(file);
 const lines = [];
+let hasDark = false;
 const kebab = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
 const fmt = (type, v) => {
@@ -63,13 +66,17 @@ for (const t of index.tokens.values()) {
   if (t.type === 'color') {
     const light = fmt('color', valueIn(index, t, 'light'));
     const dark = fmt('color', valueIn(index, t, 'dark'));
+    if (light !== dark) hasDark = true;
     lines.push(`  ${name}: ${light === dark ? light : `light-dark(${light}, ${dark})`};`);
     continue;
   }
   lines.push(`  ${name}: ${fmt(t.type, v)};`);
 }
 
-let css = `/* generated from ${file.split('/').pop()} by ultrahand shared/theme/css.mjs */\n${selector} {\n${lines.join('\n')}\n}\n`;
+let css = `/* generated from ${file.split('/').pop()} by ultrahand shared/theme/css.mjs */\n`;
+// light-dark() resolves to the light value unless color-scheme allows dark.
+if (hasDark) css += `:where(${selector}) { color-scheme: light dark; }\n`;
+css += `${selector} {\n${lines.join('\n')}\n}\n`;
 if (args.includes('--style')) css = `<style>\n${css}</style>\n`;
 if (outFile) writeFileSync(outFile, css);
 else process.stdout.write(css);

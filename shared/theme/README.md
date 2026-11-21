@@ -130,7 +130,7 @@ Node 18+, no dependencies.
 | --- | --- |
 | `check.mjs <tokens.json> [--json]` | Checks the file against the non-negotiables: tiers, the 4/8 grid, dark values, contrast in both schemes, required roles, type, focus ring, names and deprecations. Exits 1 on an error. |
 | `scan.mjs <dir> [--theme <tokens.json>] [--json]` | Lists the colours, spacing, radii and font sizes the code uses, with counts and locations, near-duplicate colours, and spacing off the grid. With `--theme`, sorts them into values that should use an existing token, values off the theme, and tokens nothing mentions. Reads CSS, HTML, JS/TS, Tailwind, Vue, Svelte, Flutter, SwiftUI and Compose by pattern, so treat its output as leads. |
-| `css.mjs <tokens.json> [--style] [--selector sel] [--out file]` | Writes the semantic and component tokens as CSS custom properties (`--color-on-surface`, `--space-gap-group`, `--type-body-font-size`), colours as `light-dark()`. `--style` wraps it for the canvas: `build.mjs --head theme.html`. `--selector` scopes it (default `:root`). |
+| `css.mjs <tokens.json> [--style] [--selector sel] [--out file]` | Writes the semantic and component tokens as CSS custom properties (`--color-on-surface`, `--space-gap-group`, `--type-body-font-size`), colours as `light-dark()`, plus `:where(sel) { color-scheme: light dark; }` so a web page picks the dark values when the OS is dark (zero specificity, so the page's own `color-scheme`, or the canvas toggle, wins). `--style` wraps it for the canvas: `build.mjs --head theme.html`. `--selector` scopes it (default `:root`). |
 
 To design on the canvas with a theme:
 
