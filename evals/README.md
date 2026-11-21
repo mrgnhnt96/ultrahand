@@ -15,7 +15,14 @@ scripts/eval.sh --case theme-extract --runs 1 --ablation none   # one quick try
 `scripts/eval.sh` adds the flags the suite needs (`--scaffold`, `--allow-tools Write
 Edit Bash`, `--trust-plugin`, `--no-publish`). Results and an HTML report go to
 `evals/results/`, which git ignores. `scripts/release.sh` runs the smoke cases before
-every release and stops when a case passes fewer than 2 of its 3 runs.
+every release and stops when a case passes fewer than 2 of its 3 runs, where a run passes
+only when every scored grader does. `scripts/eval-gate.mjs` counts the runs; the CLI's
+`--threshold` can't, since it compares each case's mean score.
+
+The suite runs on a copy of the files git sees (tracked and untracked, minus the ignored
+ones), uncommitted edits included. `claude plugin eval` refuses a plugin folder holding a
+hard-linked file, and cargo's `target/` folders are full of them, so the checkout itself
+can't be the plugin under test once the CLI has been built.
 
 ## Cases
 

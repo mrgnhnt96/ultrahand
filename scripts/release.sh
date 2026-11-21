@@ -7,8 +7,8 @@
 # 1. Checks the checkout: on main, clean, level with origin/main, the tag unused and
 #    the version newer than the current one.
 # 2. Runs the smoke evals (scripts/eval.sh --tag smoke): skill routing and the lessons
-#    loop. Each case must pass 2 of its 3 runs, or the release stops before anything is
-#    changed. SKIP_EVALS=1 skips them (say why in the release notes).
+#    loop. Each case must pass 2 of its 3 runs (scripts/eval-gate.mjs), or the release
+#    stops before anything is changed. SKIP_EVALS=1 skips them (say why in the release notes).
 # 3. Runs the release-binaries workflow on this commit and waits: cargo test and a build
 #    for each target, into a draft release with a checksums.txt. A failure stops the
 #    release before anything is changed. A leftover draft is replaced by the next try.
@@ -77,8 +77,13 @@ elif ! command -v claude >/dev/null; then
   die "needs the claude CLI for the smoke evals (or SKIP_EVALS=1)"
 else
   say "running the smoke evals (a few minutes)"
-  scripts/eval.sh --tag smoke --ablation none --threshold 0.66 -j 4 --max-cost-usd 20 ||
-    die "smoke evals failed: see evals/results/ (nothing was changed)"
+  # --threshold 0: the CLI's threshold is on each case's mean score, which can't say "2 of 3
+  # runs". eval-gate.mjs counts the passing runs instead. A cost-ceiling stop still exits 2.
+  results="evals/results/release-$tag-$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+  scripts/eval.sh --tag smoke --ablation none --threshold 0 -j 4 --max-cost-usd 20 \
+    --output-dir "$results" || die "the smoke evals didn't finish: see $results (nothing was changed)"
+  node scripts/eval-gate.mjs "$results/aggregate-result.json" ||
+    die "smoke evals failed: see $results/report.html (nothing was changed)"
 fi
 
 # 3. Build the binaries into a draft release.
