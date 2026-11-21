@@ -19,6 +19,9 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_PORT = 9333;
+// Overrides DEFAULT_PORT, so two sessions on one machine can each keep a browser open.
+// --port wins over it; the review CLI always passes one per child.
+const PORT_ENV = 'ULTRAHAND_DRIVE_PORT';
 // A locked review child's shell runs only this script, so it can't set or clear this
 // variable: the review CLI names the one folder the child may write in, and the only steps
 // script it may run is the composition audit (a script runs as Node, with no lock at all).
@@ -243,8 +246,15 @@ async function pageSocket(port) {
   return page.webSocketDebuggerUrl;
 }
 
+function portOf(opts) {
+  const [value, from] = opts.port ? [opts.port, '--port'] : process.env[PORT_ENV] ? [process.env[PORT_ENV], PORT_ENV] : [DEFAULT_PORT];
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) fail(`${from} must be a port number (1-65535), not ${value}`);
+  return port;
+}
+
 async function launch(url, opts) {
-  const port = Number(opts.port || DEFAULT_PORT);
+  const port = portOf(opts);
   const busy = await getJson(port, '/json/version').then(() => true, () => false);
   if (busy) fail(`Port ${port} is already in use. Close it with: node drive.mjs close --port ${port}`);
   const [w, h] = parseSize(opts.size || '1280x800');
@@ -506,7 +516,8 @@ const PAGE_HELPERS = `(() => {
       right: Math.min(r.right, innerWidth), bottom: Math.min(r.bottom, innerHeight) };
     for (let p = parentOf(el); p && p !== document.documentElement; p = parentOf(p)) {
       const cs = getComputedStyle(p);
-      if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      /* display: contents generates no box (its rect is 0x0), so it clips nothing. */
+      if (cs.display === 'contents' || (cs.overflowX === 'visible' && cs.overflowY === 'visible')) continue;
       const q = p.getBoundingClientRect();
       box = { left: Math.max(box.left, q.left), top: Math.max(box.top, q.top),
         right: Math.min(box.right, q.right), bottom: Math.min(box.bottom, q.bottom) };
@@ -600,7 +611,7 @@ const PAGE_HELPERS = `(() => {
     let scrollsX = false;
     for (let p = parentOf(el); p && p !== document.documentElement && p !== document.body; p = parentOf(p)) {
       const ps = getComputedStyle(p);
-      if (ps.overflowX === 'visible' && ps.overflowY === 'visible') continue;
+      if (ps.display === 'contents' || (ps.overflowX === 'visible' && ps.overflowY === 'visible')) continue;
       const sx = /auto|scroll/.test(ps.overflowX), sy = /auto|scroll/.test(ps.overflowY);
       const q = p.getBoundingClientRect();
       const dx = sx ? 0 : Math.max(q.left - b.left, b.right - q.right, 0);
@@ -1335,7 +1346,7 @@ async function main() {
     return;
   }
   if (typeof WebSocket === 'undefined') fail('Needs Node 22 or later (built-in WebSocket)');
-  const port = Number(opts.port || DEFAULT_PORT);
+  const port = portOf(opts);
   if (opts.sections) process.env.UH_SECTIONS = opts.sections;
   checkOut(opts.out);
   if (cmd === 'open') {

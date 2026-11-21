@@ -148,3 +148,44 @@ test('a locked run refuses any steps script but the composition audit', () => {
   assert.doesNotMatch(allowed.stderr, /only steps script/);
   assert.match(allowed.stderr, /No browser on port 9397/);
 });
+
+test('a display:contents box that clips is no box: its control is clickable and its text not cut', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'uh-contents-'));
+  // The wrapper's overflow would clip against its 0x0 rect if it were treated as a box.
+  writeFileSync(join(dir, 'page.html'), `<!doctype html><div style="display: contents; overflow: hidden">
+    <button id="b" onclick="this.textContent = 'clicked'">Menu</button><p>Some text</p></div>`);
+  const run = spawnSync(process.execPath, [DRIVE, 'run', join(dir, 'page.html'),
+    '[{"click":"#b"},{"eval":"document.querySelector(\\"#b\\").textContent"},{"inspect":true}]', '--port', '9392'],
+  { encoding: 'utf8', timeout: 60_000 });
+  if (/Chrome not found/.test(run.stderr)) return t.skip('no Chrome');
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const [, clicked, inspected] = run.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(clicked.value, 'clicked');
+  assert.deepEqual(inspected.issues.filter((i) => i.kind === 'cut'), []);
+});
+
+test('ULTRAHAND_DRIVE_PORT sets the port, and --port overrides it', () => {
+  const drive = (env, ...args) => spawnSync(process.execPath, [DRIVE, 'close', ...args], {
+    encoding: 'utf8', timeout: 20_000, env: { ...process.env, ULTRAHAND_DRIVE_PORT: env },
+  });
+  assert.match(drive('9396').stderr, /No browser on port 9396/);
+  assert.match(drive('9396', '--port', '9395').stderr, /No browser on port 9395/);
+  const bad = drive('nope');
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /ULTRAHAND_DRIVE_PORT must be a port number/);
+});
+
+test('every documented composition audit run passes --out, which its screenshot needs', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const docs = ['skills/mobile/SKILL.md', 'skills/tablet/SKILL.md', 'skills/desktop/SKILL.md',
+    'shared/composition/principles.md', 'shared/composition/audit.mjs'];
+  let runs = 0;
+  for (const doc of docs) {
+    for (const line of readFileSync(join(root, doc), 'utf8').split('\n')) {
+      if (!/drive\.mjs"? do \S*audit\.mjs/.test(line)) continue;
+      runs++;
+      assert.match(line, /--out \S/, `${doc}: ${line.trim()}`);
+    }
+  }
+  assert.ok(runs >= docs.length, 'each doc shows the audit run');
+});
