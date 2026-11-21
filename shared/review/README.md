@@ -61,8 +61,8 @@ a few minutes, so run it in the background and wait for it to finish.
 The runner starts the reviewer lean (none of the user's settings, plugins or MCP servers)
 and on the 5-minute prompt cache. It's locked, so the brief's "don't edit" isn't all that
 stops it: it has no Write or Edit, Bash runs only `drive.mjs` as one plain command, and
-`--chrome` is denied. It gets only auth, proxy, locale and Chrome variables from your
-environment. A check that needs more, such as data-state fixtures, goes under *Not
+`--chrome` is denied. It gets only auth, proxy, locale and Chrome (`CHROME_PATH`)
+variables from your environment, and drives only the browser on its own port. A check that needs more, such as data-state fixtures, goes under *Not
 checked*. The lock stops edits, not reads: Read works outside the build folder, and the
 driver can open any address. The driver writes only inside the reviewer's working folder
 (the brief's folder, or `--cwd`), so an `--out` anywhere else is refused, and the only

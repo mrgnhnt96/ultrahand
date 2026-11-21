@@ -292,7 +292,7 @@ fn the_launch_flags_keep_the_child_locked_down() {
 }
 
 #[test]
-fn the_child_keeps_only_the_listed_environment_and_a_five_minute_cache() {
+fn the_child_keeps_only_the_listed_environment_a_five_minute_cache_and_its_own_port() {
     let f = Fixture::new();
     f.fake_stream(&[result_event(findings())]);
     f.command()
@@ -300,11 +300,22 @@ fn the_child_keeps_only_the_listed_environment_and_a_five_minute_cache() {
         .env("CLAUDE_AUTOCOMPACT_PCT_OVERRIDE", "dropped")
         .env("CLAUDE_CODE_AUTO_COMPACT_WINDOW", "dropped")
         .env("ANTHROPIC_BASE_URL", "http://kept.test")
+        .env("CHROME_PATH", "/kept/chrome")
+        .env("ULTRAHAND_DRIVE_PORT", "1")
         .output()
         .unwrap();
     let env = f.captured("env");
     assert!(env.contains("CLAUDE_CODE_PROMPT_CACHE_TTL=5m"), "{env}");
     assert!(env.contains("ANTHROPIC_BASE_URL=http://kept.test"), "{env}");
+    assert!(env.contains("CHROME_PATH=/kept/chrome"), "{env}");
+    let closed = f.drive_calls();
+    let port = closed.trim().strip_prefix("close --port ").unwrap();
+    let pinned = format!("ULTRAHAND_DRIVE_PORT={port}");
+    assert!(env.lines().any(|line| line == pinned), "{env}\n{closed}");
+    assert!(
+        !env.lines().any(|line| line == "ULTRAHAND_DRIVE_PORT=1"),
+        "{env}"
+    );
     assert!(!env.contains("dropped"), "{env}");
     assert!(!env.contains("ULTRAHAND_CLAUDE"), "{env}");
     let folder = format!(
