@@ -177,9 +177,10 @@ Then check the extra cases: 320-wide reflow, landscape with the keyboard up, and
 
 Go through every item. Fix any failure, or name it and say why it's acceptable.
 
-**Composition** (run the composition audit,
-`node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs" do "${CLAUDE_PLUGIN_ROOT}/shared/composition/audit.mjs"`,
-at the largest and smallest size, or check by eye):
+**Composition** (run the composition audit at the largest and smallest size, or check by eye: open the
+screen with `node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs" open <page> --size <WxH>`, then
+`node "${CLAUDE_PLUGIN_ROOT}/shared/input/drive.mjs" do "${CLAUDE_PLUGIN_ROOT}/shared/composition/audit.mjs" --out audit`
+and `drive.mjs close`; `--out` is required, as the audit saves a blurred screenshot):
 
 - [ ] Blurred, the screen shows the intended sections, and the primary content draws the eye
       first. No unintended bright spot.
