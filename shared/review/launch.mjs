@@ -11,8 +11,10 @@
 //   1. <data>/bin/ultrahand-<version>-<target>, checked against checksums.txt on every run.
 //   2. The release asset for this version, checked before it is written to disk. Once it
 //      is in place, the other versions' binaries in <data>/bin are removed.
-//   3. cargo build of the plugin's cli/ source, when the asset can't be fetched or the
-//      plugin has no checksum for it (a checkout between releases).
+//   3. cargo build of the plugin's cli/ source, when the asset can't be fetched, the plugin
+//      has no checksum for it, or the plugin is a git checkout whose cli/ differs from the
+//      v<version> tag (a checkout between releases: the released binary predates that code,
+//      so such a checkout skips 1 and 2).
 //
 // stdout and the exit code are the binary's (0, 1 or 2). The launcher adds two of its own:
 //   3  no binary here: the skill takes its fallback, a general-purpose Agent.
@@ -21,7 +23,16 @@
 // ULTRAHAND_RELEASE_URL swaps the download base, for tests. Checksums still apply.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -143,19 +154,38 @@ function buildFromSource(data) {
     targetDir,
   ];
   const build = spawnSync('cargo', cargoArgs, { stdio: ['ignore', 2, 2], timeout: BUILD_LIMIT_MS });
-  if (build.error?.code === 'ENOENT') throw noBinary('no prebuilt binary to use and no cargo to build one');
+  if (build.error?.code === 'ENOENT') throw noBinary('no usable prebuilt binary and no cargo to build one');
   if (build.error || build.status !== 0) throw noBinary('cargo build failed');
   return join(targetDir, 'release', 'ultrahand');
 }
 
+// True when the plugin root is its own git checkout and its cli/ source differs from the
+// v<version> tag, committed or not, or the tag isn't there to compare with. cli/tests is
+// left out: it isn't in the binary. An installed plugin has no .git, and a plugin folder
+// inside some other repository isn't a checkout of this one, so both use the release.
+function unreleasedSource(version) {
+  const git = (...args) =>
+    spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const top = git('rev-parse', '--show-toplevel');
+  if (top.status !== 0 || realpathSync(top.stdout.trim()) !== realpathSync(root)) return false;
+  const tag = `v${version}`;
+  if (git('rev-parse', '--quiet', '--verify', `refs/tags/${tag}^{commit}`).status !== 0) {
+    console.error(`ultrahand: this checkout has no ${tag} tag to compare cli/ with, so it builds cli/`);
+    return true;
+  }
+  if (git('diff', '--quiet', tag, '--', 'cli', ':(exclude)cli/tests').status === 0) return false;
+  console.error(`ultrahand: cli/ has changed since ${tag}, so it builds cli/ rather than run the ${tag} binary`);
+  return true;
+}
+
 async function findBinary(data) {
   if (process.platform === 'win32') throw noBinary('there is no Windows build yet');
+  const { version } = JSON.parse(readFileSync(join(root, '.claude-plugin/plugin.json'), 'utf8'));
   const target = TARGETS[`${process.platform}-${process.arch}`];
   const asset = `ultrahand-${target}`;
   const expected = target && checksumFor(asset);
-  if (!expected) return buildFromSource(data);
+  if (!expected || unreleasedSource(version)) return buildFromSource(data);
 
-  const { version } = JSON.parse(readFileSync(join(root, '.claude-plugin/plugin.json'), 'utf8'));
   const cached = join(data, 'bin', `ultrahand-${version}-${target}`);
   if (existsSync(cached)) {
     requireChecksum(readFileSync(cached), expected, cached);

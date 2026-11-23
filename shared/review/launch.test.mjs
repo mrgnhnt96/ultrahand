@@ -1,6 +1,6 @@
 // node --test shared/review/launch.test.mjs
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmodSync,
@@ -45,9 +45,10 @@ chmod +x "$dir/release/ultrahand"
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex');
 
-function plugin({ checksum = sha256(FAKE_BINARY) } = {}) {
-  const root = mkdtempSync(join(realpathSync(tmpdir()), 'launch plugin '));
-  mkdirSync(join(root, '.claude-plugin'));
+function plugin({ checksum = sha256(FAKE_BINARY), nested = false } = {}) {
+  const made = mkdtempSync(join(realpathSync(tmpdir()), 'launch plugin '));
+  const root = nested ? join(made, 'plugins', 'ultrahand') : made;
+  mkdirSync(join(root, '.claude-plugin'), { recursive: true });
   mkdirSync(join(root, 'shared/review'), { recursive: true });
   writeFileSync(join(root, '.claude-plugin/plugin.json'), JSON.stringify({ version: VERSION }));
   copyFileSync(join(HERE, 'launch.mjs'), join(root, 'shared/review/launch.mjs'));
@@ -59,8 +60,13 @@ function plugin({ checksum = sha256(FAKE_BINARY) } = {}) {
   mkdirSync(bin);
   writeFileSync(join(bin, 'cargo'), FAKE_CARGO);
   chmodSync(join(bin, 'cargo'), 0o755);
+  mkdirSync(join(root, 'cli/src'), { recursive: true });
+  mkdirSync(join(root, 'cli/tests'));
+  writeFileSync(join(root, 'cli/src/main.rs'), 'fn main() {}\n');
+  writeFileSync(join(root, 'cli/tests/cli.rs'), '');
   return {
     root,
+    repo: made,
     data: join(root, 'plugin data', 'not made yet'),
     cargoLog: join(root, 'cargo.log'),
     pathWithCargo: `${bin}:/usr/bin:/bin`,
@@ -96,6 +102,21 @@ function launch(p, options) {
   child.stdout.on('data', (text) => (out.stdout += text));
   child.stderr.on('data', (text) => (out.stderr += text));
   return new Promise((done) => child.on('close', (code, signal) => done({ ...out, code, signal })));
+}
+
+// A git repository at `dir` holding everything in it, committed and tagged v<VERSION> unless
+// `tag` is false. Its config is its own, so the user's hooks and signing don't apply.
+function gitInit(dir, { tag = true } = {}) {
+  const env = { PATH: '/usr/bin:/bin', GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
+  const git = (...args) => {
+    const result = spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { env });
+    assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.stderr}`);
+  };
+  git('init', '--quiet');
+  git('add', '-A');
+  git('commit', '--quiet', '--no-gpg-sign', '-m', 'release');
+  if (tag) git('tag', `v${VERSION}`);
+  return git;
 }
 
 const installed = (p) => join(p.data, 'bin', readdirSync(join(p.data, 'bin'))[0]);
@@ -243,4 +264,62 @@ while :; do sleep 0.05; done
   const code = await new Promise((done) => child.on('close', done));
   assert.equal(code, 5);
   assert.match(stdout, /stopped/);
+});
+
+test('a checkout whose cli/ matches the release tag uses the release binary', async (t) => {
+  const p = plugin();
+  gitInit(p.root);
+  writeFileSync(join(p.root, 'cli/tests/cli.rs'), '// a test the binary does not carry\n');
+  const server = await assetServer(t, serving(FAKE_BINARY));
+  const result = await launch(p, { url: server.url });
+  assert.equal(result.code, 7);
+  assert.equal(server.requests.length, 1);
+  assert.ok(!existsSync(p.cargoLog));
+});
+
+test('a checkout whose cli/ changed since the release builds it, committed or not', async (t) => {
+  for (const commit of [true, false]) {
+    const p = plugin();
+    const git = gitInit(p.root);
+    writeFileSync(join(p.root, 'cli/src/main.rs'), 'fn main() { println!("new"); }\n');
+    if (commit) git('commit', '--quiet', '--no-gpg-sign', '-am', 'change the cli');
+    const server = await assetServer(t, serving(FAKE_BINARY));
+    const result = await launch(p, { url: server.url });
+    assert.equal(result.code, 0, `commit: ${commit}`);
+    assert.match(result.stdout, /^built binary: /);
+    assert.match(result.stderr, new RegExp(`cli/ has changed since v${VERSION}`));
+    assert.equal(server.requests.length, 0);
+  }
+});
+
+test('a checkout without the release tag builds cli/', async (t) => {
+  const p = plugin();
+  gitInit(p.root, { tag: false });
+  const server = await assetServer(t, serving(FAKE_BINARY));
+  const result = await launch(p, { url: server.url });
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /^built binary: /);
+  assert.match(result.stderr, new RegExp(`no v${VERSION} tag`));
+  assert.equal(server.requests.length, 0);
+});
+
+test('a plugin folder inside another repository is not a checkout of it', async (t) => {
+  const p = plugin({ nested: true });
+  gitInit(p.repo, { tag: false });
+  const server = await assetServer(t, serving(FAKE_BINARY));
+  const result = await launch(p, { url: server.url });
+  assert.equal(result.code, 7);
+  assert.equal(server.requests.length, 1);
+  assert.ok(!existsSync(p.cargoLog));
+});
+
+test('a changed checkout with no cargo exits 3 rather than run the older release', async (t) => {
+  const p = plugin();
+  gitInit(p.root);
+  writeFileSync(join(p.root, 'cli/src/main.rs'), 'fn main() { println!("new"); }\n');
+  const server = await assetServer(t, serving(FAKE_BINARY));
+  const result = await launch(p, { url: server.url, path: `/usr/bin:/bin` });
+  assert.equal(result.code, 3);
+  assert.equal(result.stdout, '');
+  assert.equal(server.requests.length, 0);
 });

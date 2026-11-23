@@ -33,9 +33,9 @@ Installs take whatever is on `main`.
   and operate a design. It finds a standard install; otherwise set `CHROME_PATH`.
 - **macOS or Linux, on arm64 or x86-64.** The review program is a prebuilt binary,
   downloaded and checksum-checked on first use. There is no Windows build yet. On a
-  platform without a prebuilt binary, or in a checkout between releases, it's built from
-  `cli/` with `cargo`, so you'll need a Rust toolchain. Without a binary, the review skill
-  falls back to a general-purpose agent.
+  platform without a prebuilt binary, or in a git checkout whose `cli/` has changed since
+  the release, it's built from `cli/` with `cargo`, so you'll need a Rust toolchain.
+  Without a binary, the review skill falls back to a general-purpose agent.
 
 ## Skills
 
