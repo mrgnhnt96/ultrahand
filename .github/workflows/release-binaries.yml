@@ -1,6 +1,7 @@
 # Builds the ultrahand binaries into a draft release. scripts/release.sh runs this on the
 # commit it is about to release, then publishes the draft once the version bump and the
-# checksums are pushed. The draft only appears when every target has tested and built.
+# checksums are pushed. The draft only appears when every target has tested and built and
+# the Node tests (test.yml) pass on that commit.
 name: Release binaries
 run-name: Binaries for ${{ inputs.tag }} (${{ inputs.request }})
 
@@ -24,6 +25,11 @@ permissions:
   contents: read
 
 jobs:
+  node-tests:
+    uses: ./.github/workflows/test.yml
+    with:
+      sha: ${{ inputs.sha }}
+
   build:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
@@ -65,7 +71,7 @@ jobs:
           if-no-files-found: error
 
   draft:
-    needs: build
+    needs: [node-tests, build]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

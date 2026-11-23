@@ -7,7 +7,8 @@ Public Claude Code plugin (`ultrahand@mrgnhnt96`). Anything committed here is pu
 - `skills/<name>/SKILL.md`: one skill each for `mobile`, `tablet`, `desktop`, `review`, `theme`, `theme-review`.
 - `shared/`: assets shared by skills (e.g. the artifact canvas in `shared/canvas/`, the theme format, rules and scripts in `shared/theme/`, the lessons and plugin-feedback loop in `shared/learning/`).
 - `cli/`: the `ultrahand` Rust binary. Skills start it through `shared/review/launch.mjs`, which finds the prebuilt binary for this plugin version or builds this source.
-- `.github/workflows/release-binaries.yml`: tests and builds the binaries into a draft release. `scripts/release.sh` runs it.
+- `.github/workflows/test.yml`: runs the Node tests (`node --test 'shared/**/*.test.mjs' 'scripts/*.test.mjs'`) on Node 22 on every PR and push to main.
+- `.github/workflows/release-binaries.yml`: runs `test.yml`, then tests and builds the binaries into a draft release. `scripts/release.sh` runs it.
 - `evals/`: `claude plugin eval` cases; run with `scripts/eval.sh` (see `evals/README.md`).
 
 ## Rules
