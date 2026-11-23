@@ -134,6 +134,15 @@ test('custom states stay on the part screen, out of the State picker; uid is uni
   assert.doesNotMatch(screen, /ov-chip--hard/);
 });
 
+test('each state cell on a part screen names its state for canvas notes, the overview none', () => {
+  const r = run([part({ states: { default: {}, hard: { label: 'Hard <level>' } } })]);
+  const { screen } = render({ title: 't', parts: r.parts, themed: false });
+  assert.match(screen, /<figure class="pt-state" data-note-state="hard" data-note-state-label="Hard &lt;level&gt;">/);
+  assert.match(screen, /<figure class="pt-state" data-note-state="default" data-note-state-label="Default">/);
+  const overview = screen.slice(0, screen.indexOf('data-screen="part-chip"'));
+  assert.doesNotMatch(overview, /data-note-state/);
+});
+
 test('the fallback colours meet WCAG contrast in both schemes', () => {
   const pick = (name, i) => parseColor(FALLBACK[name].match(/light-dark\(([^,]+),\s*([^)]+)\)/)[i + 1]);
   const pairs = [

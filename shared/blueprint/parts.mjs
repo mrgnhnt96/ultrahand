@@ -529,7 +529,7 @@ function partScreen(p, prev, next) {
   }
   if (p.usedIn && p.usedIn.length) facts.push(['Used in', p.usedIn.join(', ')]);
   const states = p.states.map((s) => `
-      <figure class="pt-state">
+      <figure class="pt-state" data-note-state="${esc(s.id)}" data-note-state-label="${esc(s.label)}">
         <figcaption>${esc(s.label)}</figcaption>
         <div class="pt-cell" id="${p.id}--${s.id}" data-pt-force="${esc(s.force)}">${stateHtml(p, s)}</div>${s.note ? `\n        <p class="pt-p pt-muted">${esc(s.note)}</p>` : ''}
       </figure>`).join('');

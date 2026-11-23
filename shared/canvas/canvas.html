@@ -486,7 +486,7 @@ body.uh-dragging .uh-host { pointer-events: none; }
    the frames (--uh-head). Where a label would be under 200px wide or taller than that,
    it shows only the letter and name, and under 120px only the letter; the rest stays in
    its tooltip. */
-.uh-cell-head { position: relative; height: calc(var(--uh-head, 76px) / var(--s)); }
+.uh-cell-head { position: relative; z-index: 6; height: calc(var(--uh-head, 76px) / var(--s)); }
 .uh-cell-label {
   position: absolute; left: 0; top: 0;
   width: calc(100% * var(--s));
@@ -502,6 +502,17 @@ body.uh-dragging .uh-host { pointer-events: none; }
 /* The selected concept (the one Go to and comments act on): a bar under its label, so a
    focus ring around the label still reads as focus. */
 .uh-cell[data-selected] .uh-cell-label { box-shadow: inset 0 -3px 0 var(--accent); }
+/* A frame scrolled part way up the stage keeps its label at the stage's top edge, over the
+   frame, until the frame's bottom pushes it on (stickLabels); a shadow lifts it off the screen. */
+.uh-cell-label[data-stuck] { box-shadow: 0 2px 8px rgb(0 0 0 / 0.2); }
+/* Stuck, a label covers its frame's top strip: it keeps to the letter and name, and in
+   comment mode a press there goes to the screen under it. */
+.uh-cell-label[data-stuck] .uh-cell-pos { display: none; }
+.uh-cell-label[data-stuck] .uh-key { grid-row: auto; }
+body.uh-commenting .uh-cell-label[data-stuck] { pointer-events: none; }
+/* In comment mode the selected frame's pins and outline draw over its stuck label. */
+body.uh-commenting .uh-cell .uh-notes { z-index: 7; }
+.uh-cell[data-selected] .uh-cell-label[data-stuck] { box-shadow: inset 0 -3px 0 var(--accent), 0 2px 8px rgb(0 0 0 / 0.2); }
 .uh-cell-label .uh-key { grid-row: span 2; }
 .uh-cell-name { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 .uh-cell-pos { font-size: 12px; line-height: 1.3; color: var(--muted); overflow-wrap: anywhere; }
@@ -511,7 +522,7 @@ body.uh-dragging .uh-host { pointer-events: none; }
 .uh-rig[data-compact="key"] .uh-cell-label { width: auto; min-width: 32px; }
 .uh-cell-body { position: relative; }
 /* In comment mode a press on another concept selects it and starts the pin or area there. */
-.uh-shield { position: absolute; inset: 0; z-index: 4; display: none; cursor: crosshair; }
+.uh-shield { position: absolute; inset: 0; z-index: 4; display: none; cursor: crosshair; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 body.uh-commenting .uh-cell:not([data-selected]) .uh-shield { display: block; }
 body.uh-commenting .uh-cell:not([data-selected]) .uh-shield:hover { outline: calc(1px / var(--s)) solid var(--muted); }
 body.uh-space .uh-shield, body.uh-panning .uh-shield, body.uh-dragging .uh-shield { pointer-events: none; }
@@ -559,9 +570,14 @@ body[data-broken] .uh-bar, body[data-broken] .uh-concepts, body[data-broken] .uh
 /* Notes. Comment mode lets the viewer pin a comment to a point (click) or an area (drag)
    of the screen, so feedback names the spot instead of needing a screenshot. The layer
    sits over the screen inside the zoomed frame, so pins follow the design; their size is
-   counter-scaled like the grips. One colour that reads over light and dark designs. */
+   counter-scaled like the grips. One colour that reads over light and dark designs. The
+   layer takes every touch itself (touch-action: none) and sorts a tap, a swipe and a held
+   press apart, since a swipe has to scroll the screen under it, not the stage. It is a tab
+   stop too, the keyboard's way to point (see aimAt). */
 .uh-notes { position: absolute; left: 0; top: 0; z-index: 2; overflow: hidden; }
-body.uh-commenting .uh-notes { cursor: crosshair; touch-action: none; }
+body.uh-commenting .uh-notes { cursor: crosshair; touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.uh-notes:focus { outline: none; }
+.uh-notes:focus-visible { outline: calc(2px / var(--s)) solid var(--accent); outline-offset: calc(-2px / var(--s)); }
 body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes { pointer-events: none; }
 .uh-pin {
   position: absolute;
@@ -598,14 +614,15 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
 .uh-target { position: absolute; border: calc(2px / var(--s)) dashed var(--pin); border-radius: calc(5px / var(--s)); pointer-events: none; }
 /* In comment mode, the element a click would pin to, under the pointer: aim before clicking. */
 .uh-target.uh-hover { border-width: calc(1px / var(--s)); }
+/* From the keyboard, the element Enter would pin to: solid, so it reads as the one chosen. */
+.uh-target.uh-aim { border-style: solid; }
 .uh-comment-hint {
-  position: absolute; top: 100%; left: 50%; z-index: 1;
-  transform: translateX(-50%);
-  max-width: calc(100% - 32px);
+  position: absolute; top: 100%; left: 16px; right: 16px; z-index: 1;
+  width: fit-content; margin-inline: auto;
   padding: 3px 10px;
   border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px;
   background: var(--surface);
-  font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12px; line-height: 1.35; color: var(--muted); text-align: center; text-wrap: balance;
 }
 .uh-btn.uh-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .uh-btn.uh-primary:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-ink); }
@@ -879,7 +896,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
     <span class="uh-vh" id="uh-zoom-live" role="status"></span>
     <button class="uh-btn uh-problems" type="button" id="uh-problems" title="Show the canvas problems again"></button>
     <div class="uh-split" role="group" aria-label="Comments">
-    <button class="uh-btn" type="button" id="uh-comment" aria-pressed="false" aria-label="Comment" title="Comment on the design: click to drop a pin, drag to mark an area (C)"><span class="uh-long">Comment</span><svg class="uh-short" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
+    <button class="uh-btn" type="button" id="uh-comment" aria-pressed="false" aria-label="Comment" title="Comment on the design (C): click or tap to drop a pin, drag or hold to mark an area; from the keyboard, ↑ ↓ and Enter"><span class="uh-long">Comment</span><svg class="uh-short" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
     <div class="uh-notes-menu" id="uh-notes-menu">
       <button class="uh-btn" type="button" id="uh-notes-btn" aria-expanded="false" aria-controls="uh-notes-pop" title="Your notes on this design"><svg class="uh-notes-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span id="uh-notes-count" aria-hidden="true"></span><span class="uh-caret" aria-hidden="true">▾</span></button>
       <div class="uh-pop uh-notes-pop" id="uh-notes-pop" role="group" aria-labelledby="uh-notes-title" hidden>
@@ -896,6 +913,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
     </div>
     </div>
     <span class="uh-comment-hint" id="uh-comment-hint" hidden>Click to drop a pin · drag to mark an area · Esc to stop</span>
+    <span class="uh-vh" id="uh-aim-live" role="status"></span>
     <div class="uh-help">
       <button class="uh-btn" type="button" id="uh-help-btn" aria-expanded="false" aria-controls="uh-keys" aria-label="Shortcuts and canvas settings" title="Shortcuts and canvas settings (?)">?</button>
       <div class="uh-keys uh-pop" id="uh-keys" role="group" aria-labelledby="uh-keys-title" hidden>
@@ -911,7 +929,8 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           <dt>W, H</dt><dd><kbd>Enter</kbd> applies, <kbd>Esc</kbd> reverts</dd>
           <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Light and Dark, text size)</dd>
           <dt>Screen</dt><dd><kbd>Esc</kbd> moves focus out of the screen, so <kbd>C</kbd>, <kbd>?</kbd> and the zoom keys work. If the screen used the Esc (to close a menu or dialog, or clear a field), press it again</dd>
-          <dt>Comment</dt><dd><kbd>C</kbd> turns it on or off. Click drops a pin, drag marks an area, <kbd>Esc</kbd> stops</dd>
+          <dt>Comment</dt><dd><kbd>C</kbd> turns it on or off and puts focus on the screen. Click drops a pin, drag marks an area, <kbd>Esc</kbd> stops. On touch: tap for a pin, hold then drag for an area, swipe to scroll</dd>
+          <dt>Comment, keys</dt><dd><kbd>↑</kbd> <kbd>↓</kbd> pick an element, <kbd>←</kbd> the one holding it, <kbd>→</kbd> back in, <kbd>Home</kbd> <kbd>End</kbd> first and last. <kbd>Enter</kbd> pins it, <kbd>Shift</kbd> <kbd>Enter</kbd> marks an area round it</dd>
           <dt>Comment box</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels</dd>
           <dt>This list</dt><dd><kbd>?</kbd></dd>
         </dl>
@@ -982,7 +1001,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           </div>
           <div class="uh-wincaps" id="uh-wincaps" aria-hidden="true" hidden><span><i></i><i></i><i></i></span></div>
           <div class="uh-homebar" id="uh-homebar" aria-hidden="true"></div>
-          <div class="uh-notes" id="uh-notes" hidden></div>
+          <div class="uh-notes" id="uh-notes" tabindex="0" role="application" aria-roledescription="comment layer" aria-label="Comment on the screen: up and down arrows pick an element, Enter pins it, Shift Enter marks an area round it" hidden></div>
           <div class="uh-toast" id="uh-toast" role="status" aria-live="polite"></div>
         </div>
       </div>
@@ -2465,7 +2484,7 @@ window.ultrahandSetup = function (canvas) {
      as text; "Send to Claude" posts them as one artifact comment that Claude receives,
      where the page was published with the comments capability. */
   var nel = {
-    layer: byId('uh-notes'), comment: byId('uh-comment'), notesAlt: byId('uh-notes-alt'), hint: byId('uh-comment-hint'),
+    layer: byId('uh-notes'), comment: byId('uh-comment'), notesAlt: byId('uh-notes-alt'), hint: byId('uh-comment-hint'), aimLive: byId('uh-aim-live'),
     menu: byId('uh-notes-menu'), btn: byId('uh-notes-btn'), count: byId('uh-notes-count'), pop: byId('uh-notes-pop'),
     list: byId('uh-note-list'), scroll: byId('uh-note-scroll'), total: byId('uh-notes-total'), empty: byId('uh-notes-empty'), screenNote: byId('uh-note-screen'),
     clear: byId('uh-notes-clear'), where: byId('uh-notes-where'), foot: byId('uh-notes-foot'), saveNow: byId('uh-notes-save'), status: byId('uh-notes-status'), undo: byId('uh-notes-undo'),
@@ -2624,6 +2643,22 @@ window.ultrahandSetup = function (canvas) {
     var s = states.filter(function (x) { return x.id === id; })[0];
     return s ? s.label : id;
   }
+  /* A page that shows several states side by side (a parts sheet) marks each cell with
+     data-note-state="<id>" (and data-note-state-label, else the State picker's label for
+     that id). A note left in such a cell is about the cell's state, whatever the State
+     picker says, and shows whichever state the picker is at. */
+  function cellStateOf(e) {
+    var c = e && e.closest && e.closest('[data-note-state]');
+    if (!c || !viewport.contains(c)) return undefined;
+    var id = c.getAttribute('data-note-state');
+    return { id: id, label: c.getAttribute('data-note-state-label') || stateLabel(id) };
+  }
+  /* Whether a note is about the state on show. */
+  function stateHere(n) { return !!n.cellState || (n.state || null) === (st.state || null); }
+  /* The state a note names in words: its cell's, or the State picker's where there are several. */
+  function noteStateLabel(n) {
+    return n.cellState ? n.cellState.label : n.state && states.length > 1 ? stateLabel(n.state) : '';
+  }
   function round1(v) { return Math.round(v); }
   function frac(v) { return Math.round(v * 10000) / 10000; }
   function scrollTopNow() { return currentScreen ? currentScreen.scrollTop : 0; }
@@ -2731,12 +2766,14 @@ window.ultrahandSetup = function (canvas) {
   }
   /* On an explore page each note belongs to the concept it was left on. */
   function onSel(n) { return !exploring || !n.concept || n.concept === act.id; }
-  function makePin(cx, cy) {
+  /* t: the element to pin to (from the keyboard), else the one under the point. */
+  function makePin(cx, cy, t) {
     var n = baseNote('pin');
     var l = toLocal(cx, cy);
     n.x = round1(l.x);
     n.y = round1(l.y + scrollTopNow());
-    var t = hitAt(cx, cy);
+    t = t || hitAt(cx, cy);
+    n.cellState = cellStateOf(t);
     if (t) {
       var r = t.getBoundingClientRect();
       n.anchor = idOf(t, { sel: cssPath(t), fx: frac((cx - r.left) / (r.width || 1)), fy: frac((cy - r.top) / (r.height || 1)) });
@@ -2760,6 +2797,7 @@ window.ultrahandSetup = function (canvas) {
       e = e.parentElement;
     }
     if (e && viewport.contains(e)) n.within = describe(e);
+    n.cellState = cellStateOf(e);
     /* What it covers: the largest elements wholly inside it, in reading order. */
     var covers = [];
     Array.prototype.forEach.call((currentScreen || viewport).querySelectorAll('*'), function (x) {
@@ -2809,7 +2847,7 @@ window.ultrahandSetup = function (canvas) {
   }
   function noteBox(n) {
     if (n.kind === 'screen' || !onSel(n)) return null;
-    if ((n.screen || '') !== screenId() || (n.state || null) !== (st.state || null)) return null;
+    if ((n.screen || '') !== screenId() || !stateHere(n)) return null;
     if (n.kind === 'area' && n.coverSels && n.coverSels.length) {
       var found = n.coverSels.map(function (cs, i) {
         var id = n.coverIds ? n.coverIds[i] : {};
@@ -2844,7 +2882,7 @@ window.ultrahandSetup = function (canvas) {
      on isn't in this view. */
   function awayHere(n) {
     return n.kind !== 'screen' && !!n.anchor && onSel(n) && (n.screen || '') === screenId() &&
-      (n.state || null) === (st.state || null) && !(editing && editing.isNew && editing.note === n) && !noteBox(n);
+      stateHere(n) && !(editing && editing.isNew && editing.note === n) && !noteBox(n);
   }
   /* The text of what a note was left on, from its description ('h1 "Cedar Ridge Loop"'). */
   function leftOn(n) {
@@ -2873,7 +2911,7 @@ window.ultrahandSetup = function (canvas) {
   function layoutNotes() {
     if (!nel || notesQueued) return;
     notesQueued = true;
-    requestAnimationFrame(function () { notesQueued = false; drawNotes(); });
+    requestAnimationFrame(function () { notesQueued = false; drawNotes(); stickLabels(); });
   }
   function drawNotes() {
     var L = nel.layer;
@@ -2929,6 +2967,7 @@ window.ultrahandSetup = function (canvas) {
       placeBox(sketchEl, a.x, a.y, z.x, z.y);
     } else if (sketchEl) { sketchEl.remove(); sketchEl = null; }
     drawTarget();
+    drawAim();
     if (hoverAt && !hoverRaf) hoverRaf = requestAnimationFrame(drawHover);
     drawGhosts();
     placeComposer();
@@ -3074,7 +3113,8 @@ window.ultrahandSetup = function (canvas) {
       : n.kind === 'area' ? 'Area ' + Math.round(n.aw) + '×' + Math.round(n.ah) +
         (n.covers && n.covers.length === 1 ? ' over ' + n.covers[0] : n.within ? ' in ' + n.within : '')
       : 'The whole screen';
-    var where = screenLabel(n.screen, n.concept) + (n.state && states.length > 1 ? ' · ' + stateLabel(n.state) : '');
+    var sl = noteStateLabel(n);
+    var where = screenLabel(n.screen, n.concept) + (sl ? ' · ' + sl : '');
     var c = exploring && n.concept && conceptById(n.concept);
     return (c ? conceptName(c) + ' · ' : '') + at + ' · ' + where;
   }
@@ -3125,6 +3165,7 @@ window.ultrahandSetup = function (canvas) {
     showComposerSize();
     nel.composer.hidden = false;
     drawNotes();
+    showHint();
     nel.cText.focus({ preventScroll: true });
   }
   /* Closing keeps typed words: Save, Esc and a click elsewhere store them, Cancel drops them. */
@@ -3143,10 +3184,14 @@ window.ultrahandSetup = function (canvas) {
     editing = null;
     nel.composer.hidden = true;
     drawNotes();
+    showHint();
     renderNotesUI();
     if (refocus) {
+      /* A note made from the keyboard goes back to the layer, at the element it was left
+         on, so the next one is an arrow key away. */
       var pin = pinEls[ed.note.id];
-      if (pin && !nel.layer.hidden) pin.focus({ preventScroll: true });
+      if (ed.fromKeys && !nel.layer.hidden) nel.layer.focus({ preventScroll: true });
+      else if (pin && !nel.layer.hidden) pin.focus({ preventScroll: true });
       else focusCommentControl();
     }
   }
@@ -3194,13 +3239,41 @@ window.ultrahandSetup = function (canvas) {
   function setCommenting(on) {
     commenting = !!on;
     document.body.classList.toggle('uh-commenting', commenting);
-    if (!commenting) clearHover();
+    if (!commenting) { clearHover(); cancelTouch(); stopFling(); aim = null; }
     nel.comment.setAttribute('aria-pressed', String(commenting));
     nel.hint.hidden = !commenting;
+    showHint();
+    /* Focus on the layer or a pin would be lost with them: it goes to Comment. */
+    var inLayer = !commenting && nel.layer.contains(document.activeElement);
     if (!commenting) { sketch = null; if (editing && editing.note.kind !== 'screen') closeComposer(true, false); }
     drawNotes();
+    if (inLayer) focusCommentControl();
   }
-  nel.comment.addEventListener('click', function () { setCommenting(!commenting); });
+  /* The hint says how to comment with what the viewer is using: the keys while the layer has
+     focus, else touch or a mouse, from the last press. */
+  var HINTS = {
+    mouse: 'Click to drop a pin · drag to mark an area · Esc to stop',
+    touch: 'Tap to pin · hold, then drag, for an area · swipe to scroll',
+    keys: '↑ ↓ pick an element · Enter pins · Shift+Enter marks an area · Esc stops',
+    keysShort: '↑↓ pick · Enter pin · ⇧Enter area · Esc stop'
+  };
+  var modality = window.matchMedia && matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse';
+  function showHint() {
+    var keys = commenting && document.activeElement === nel.layer && nel.layer.matches(':focus-visible');
+    /* While the comment box is open, its keys, whatever started it. */
+    nel.hint.textContent = editing ? (MAC ? '⌘ Enter saves · Esc closes, keeping the text' : 'Ctrl+Enter saves · Esc closes, keeping the text')
+      : HINTS[keys ? (innerWidth < 600 ? 'keysShort' : 'keys') : modality];
+    layoutNotes();
+  }
+  document.addEventListener('pointerdown', function (e) {
+    var m = e.pointerType === 'touch' ? 'touch' : 'mouse';
+    if (m !== modality) { modality = m; showHint(); }
+  }, true);
+  nel.comment.addEventListener('click', function (e) {
+    setCommenting(!commenting);
+    /* Pressed from the keyboard (no pointer, so no click count), it goes on to the layer, as C does. */
+    if (commenting && e.detail === 0) { nel.layer.focus({ preventScroll: true }); showHint(); }
+  });
   nel.notesAlt.addEventListener('click', function () {
     el.previewBtn.click();
     notesMenu.open();
@@ -3214,6 +3287,8 @@ window.ultrahandSetup = function (canvas) {
     if ((e.key === 'c' || e.key === 'C') && !typing && !inScreen(path) && !editing) {
       e.preventDefault();
       setCommenting(!commenting);
+      /* From the keyboard, comment mode starts on the layer, where the arrows pick an element. */
+      if (commenting) { nel.layer.focus({ preventScroll: true }); showHint(); }
     } else if (e.key === 'Escape' && sketch) {
       e.preventDefault();
       sketch = null;
@@ -3244,12 +3319,15 @@ window.ultrahandSetup = function (canvas) {
     }, 0);
   }
 
-  /* A press on the layer: a click drops a pin, a drag of more than a few px marks an area. */
+  /* A press on the layer: a click drops a pin, a drag of more than a few px marks an area.
+     A touch is sorted out by startTouch. */
   nel.layer.addEventListener('pointerdown', function (e) {
     if (e.target.closest('.uh-pin')) return;
-    startSketch(e);
+    if (e.pointerType === 'touch') startTouch(e);
+    else startSketch(e);
   });
   function startSketch(e) {
+    if (e.pointerType === 'touch') { startTouch(e); return; }
     if (e.button !== 0 || document.body.classList.contains('uh-space')) return;
     e.preventDefault();
     clearHover();
@@ -3276,6 +3354,7 @@ window.ultrahandSetup = function (canvas) {
     showHover(t);
   }
   nel.layer.addEventListener('pointermove', function (e) {
+    if (touch && e.pointerId === touch.id) moveTouch(e);
     if (!sketch && e.pointerType !== 'touch') {
       if (e.target.closest('.uh-pin')) clearHover();
       else {
@@ -3291,13 +3370,212 @@ window.ultrahandSetup = function (canvas) {
     if (sketch.moved) layoutNotes();
   });
   nel.layer.addEventListener('pointerup', function (e) {
+    var tapped = touch && e.pointerId === touch.id && !touch.mode ? touch : null;
+    if (touch && e.pointerId === touch.id && touch.mode === 'scroll') startFling(touch);
+    if (touch && e.pointerId === touch.id) cancelTouch();
+    if (tapped) {
+      if (editing) closeComposer(true, false);
+      openComposer(makePin(tapped.x, tapped.y), true);
+      return;
+    }
     if (!sketch || e.pointerId !== sketch.id) return;
     var s = sketch;
     sketch = null;
+    clearHover();
     var n = s.moved ? makeArea({ x: s.x, y: s.y }, { x: s.x2, y: s.y2 }) : makePin(s.x, s.y);
     openComposer(n, true);
   });
-  nel.layer.addEventListener('pointercancel', function () { sketch = null; drawNotes(); });
+  nel.layer.addEventListener('pointercancel', function () { cancelTouch(); sketch = null; drawNotes(); });
+  /* A long press on touch would open the browser's menu over the area being marked. */
+  nel.layer.addEventListener('contextmenu', function (e) { if (commenting) e.preventDefault(); });
+
+  /* ---------- Comment mode on touch ---------- */
+  /* A finger can't hover, and a swipe has to scroll the screen, so a touch waits to see what
+     it is: lifted before it moves, a tap drops a pin; moved first, a swipe scrolls what is
+     under it (then pans the stage, once that can't scroll further); held still for HOLD_MS,
+     it outlines the element under it and a drag from there marks an area. A second finger
+     drops the gesture. */
+  var touch = null, HOLD_MS = 450, SLOP = 8;
+  function startTouch(e) {
+    stopFling();
+    if (touch) { cancelTouch(); return; }
+    e.preventDefault();
+    clearHover();
+    try { nel.layer.setPointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+    touch = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, mode: '', sc: scrollerAt(e.clientX, e.clientY) };
+    touch.timer = setTimeout(function () {
+      if (!touch || touch.mode) return;
+      touch.mode = 'hold';
+      if (editing) closeComposer(true, false);
+      sketch = { id: touch.id, x: touch.x, y: touch.y, x2: touch.x, y2: touch.y, moved: false };
+      showHover(hitAt(touch.x, touch.y));
+      try { if (navigator.vibrate) navigator.vibrate(10); } catch (err) { /* not allowed */ }
+    }, HOLD_MS);
+  }
+  function moveTouch(e) {
+    if (!touch.mode && (Math.abs(e.clientX - touch.x) > SLOP || Math.abs(e.clientY - touch.y) > SLOP)) {
+      touch.mode = 'scroll';
+      clearTimeout(touch.timer);
+    }
+    if (touch.mode !== 'scroll') return;
+    var now = e.timeStamp, dt = Math.max(1, now - (touch.lt || now - 16));
+    var dx = touch.lx - e.clientX, dy = touch.ly - e.clientY;
+    scrollUnder(touch.sc, dx, dy);
+    /* The finger's speed, smoothed, for the fling when it lifts. */
+    touch.vx = 0.6 * (dx / dt) + 0.4 * (touch.vx || 0);
+    touch.vy = 0.6 * (dy / dt) + 0.4 * (touch.vy || 0);
+    touch.lt = now;
+    touch.lx = e.clientX;
+    touch.ly = e.clientY;
+  }
+  /* A swipe that lifts while moving carries on, slowing, as a native scroll does. */
+  var fling = 0;
+  function startFling(t) {
+    if (!t.lt || performance.now() - t.lt > 100) return;
+    var vx = t.vx, vy = t.vy, last = performance.now();
+    function step(now) {
+      var dt = Math.min(48, now - last);
+      last = now;
+      scrollUnder(t.sc, vx * dt, vy * dt);
+      var k = Math.pow(0.95, dt / 16);
+      vx *= k; vy *= k;
+      fling = Math.abs(vx) + Math.abs(vy) > 0.05 ? requestAnimationFrame(step) : 0;
+    }
+    fling = requestAnimationFrame(step);
+  }
+  function stopFling() { if (fling) cancelAnimationFrame(fling); fling = 0; }
+  function cancelTouch() {
+    if (!touch) return;
+    clearTimeout(touch.timer);
+    if (touch.mode === 'hold' && sketch && sketch.id === touch.id && !sketch.moved) clearHover();
+    touch = null;
+  }
+  /* Scroll sc by a finger's move in client px (the screen is zoomed by st.s); what it can't
+     take pans the stage. */
+  function scrollUnder(sc, dx, dy) {
+    if (sc) {
+      var t0 = sc.scrollTop, l0 = sc.scrollLeft;
+      sc.scrollTop += dy / st.s;
+      sc.scrollLeft += dx / st.s;
+      dy -= (sc.scrollTop - t0) * st.s;
+      dx -= (sc.scrollLeft - l0) * st.s;
+    }
+    el.stage.scrollLeft += dx;
+    el.stage.scrollTop += dy;
+  }
+  /* The nearest element of the screen under a client point that scrolls, if any. */
+  function scrollerAt(cx, cy) {
+    var sc = hitAt(cx, cy);
+    while (sc && sc !== viewport) {
+      var cs = getComputedStyle(sc);
+      if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX) && (sc.scrollHeight > sc.clientHeight || sc.scrollWidth > sc.clientWidth)) return sc;
+      sc = sc.parentElement;
+    }
+    return null;
+  }
+
+  /* ---------- Comment mode from the keyboard ---------- */
+  /* The layer is a tab stop in comment mode (C puts focus on it). There ↑ and ↓ move an
+     outline through the screen's elements in reading order, ← goes out to the element
+     holding the outlined one and → back in, Home and End go to the first and last. Enter
+     pins the outlined element at its centre, Shift+Enter marks an area round it. Each move
+     says the element in a polite status. */
+  var aim = null, aimTrail = [], aimEl = null;
+  var AIM_ALSO = 'img, svg, video, canvas, picture, h1, h2, h3, h4, h5, h6, p, li, [role], [aria-label]';
+  function aimable(e) {
+    if (!outlineRect(e) || !shown(e)) return false;
+    if (e.matches(TARGETS) || e.matches(AIM_ALSO)) return true;
+    for (var c = e.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && c.nodeValue.trim()) return true;
+    return false;
+  }
+  /* The screen's elements an outline can go to, in reading order: never the inside of a
+     control or a picture, which pin to the control or picture itself. */
+  function aimList() {
+    if (!currentScreen) return [];
+    return Array.prototype.filter.call(currentScreen.querySelectorAll('*'), function (e) {
+      var p = e.parentElement && e.parentElement.closest(TARGETS + ', svg, picture');
+      return !(p && currentScreen.contains(p)) && aimable(e);
+    });
+  }
+  function sameBox(a, b) {
+    return Math.abs(a.left - b.left) < 1 && Math.abs(a.top - b.top) < 1 && Math.abs(a.right - b.right) < 1 && Math.abs(a.bottom - b.bottom) < 1;
+  }
+  function aimAt(e) {
+    aim = e;
+    if (!e) { drawAim(); return; }
+    e.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    drawAim();
+    var role = e.getAttribute('role') || e.tagName.toLowerCase();
+    var name = (e.getAttribute('aria-label') || printOf(e) || e.getAttribute('alt') || '').slice(0, 80);
+    nel.aimLive.textContent = name ? role + ', ' + name : role;
+  }
+  function drawAim() {
+    var r = aim && aim.isConnected && commenting && document.activeElement === nel.layer && nel.layer.matches(':focus-visible') && !editing && outlineRect(aim);
+    if (!r) { if (aimEl) { aimEl.remove(); aimEl = null; } return; }
+    if (!aimEl || aimEl.parentNode !== nel.layer) { if (aimEl) aimEl.remove(); aimEl = document.createElement('div'); aimEl.className = 'uh-target uh-aim'; nel.layer.append(aimEl); }
+    placeOutline(aimEl, r);
+  }
+  /* The first element whose top shows in the frame. */
+  function firstInView(list) {
+    var f = el.host.getBoundingClientRect();
+    return list.filter(function (x) { var r = x.getBoundingClientRect(); return r.top >= f.top - 1 && r.top < f.bottom; })[0] || list[0];
+  }
+  function stepAim(list, dir) {
+    if (!aim || !aim.isConnected || !currentScreen.contains(aim)) return firstInView(list);
+    var i = list.indexOf(aim);
+    if (i >= 0) return list[Math.max(0, Math.min(list.length - 1, i + dir))];
+    /* An element reached with ←: the next one in reading order after its start. */
+    var bit = dir > 0 ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING;
+    var on = list.filter(function (x) { return aim.compareDocumentPosition(x) & bit; });
+    return (dir > 0 ? on[0] : on[on.length - 1]) || aim;
+  }
+  nel.layer.addEventListener('keydown', function (e) {
+    if (e.target !== nel.layer || e.ctrlKey || e.metaKey || e.altKey || editing) return;
+    var k = e.key;
+    if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'Home' || k === 'End') {
+      var list = aimList();
+      if (!list.length) return;
+      e.preventDefault();
+      aimTrail = [];
+      var next = k === 'Home' ? list[0] : k === 'End' ? list[list.length - 1] : stepAim(list, k === 'ArrowDown' ? 1 : -1);
+      if (next === aim && (k === 'ArrowDown' || k === 'ArrowUp')) {
+        /* Already at an end: say so, rather than the same name again. */
+        nel.aimLive.textContent = k === 'ArrowDown' ? 'Last element on the screen' : 'First element on the screen';
+      } else aimAt(next);
+      showHint();
+    } else if (k === 'ArrowLeft' && aim && aim.isConnected) {
+      e.preventDefault();
+      var box = aim.getBoundingClientRect(), p = aim.parentElement;
+      while (p && p !== currentScreen && currentScreen.contains(p) && (!outlineRect(p) || sameBox(p.getBoundingClientRect(), box))) p = p.parentElement;
+      if (p && p !== currentScreen && currentScreen.contains(p)) { aimTrail.push(aim); aimAt(p); }
+    } else if (k === 'ArrowRight' && aim && aim.isConnected) {
+      e.preventDefault();
+      var back = aimTrail.length && aim.contains(aimTrail[aimTrail.length - 1]) ? aimTrail.pop() : null;
+      var own = aim.getBoundingClientRect();
+      var inner = back || Array.prototype.filter.call(aim.querySelectorAll('*'), function (x) {
+        return outlineRect(x) && shown(x) && !sameBox(x.getBoundingClientRect(), own);
+      })[0];
+      if (inner) aimAt(inner);
+    } else if (k === 'Enter' && aim && aim.isConnected && outlineRect(aim)) {
+      e.preventDefault();
+      var r = aim.getBoundingClientRect(), g = 4;
+      var n = e.shiftKey ? makeArea({ x: r.left - g, y: r.top - g }, { x: r.right + g, y: r.bottom + g })
+        : makePin(r.left + r.width / 2, r.top + r.height / 2, aim);
+      openComposer(n, true);
+      editing.fromKeys = true;
+    }
+  });
+  /* Focus from the keyboard starts on the first element in view, so Enter has a target. */
+  nel.layer.addEventListener('focus', function () {
+    stickLabels(); /* the hint may have just shown: the scroll padding has to know first */
+    if (commenting && nel.layer.matches(':focus-visible') && (!aim || !aim.isConnected || !currentScreen.contains(aim))) {
+      var list = aimList();
+      if (list.length) aimAt(firstInView(list));
+    }
+    showHint();
+    drawAim();
+  });
+  nel.layer.addEventListener('blur', function () { showHint(); drawAim(); });
   nel.layer.addEventListener('pointerleave', clearHover);
   nel.layer.addEventListener('click', function (e) {
     var pin = e.target.closest('.uh-pin');
@@ -3313,13 +3591,8 @@ window.ultrahandSetup = function (canvas) {
   nel.layer.addEventListener('wheel', function (e) {
     if (e.ctrlKey || e.metaKey) return;
     var k = e.deltaMode === 1 ? 16 : 1;
-    var sc = hitAt(e.clientX, e.clientY);
-    while (sc && sc !== viewport) {
-      var cs = getComputedStyle(sc);
-      if (/(auto|scroll)/.test(cs.overflowY + cs.overflowX) && (sc.scrollHeight > sc.clientHeight || sc.scrollWidth > sc.clientWidth)) break;
-      sc = sc.parentElement;
-    }
-    if (!sc || sc === viewport) return;
+    var sc = scrollerAt(e.clientX, e.clientY);
+    if (!sc) return;
     var t0 = sc.scrollTop, l0 = sc.scrollLeft;
     sc.scrollTop += e.deltaY * k;
     sc.scrollLeft += e.deltaX * k;
@@ -3340,7 +3613,7 @@ window.ultrahandSetup = function (canvas) {
     var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
     var c = exploring && n.concept && conceptById(n.concept);
     var lines = [noteNumber(n) + '. ' + kind + (c ? ' · ' + NOUN.toLowerCase() + ' ' + c.key + ' “' + c.label + '”' : '') + ' · screen ' + screenLabel(n.screen, n.concept) +
-      (n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
+      (n.cellState ? ' · state ' + n.cellState.id + ' (the cell it is in)' : n.state ? ' · state ' + n.state : '') + ' · ' + n.fw + '×' + n.fh + ' (' + n.preset + ') · ' + n.scheme +
       (n.textScale !== 1 ? ' · text ' + Math.round(n.textScale * 100) + '%' : '')];
     if (n.kind === 'pin') {
       lines.push('At ' + n.x + ', ' + n.y + ' (CSS px from the screen’s top-left, scroll included)' + (n.target ? ' on ' + n.target : '') + (n.inside ? ', inside ' + n.inside : ''));
@@ -3371,7 +3644,7 @@ window.ultrahandSetup = function (canvas) {
      isn't the first (default) one. */
   function rowMeta(n) {
     var kind = n.kind === 'pin' ? 'Pin' : n.kind === 'area' ? 'Area' : 'Whole screen';
-    return kind + (n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') +
+    return kind + (n.cellState ? ' · ' + n.cellState.label : n.state && states.length > 1 && n.state !== states[0].id ? ' · ' + stateLabel(n.state) : '') +
       (awayHere(n) ? ' · Not in this view' : '') +
       (!mine(n) ? ' · Someone else’s' : '') +
       (storeState === 'ok' || storeState === 'readonly' ? (n.synced ? '' : ' · This browser only') : '');
@@ -3495,7 +3768,7 @@ window.ultrahandSetup = function (canvas) {
     var nc = exploring && n.concept && conceptById(n.concept);
     if (nc && nc !== sel) { if (comparing()) selectConcept(nc); else focusConcept(nc); }
     if (n.screen && n.screen !== screenId() && screenById(n.screen)) navigate(n.screen);
-    if (n.state && n.state !== st.state && states.some(function (s) { return s.id === n.state; })) setState(n.state);
+    if (!n.cellState && n.state && n.state !== st.state && states.some(function (s) { return s.id === n.state; })) setState(n.state);
     var e = noteEl(n);
     if (e && e.scrollIntoView) e.scrollIntoView({ block: 'nearest' });
     if (n.kind !== 'screen' && !commenting) setCommenting(true);
@@ -3643,6 +3916,7 @@ window.ultrahandSetup = function (canvas) {
       b.setAttribute('aria-label', said + '. Show on its own');
       b.addEventListener('click', function () { focusConcept(c); });
       head.append(b);
+      c.labelEl = b;
       var body = document.createElement('div');
       body.className = 'uh-cell-body';
       var frame = el.frame.cloneNode(true);
@@ -3672,7 +3946,26 @@ window.ultrahandSetup = function (canvas) {
         shield.style.pointerEvents = '';
         return under && under.closest && under.closest('.uh-notes-faint .uh-pin');
       }
+      /* A finger selects the concept only when it lifts without moving: a swipe over the
+         frame scrolls the stage, and the browser cancels the press for it. */
+      var shieldTap = null;
+      shield.addEventListener('pointerup', function (e) {
+        var t = shieldTap;
+        shieldTap = null;
+        if (!t || t.id !== e.pointerId || Math.abs(e.clientX - t.x) > SLOP || Math.abs(e.clientY - t.y) > SLOP) return;
+        var pin = ghostPinAt(e);
+        if (pin) { pin.click(); return; }
+        selectConcept(c);
+        if (sel === c && commenting) {
+          if (editing) closeComposer(true, false);
+          openComposer(makePin(e.clientX, e.clientY), true);
+        }
+      });
+      shield.addEventListener('pointercancel', function () { shieldTap = null; });
       shield.addEventListener('pointerdown', function (e) {
+        /* preventDefault drops the mouse events a touch would send after it, whose focus
+           change would take focus from the comment box a tap opens; the swipe still scrolls. */
+        if (e.pointerType === 'touch') { e.preventDefault(); shieldTap = { id: e.pointerId, x: e.clientX, y: e.clientY }; return; }
         if (e.button !== 0) return;
         e.preventDefault();
         var pin = ghostPinAt(e);
@@ -3712,6 +4005,28 @@ window.ultrahandSetup = function (canvas) {
       c.parts['uh-wintitle'].textContent = el.wintitle.textContent;
       c.cell.toggleAttribute('data-selected', c === sel);
     });
+  }
+  /* A label whose frame is scrolled part way up the stage (a column, or a row zoomed in)
+     slides down with it, to stay at the stage's top edge over its frame, until the frame's
+     bottom pushes it on. CSS sticky can't do it: the frames are scaled by a transform. */
+  function stickLabels() {
+    if (!exploring || !concepts[0].labelEl) return;
+    var stageTop = el.stage.getBoundingClientRect().top, top = stageTop, cover = 0;
+    /* The comment hint hangs over the stage's top: a label sticks below it. */
+    if (!nel.hint.hidden) top = Math.max(top, nel.hint.getBoundingClientRect().bottom);
+    concepts.forEach(function (c) {
+      var shift = 0, cr = c.cell.getBoundingClientRect();
+      if (comparing() && top > cr.top) {
+        c.labelEl.setAttribute('data-stuck', '');
+        var h = c.labelEl.getBoundingClientRect().height;
+        shift = Math.max(0, Math.min(top - cr.top, cr.height - h)) / st.s;
+        if (shift) cover = Math.max(cover, top + h - stageTop);
+      }
+      c.labelEl.style.top = shift ? shift + 'px' : '';
+      c.labelEl.toggleAttribute('data-stuck', shift > 0);
+    });
+    /* Scrolling an element into view (the keyboard aim) stops below a stuck label. */
+    el.stage.style.scrollPaddingTop = cover ? Math.ceil(cover + 8) + 'px' : '';
   }
   /* The comment layer sits over the selected concept's screen. */
   function placeLayer() {
