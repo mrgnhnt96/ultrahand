@@ -240,8 +240,11 @@ test('a missing or empty data folder exits 3', async () => {
 });
 
 test('a binary that will not start exits 3', async (t) => {
-  const p = plugin({ checksum: sha256('not a program') });
-  const server = await assetServer(t, serving('not a program'));
+  // A missing interpreter fails to start everywhere. Plain text would not:
+  // on Linux, execvp runs a file it can't exec through /bin/sh.
+  const unstartable = '#!/no/such/interpreter\n';
+  const p = plugin({ checksum: sha256(unstartable) });
+  const server = await assetServer(t, serving(unstartable));
   const result = await launch(p, { url: server.url });
   assert.equal(result.code, 3);
   assert.match(result.stderr, /general-purpose Agent/);
