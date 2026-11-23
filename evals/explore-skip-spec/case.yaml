@@ -8,7 +8,7 @@ execution:
     Design the orders screen for our iPhone shop app: a large title, a segmented control
     for Active and Past, a list of order cards (number, date, item count, total, status
     chip), and a floating button to start a new order.
-  max_turns: 30
+  max_turns: 40
   timeout_seconds: 600
   allowed_tools: [Skill, Read, Write, Edit, Glob, Grep, Bash]
   append_system_prompt: >-
