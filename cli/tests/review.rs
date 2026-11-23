@@ -10,8 +10,10 @@ use tempfile::TempDir;
 
 /// A script written a moment ago can take seconds to start on macOS when many start at once,
 /// so every limit here leaves room for that.
-const FAST_TIMEOUT: &str = "0.2";
-const SLOW_START: Duration = Duration::from_secs(30);
+const SLOW_START: Duration = Duration::from_secs(60);
+/// A child sleeping this long would make a run that waited for it take at least this long.
+/// It outlasts SLOW_START, so a timeout of SLOW_START fires first.
+const HANG: Duration = Duration::from_secs(120);
 
 /// Records what it was given next to itself, so a test can read it back.
 const CAPTURE: &str = r#"
@@ -201,6 +203,11 @@ fn wait_until(limit: Duration, done: impl Fn() -> bool) -> bool {
         thread::sleep(Duration::from_millis(50));
     }
     done()
+}
+
+/// `echo $$ > file` makes the file before it writes the pid, so wait for the whole line.
+fn pid_written(path: &Path) -> bool {
+    fs::read_to_string(path).is_ok_and(|text| text.ends_with('\n'))
 }
 
 fn pid_in(path: &Path) -> i32 {
@@ -397,18 +404,20 @@ fn spaces_in_every_path_work() {
 #[test]
 fn a_timeout_stops_the_whole_group_even_a_process_ignoring_term() {
     let f = Fixture::new();
-    f.fake_claude(
+    f.fake_claude(&format!(
         r#"sh -c 'trap "" TERM; echo $$ > "$0.stubborn"; while :; do sleep 1; done' "$me" &
 until [ -e "$me.stubborn" ]; do :; done
-exec sleep 60"#,
-    );
-    let output = f.run(&["--timeout", FAST_TIMEOUT]);
+exec sleep {}"#,
+        HANG.as_secs()
+    ));
+    let timeout = SLOW_START.as_secs_f64() / 60.0;
+    let output = f.run(&["--timeout", &timeout.to_string()]);
     assert_eq!(output.status.code(), Some(1));
     assert!(f.error().contains("timed out"), "{}", f.error());
 
     let claude = pid_in(&f.captured_path("pid"));
     let stubborn = pid_in(&f.captured_path("stubborn"));
-    assert!(wait_until(Duration::from_secs(2), || gone(claude) && gone(stubborn)));
+    assert!(wait_until(SLOW_START, || gone(claude) && gone(stubborn)));
     assert!(f.drive_calls().starts_with("close --port "));
 }
 
@@ -418,7 +427,7 @@ fn a_signal_to_the_command_stops_the_child_and_still_writes_the_record() {
     f.fake_claude("exec sleep 60");
     let mut running = f.command().stdout(Stdio::null()).spawn().unwrap();
     let pid_file = f.captured_path("pid");
-    assert!(wait_until(SLOW_START, || pid_file.exists()));
+    assert!(wait_until(SLOW_START, || pid_written(&pid_file)));
     thread::sleep(Duration::from_millis(100));
     // SAFETY: the pid is this test's own child.
     unsafe { libc::kill(running.id() as i32, libc::SIGTERM) };
@@ -426,7 +435,7 @@ fn a_signal_to_the_command_stops_the_child_and_still_writes_the_record() {
     assert_eq!(status.code(), Some(1));
     assert_eq!(f.error(), "interrupted");
     let claude = pid_in(&pid_file);
-    assert!(wait_until(Duration::from_secs(2), || gone(claude)));
+    assert!(wait_until(SLOW_START, || gone(claude)));
 }
 
 #[test]
@@ -439,13 +448,13 @@ exec sleep 60"#,
     );
     let mut running = f.command().stdout(Stdio::null()).spawn().unwrap();
     let stubborn_file = f.captured_path("stubborn");
-    assert!(wait_until(SLOW_START, || stubborn_file.exists()));
+    assert!(wait_until(SLOW_START, || pid_written(&stubborn_file)));
     running.kill().unwrap();
     running.wait().unwrap();
 
     let claude = pid_in(&f.captured_path("pid"));
     let stubborn = pid_in(&stubborn_file);
-    assert!(wait_until(Duration::from_secs(10), || gone(claude) && gone(stubborn)));
+    assert!(wait_until(SLOW_START, || gone(claude) && gone(stubborn)));
     assert!(wait_until(SLOW_START, || f
         .drive_calls()
         .starts_with("close --port ")));
@@ -466,10 +475,11 @@ fn one_compaction_is_marked_in_the_record_and_the_summary() {
 fn a_second_compaction_stops_the_child() {
     let f = Fixture::new();
     let boundary = emit(&compaction_event());
-    f.fake_claude(&format!("{boundary}\n{boundary}\nexec sleep 60"));
+    let hang = HANG.as_secs();
+    f.fake_claude(&format!("{boundary}\n{boundary}\nexec sleep {hang}"));
     let started = Instant::now();
     let output = f.run(&[]);
-    assert!(started.elapsed() < SLOW_START);
+    assert!(started.elapsed() < HANG);
     assert_eq!(output.status.code(), Some(1));
     assert_eq!(f.record()["compactions"], 2);
     assert!(f.error().contains("second compaction"), "{}", f.error());
@@ -547,10 +557,11 @@ fn a_brief_bigger_than_the_pipe_does_not_hang_a_child_that_never_reads_it() {
 fn a_process_left_holding_stdout_does_not_hang_the_run() {
     let f = Fixture::new();
     let event = emit(&result_event(findings()));
-    f.fake_claude(&format!("{READ_STDIN}\nset -m\nsleep 60 &\n{event}"));
+    let hang = HANG.as_secs();
+    f.fake_claude(&format!("{READ_STDIN}\nset -m\nsleep {hang} &\n{event}"));
     let started = Instant::now();
     let output = f.run(&[]);
-    assert!(started.elapsed() < SLOW_START);
+    assert!(started.elapsed() < HANG);
     assert_eq!(output.status.code(), Some(0), "{}", stdout(&output));
 }
 
