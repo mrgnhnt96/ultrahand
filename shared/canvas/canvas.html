@@ -2423,7 +2423,8 @@ window.ultrahandSetup = function (canvas) {
       if (!isOpen()) return;
       setOpen(false);
       btn.setAttribute('aria-expanded', 'false');
-      if (refocus) btn.focus();
+      /* Notes opened from the Preview menu (narrowest windows): its button is hidden. */
+      if (refocus) (onShow(btn) ? btn : standIn(btn, []) || btn).focus();
     }
     btn.addEventListener('click', function () {
       var open = !isOpen();
@@ -2449,6 +2450,55 @@ window.ultrahandSetup = function (canvas) {
   var help = disclosure(el.help, el.helpBtn,
     function () { return !el.keys.hidden; },
     function (v) { el.keys.hidden = !v; });
+
+  /* Focus that folds away: as the window narrows or widens, toolbar controls move into and
+     out of folds and menus. A focused control that stops showing hands focus to whatever
+     shows it now (WCAG 2.4.3): a folded control to its fold's button, a fold button that
+     goes to its controls, Notes to its twin in the Preview menu (or to Preview, menu shut). */
+  function onShow(e) { return !!(e && e.getClientRects().length); }
+  function tabStop(e) { return e.tabIndex >= 0 && !e.disabled && onShow(e); }
+  function standIn(a, seen) {
+    if (onShow(a)) return a;
+    if (seen.indexOf(a) >= 0) return null;
+    seen.push(a);
+    var ctl = a.getAttribute('aria-controls'), i, r;
+    if (ctl) {
+      /* The controls this one opens, where they've joined the bar (the fold is display:
+         contents), then a twin that opens the same. */
+      var inside = byId(ctl);
+      if (inside && !inside.contains(a) && getComputedStyle(inside).display === 'contents') {
+        var stops = inside.querySelectorAll('button, input, select, textarea, [tabindex]');
+        for (i = 0; i < stops.length; i++) if (tabStop(stops[i])) return stops[i];
+      }
+      var twins = el.bar.querySelectorAll('[aria-controls="' + ctl + '"]');
+      for (i = 0; i < twins.length; i++) if (twins[i] !== a && (r = standIn(twins[i], seen))) return r;
+    }
+    /* The button of the fold or menu it sits in. */
+    for (var p = a.parentElement; p && p !== el.bar; p = p.parentElement) {
+      var opener = p.id && el.bar.querySelector('[aria-controls="' + p.id + '"]');
+      if (opener && opener !== a && (r = standIn(opener, seen))) return r;
+    }
+    return null;
+  }
+  /* Browsers differ on when a hidden control loses focus, so the last one focused in the
+     bar is kept until focus or a press goes elsewhere. */
+  var barFocus = null;
+  el.bar.addEventListener('focusin', function (e) { barFocus = e.target; });
+  el.bar.addEventListener('focusout', function (e) { if (e.relatedTarget) barFocus = null; });
+  document.addEventListener('pointerdown', function (e) { if (barFocus && e.target !== barFocus) barFocus = null; }, true);
+  function keepBarFocus() {
+    var a = document.activeElement;
+    if (!a || a === document.body) a = barFocus;
+    if (!a || !el.bar.contains(a) || onShow(a)) return;
+    /* A popover whose button has gone closes with it. */
+    if (a.getAttribute('aria-expanded') === 'true') a.click();
+    var to = standIn(a, []);
+    if (to) to.focus({ preventScroll: true });
+  }
+  ['(max-width: 1023px)', '(max-width: 719px)', '(max-width: 519px)', '(max-width: 399px)'].forEach(function (q) {
+    var m = window.matchMedia(q);
+    if (m.addEventListener) m.addEventListener('change', keepBarFocus);
+  });
   function inScreen(path) { return concepts.some(function (c) { return path.indexOf(c.host) >= 0; }); }
   /* "?" opens the list, except while typing or in the screen, whose keys are its own. */
   document.addEventListener('keydown', function (e) {
