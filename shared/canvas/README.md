@@ -27,6 +27,7 @@ The page gives the viewer:
   - Below 720px: the zoom controls fold behind a button that shows the zoom ("71%"), and Comment becomes an icon.
   - Below 520px: Frame size folds behind a button that shows W × H, the Comment / notes pill shrinks to an icon and the count, and the bar stays one 45px row down to 320px wide (a 1280px window at 400% page zoom).
   - Below 400px: Notes moves into the Preview menu. The Comment icon stays in the bar, since it's used most.
+  - Focus follows a control that folds away. If the focused control moves into a fold or menu as the window narrows, focus goes to the button that now holds it (100% to the zoom button, W to the frame-size button, Notes to Preview). If a fold button, or Notes in the Preview menu, goes as the window widens, focus goes to the control now in the bar (the zoom group's tab stop, the Size picker, the Notes button). It never drops to the page (WCAG 2.4.3).
 - **The screen itself.** It renders in a shadow root and stays fully interactive: buttons, multi-screen navigation with a back stack, form state, scroll position per screen.
 
 `canvas.html` is a working example as it stands (the "Trail log" demo), so you can open it directly to see every feature.
