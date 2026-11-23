@@ -414,7 +414,7 @@ They keep the non-negotiables: the required roles in both schemes with measured 
 - One screen per part (`part-<id>`, titled `<name> · new` or `<name> · reused`) shows every state side by side, then the part's facts. A reused part lists its variants, tokens and file from the inventory. A new part lists the theme roles it uses, grouped by family, in a closed section.
 - Moving between screens puts focus on the new screen's heading, or back on the card the part was opened from.
 
-Canvas notes name the part. On a part's screen, `where` starts with the screen title, `Button · reused`, and the selector names the state cell, `#button--pressed > button`. On the overview, a pin lands on the part's card, `li.pt-card "Trail row, new part"`. The state in `where` is the canvas's State picker; on a part's screen, the cell id in the selector (`--pressed`) is the state the pin is on.
+Canvas notes name the part. On a part's screen, `where` starts with the screen title, `Button · reused`, and the selector names the state cell, `#button--pressed > button`. On the overview, a pin lands on the part's card, `li.pt-card "Trail row, new part"`. On a part's screen each state's figure carries `data-note-state`, so a note in it records that state (`cellState`, and its label in `where`), not the canvas's State picker; on the overview, the state in `where` is the State picker's.
 
 ## Sources
 
