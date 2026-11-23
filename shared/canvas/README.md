@@ -5,7 +5,7 @@ The canvas is the resizable harness that every ultrahand design skill renders it
 The page gives the viewer:
 
 - **A device frame.** Phone, tablet (with split view and the iPad window controls), desktop window, or bare. Every edge and corner resizes it: each edge is a hit strip along its full length, with a grip in the middle. The frame grows evenly about its centre and the zoom holds while you drag, so the edge you hold follows the pointer; at Fit it re-fits once you let go. Esc cancels a drag. Each grip is also a slider (the WAI-ARIA slider pattern): Tab to it, or click it, then Up/Right grow it by 1px and Down/Left shrink it (10px with Shift; Left/Right follow the pointer on a divider at the trailing edge), PageUp/PageDown move 100px, and Home/End go to the limits.
-- **A readout.** It shows the width and height and their size classes ("large width · medium height", in plain muted text). The fields (labelled Width and Height) are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
+- **A readout.** It shows the width and height and their size classes ("large width · medium height", in plain muted text). From 1024px to 1139px wide the size classes shorten to "large · medium", with the full text in their tooltip. The fields (labelled Width and Height) are editable: Enter applies, Esc reverts, an empty entry reverts, and a value past the limits is clamped, with the field showing the real size and the flag saying so ("at min width 640").
 - **A Size picker.** One select lists the platform skill's presets, grouped by platform, plus extra checks such as a 320px reflow pass. When the frame is rotated or resized away from a preset, the picker says so by name only ("Large phone · resized"), since W × H beside it already has the numbers; "resized" is worked out from the values, so typing a preset's size back selects that preset again. Below 800px the options give names only. Rotate swaps the orientation, including safe areas.
 - **Review toggles:**
   - Light / Dark
@@ -99,7 +99,7 @@ All fields are optional except `presets`.
 | `width`, `height` | Required. The portrait or default size in CSS px (pt or dp). |
 | `group` | The heading the button sits under, e.g. `Phone`. Presets without one sit in an unlabelled group; `extraChecks` default to `Checks`. |
 | `frame` | Overrides the frame for this preset. |
-| `platform` | `ios`, `android`, `web`, `macos`, `windows`… Sets `data-platform` on the screen, and `android` raises the tap-target minimum to 48. |
+| `platform` | `ios`, `android`, `web`, `macos`, `windows`… Sets `data-platform` on the screen. `android` raises the tap-target minimum to 48 and draws an Android status bar (time on the left; wifi, signal and an upright battery on the right); any other value draws the iOS one. |
 | `safeArea` | `{ top, right, bottom, left }`, plus `landscapeSide` and `landscapeBottom` for the rotated phone (the notch side and the home-indicator inset). |
 | `landscapeSafeArea` | The full landscape insets, if the two shorthands above aren't enough. |
 | `statusBar`, `homeIndicator` | Show or hide the drawn status bar and home indicator. Both default to on when the matching inset is above 0. |

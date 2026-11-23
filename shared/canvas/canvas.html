@@ -155,6 +155,15 @@ button, input, select { font: inherit; color: inherit; }
 .uh-times { color: var(--muted); }
 /* Status is plain text: it never looks like something to press (SEC-4). */
 .uh-class { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.uh-class-short { display: none; }
+/* Just above 1024px the first row has no room for "compact width · medium height": it
+   shortens to "compact · medium", with the full text in its title and for screen readers,
+   and the groups sit closer. */
+@media (min-width: 1024px) and (max-width: 1139px) {
+  .uh-bar { column-gap: 16px; }
+  .uh-class-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .uh-class-short { display: inline; }
+}
 .uh-flag { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
 .uh-flag:empty { display: none; }
 /* Toggle pairs and the zoom controls: each is one Tab stop, arrows move inside (APG toolbar). */
@@ -327,6 +336,13 @@ body.uh-panning, body.uh-panning * { cursor: grabbing !important; user-select: n
 .uh-statusbar[data-tone="light"] { color: #fff; }
 .uh-frame[data-kind="tablet"] .uh-statusbar { font-size: 12px; padding: 0 20px; }
 .uh-statusbar svg { height: 12px; width: auto; fill: currentColor; }
+/* Android draws its own status bar: the time in a lighter face, then wifi, signal and an
+   upright battery. A preset's "platform" picks it; anything else gets the iOS bar. */
+.uh-sb-android { display: none; }
+.uh-statusbar[data-platform="android"] { font-weight: 500; font-size: 14px; padding: 0 24px; }
+.uh-statusbar[data-platform="android"] .uh-sb-ios { display: none; }
+.uh-statusbar[data-platform="android"] .uh-sb-android { display: inline; }
+.uh-statusbar[data-platform="android"] svg.uh-sb-android { display: block; }
 /* iPadOS window controls: drawn over the app's top-leading corner, in the toolbar row
    below the status bar, so a design can be checked for buttons that collide with them. */
 .uh-wincaps {
@@ -500,9 +516,9 @@ body.uh-commenting .uh-cell:not([data-selected]) .uh-shield { display: block; }
 body.uh-commenting .uh-cell:not([data-selected]) .uh-shield:hover { outline: calc(1px / var(--s)) solid var(--muted); }
 body.uh-space .uh-shield, body.uh-panning .uh-shield, body.uh-dragging .uh-shield { pointer-events: none; }
 /* The other concepts' notes, over their own frames, fainter; their pins still open them. */
-.uh-ghost { z-index: 5; pointer-events: none; opacity: 0.75; }
-.uh-ghost .uh-pin { pointer-events: auto; }
-body.uh-space .uh-ghost .uh-pin, body.uh-panning .uh-ghost .uh-pin, body.uh-dragging .uh-ghost .uh-pin { pointer-events: none; }
+.uh-notes-faint { z-index: 5; pointer-events: none; opacity: 0.75; }
+.uh-notes-faint .uh-pin { pointer-events: auto; }
+body.uh-space .uh-notes-faint .uh-pin, body.uh-panning .uh-notes-faint .uh-pin, body.uh-dragging .uh-notes-faint .uh-pin { pointer-events: none; }
 @media (max-width: 599px) {
   .uh-concepts { padding: 6px 8px; gap: 4px 8px; }
   .uh-concept-btn { max-width: 10em; }
@@ -688,8 +704,9 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-note-scroll { flex: none; min-height: 0; overflow: visible; }
 }
 /* The comment box: a frosted card that grows with the text, tied to its pin by the pin's
-   colour and number. The card is the field, so the textarea has no frame of its own and
-   the card takes the focus ring. */
+   colour and number. The textarea has a 3:1 edge so it reads as a field (WCAG 1.4.11),
+   on an opaque fill so the edge holds over any screen behind the card; the card takes
+   the focus ring. */
 .uh-composer {
   position: fixed; z-index: 6;
   display: grid; gap: 4px;
@@ -711,9 +728,9 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
 @keyframes uh-pop-in { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
 .uh-composer textarea {
   display: block; width: 100%; min-height: 72px; max-height: 220px;
-  padding: 10px 10px 6px;
-  border: 0; border-radius: 10px; outline: none;
-  background: transparent; color: var(--ink);
+  padding: 9px 9px 5px;
+  border: 1px solid var(--field-line); border-radius: 10px; outline: none;
+  background: var(--surface); color: var(--ink);
   font: 14px/1.5 var(--font-ui);
   resize: none;
 }
@@ -842,7 +859,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
         <span class="uh-times" aria-hidden="true">×</span>
         <label class="uh-dim" for="uh-h"><span class="uh-lbl">H</span><input id="uh-h" type="number" inputmode="numeric" step="1" aria-label="Height"></label>
       </span>
-      <span class="uh-class" id="uh-class"></span>
+      <span class="uh-class" id="uh-class"><span class="uh-class-long" id="uh-class-long"></span><span class="uh-class-short" id="uh-class-short" aria-hidden="true"></span></span>
     </div>
     <span class="uh-flag" id="uh-flag" role="status"></span>
   </div>
@@ -959,8 +976,9 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           <div class="uh-divider" id="uh-divider" data-edge="divider" tabindex="0" role="slider" aria-label="Split view divider" aria-orientation="horizontal"></div>
           <div class="uh-other" id="uh-other" aria-hidden="true">Other app</div>
           <div class="uh-statusbar" id="uh-statusbar" aria-hidden="true">
-            <span>9:41</span>
-            <svg viewBox="0 0 46 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="22.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="24.5" y="2.5" width="14" height="7" rx="1.5"/><rect x="43.5" y="4" width="2" height="4" rx="1"/></svg>
+            <span class="uh-sb-ios">9:41</span><span class="uh-sb-android">9:30</span>
+            <svg class="uh-sb-android" viewBox="0 0 41 12"><path d="M7 11.5 0.3 4.2a10 10 0 0 1 13.4 0z"/><path d="M16 11.5h10.5V1z"/><rect x="33" y="1.5" width="7" height="10.5" rx="1.3"/><rect x="35" y="0" width="3" height="2" rx="0.6"/></svg>
+            <svg class="uh-sb-ios" viewBox="0 0 46 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="22.5" y="0.5" width="20" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="24.5" y="2.5" width="14" height="7" rx="1.5"/><rect x="43.5" y="4" width="2" height="4" rx="1"/></svg>
           </div>
           <div class="uh-wincaps" id="uh-wincaps" aria-hidden="true" hidden><span><i></i><i></i><i></i></span></div>
           <div class="uh-homebar" id="uh-homebar" aria-hidden="true"></div>
@@ -1286,7 +1304,7 @@ window.ultrahandSetup = function (canvas) {
   var byId = function (id) { return document.getElementById(id); };
   var el = {
     error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'), presetsWrap: byId('uh-presets-wrap'),
-    w: byId('uh-w'), h: byId('uh-h'), cls: byId('uh-class'), flag: byId('uh-flag'),
+    w: byId('uh-w'), h: byId('uh-h'), cls: byId('uh-class'), clsLong: byId('uh-class-long'), clsShort: byId('uh-class-short'), flag: byId('uh-flag'),
     navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
@@ -1785,6 +1803,7 @@ window.ultrahandSetup = function (canvas) {
     var showStatus = st.statusBar && st.statusTone !== 'hidden' && sa.top > 0;
     el.statusbar.hidden = !showStatus;
     el.statusbar.dataset.tone = tone;
+    el.statusbar.dataset.platform = st.platform;
     el.statusbar.style.height = sa.top + 'px';
     var wcr = info.windowControls;
     el.wincaps.hidden = !wcr;
@@ -1817,7 +1836,8 @@ window.ultrahandSetup = function (canvas) {
     el.w.title = 'Width in px, ' + bd.minW + '–' + bd.maxW + '; ' + info.widthClass + ' width, ' +
       info.heightClass + ' height. Enter applies, Esc reverts.';
     el.h.title = sp ? 'Height is fixed by the split view' : 'Height in px, ' + bd.minH + '–' + bd.maxH + '. Enter applies, Esc reverts.';
-    el.cls.textContent = info.widthClass + ' width · ' + info.heightClass + ' height';
+    el.cls.title = el.clsLong.textContent = info.widthClass + ' width · ' + info.heightClass + ' height';
+    el.clsShort.textContent = info.widthClass + ' · ' + info.heightClass;
     /* The frame-size button (narrowest windows) shows the size its fold holds. */
     el.sizeSum.textContent = st.w + '×' + st.h;
     el.sizeBtn.setAttribute('aria-label', 'Frame size ' + st.w + '×' + st.h);
@@ -1882,6 +1902,11 @@ window.ultrahandSetup = function (canvas) {
      set (start, preset, rotate, zoom buttons). Reading it from the scroll position
      inside fit() would drift, since the stage may already have changed size. */
   var view = { x: 0.5, y: 0.5 };
+  /* The stage size and scroll position fit() last set. A scroll while the stage is another
+     size is the browser clamping the old layout to the new size, before the resize reaches
+     fit(); a scroll to within 1px of fit()'s own position is the browser rounding it, so
+     view is the one fit() meant. Recording either moved the frame on every window resize. */
+  var fitted = { w: -1, h: -1, l: 0, t: 0, view: view };
   /* The frame's box in stage scroll coordinates (the scaler less its margin). */
   function frameBox() {
     return {
@@ -1891,9 +1916,13 @@ window.ultrahandSetup = function (canvas) {
   }
   el.stage.addEventListener('scroll', function () {
     var f = frameBox();
-    if (f.w <= 0 || f.h <= 0) return;
-    view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - f.l) / f.w;
-    view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - f.t) / f.h;
+    var sized = el.stage.clientWidth === fitted.w && el.stage.clientHeight === fitted.h;
+    var own = Math.abs(el.stage.scrollLeft - fitted.l) < 1 && Math.abs(el.stage.scrollTop - fitted.t) < 1;
+    if (sized && own) view = { x: fitted.view.x, y: fitted.view.y };
+    else if (sized && f.w > 0 && f.h > 0) {
+      view.x = (el.stage.scrollLeft + el.stage.clientWidth / 2 - f.l) / f.w;
+      view.y = (el.stage.scrollTop + el.stage.clientHeight / 2 - f.t) / f.h;
+    }
     layoutNotes();
   }, { passive: true });
   /* opts.scale holds the zoom (during a drag). opts.anchor = { fx, fy, cx, cy } keeps the
@@ -1969,8 +1998,12 @@ window.ultrahandSetup = function (canvas) {
     el.scaler.style.height = sh + 'px';
     el.scaler.style.margin = Math.max(stage.clientHeight, sh) / 2 + 'px ' + Math.max(stage.clientWidth, sw) / 2 + 'px';
     var f = frameBox();
-    stage.scrollLeft = f.l + a.fx * f.w - a.cx;
-    stage.scrollTop = f.t + a.fy * f.h - a.cy;
+    var sl = f.l + a.fx * f.w - a.cx, stp = f.t + a.fy * f.h - a.cy;
+    stage.scrollLeft = sl;
+    stage.scrollTop = stp;
+    /* The point the stage's centre was meant to show, before the browser rounds the scroll. */
+    view = { x: (sl + stage.clientWidth / 2 - f.l) / f.w, y: (stp + stage.clientHeight / 2 - f.t) / f.h };
+    fitted = { w: stage.clientWidth, h: stage.clientHeight, l: stage.scrollLeft, t: stage.scrollTop, view: { x: view.x, y: view.y } };
     var pct = Math.round(s * 100) + '%';
     el.zoom.textContent = el.zoomSum.textContent = pct;
     el.zoomBtn.setAttribute('aria-label', 'Zoom ' + pct);
@@ -2908,7 +2941,7 @@ window.ultrahandSetup = function (canvas) {
       var show = commenting && comparing() && c !== sel;
       if (!c.ghost) {
         c.ghost = document.createElement('div');
-        c.ghost.className = 'uh-notes uh-ghost';
+        c.ghost.className = 'uh-notes uh-notes-faint';
         c.ghostEls = {};
         c.ghost.addEventListener('click', function (e) {
           var pin = e.target.closest('.uh-pin');
@@ -3637,7 +3670,7 @@ window.ultrahandSetup = function (canvas) {
         shield.style.pointerEvents = 'none';
         var under = document.elementFromPoint(e.clientX, e.clientY);
         shield.style.pointerEvents = '';
-        return under && under.closest && under.closest('.uh-ghost .uh-pin');
+        return under && under.closest && under.closest('.uh-notes-faint .uh-pin');
       }
       shield.addEventListener('pointerdown', function (e) {
         if (e.button !== 0) return;
