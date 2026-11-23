@@ -9,8 +9,8 @@
 # 2. Runs the smoke evals (scripts/eval.sh --tag smoke): skill routing and the lessons
 #    loop. Each case must pass 2 of its 3 runs (scripts/eval-gate.mjs), or the release
 #    stops before anything is changed. SKIP_EVALS=1 skips them (say why in the release notes).
-# 3. Runs the release-binaries workflow on this commit and waits: cargo test and a build
-#    for each target, into a draft release with a checksums.txt. A failure stops the
+# 3. Runs the release-binaries workflow on this commit and waits: the Node tests, and
+#    cargo test and a build for each target, into a draft release with a checksums.txt. A failure stops the
 #    release before anything is changed. A leftover draft is replaced by the next try.
 # 4. Sets the version in .claude-plugin/plugin.json and writes the draft's checksums to
 #    shared/review/checksums.txt, commits both as "chore(release): v<version>", tags
@@ -102,7 +102,7 @@ for _ in $(seq 1 30); do
 done
 [ -n "$run" ] || die "the $workflow run for $request never appeared (nothing was changed)"
 gh run watch "$run" --exit-status --interval 15 >/dev/null ||
-  die "the binary build failed: gh run view $run --log-failed (nothing was changed)"
+  die "the tests or the binary build failed: gh run view $run --log-failed (nothing was changed)"
 
 drafted="$(mktemp -d)"
 trap 'rm -rf "$drafted"' EXIT

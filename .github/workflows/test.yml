@@ -1,0 +1,46 @@
+# Runs the Node tests (shared/**/*.test.mjs, scripts/*.test.mjs) on every pull request and
+# push to main. release-binaries.yml calls it too, so a release never ships a commit whose
+# Node tests fail. Node 22 is the oldest Node the README supports.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      sha:
+        description: The commit to test
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Node tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # shared/input/drive.test.mjs skips without Chrome, which would pass with nothing tested.
+      - name: Check Chrome is installed
+        run: |
+          for chrome in "${CHROME_PATH:-}" /usr/bin/google-chrome \
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; do
+            [ -n "$chrome" ] && [ -x "$chrome" ] && { echo "Chrome: $chrome"; exit 0; }
+          done
+          echo "No Chrome on this runner: the input driver tests would skip" >&2
+          exit 1
+      - name: Test
+        run: node --test 'shared/**/*.test.mjs' 'scripts/*.test.mjs'
