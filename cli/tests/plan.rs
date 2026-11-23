@@ -11,7 +11,7 @@ use tempfile::TempDir;
 
 /// A script written a moment ago can take seconds to start on macOS when many start at once,
 /// so every limit here leaves room for that.
-const SLOW_START: Duration = Duration::from_secs(30);
+const SLOW_START: Duration = Duration::from_secs(60);
 
 const FAKE_DRIVE: &str = r#"
 import { appendFileSync } from 'node:fs';
@@ -776,11 +776,12 @@ fn time_queued_behind_another_run_is_not_counted_toward_the_timeout() {
     f.simple_units(&["a"]);
     let held = f.hold_slot(0);
     let mut command = f.plan_command();
+    let timeout = SLOW_START.as_secs_f64() / 60.0;
     command
-        .args(["--timeout", "0.1"])
+        .args(["--timeout", &timeout.to_string()])
         .env("ULTRAHAND_MAX_CHILDREN", "1");
     let run = start(command);
-    thread::sleep(Duration::from_secs(7));
+    thread::sleep(SLOW_START + Duration::from_secs(2));
     assert!(!f.was_run("a"), "it should still be queued");
     drop(held);
     let output = run.wait_with_output().unwrap();
