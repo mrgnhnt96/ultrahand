@@ -118,8 +118,25 @@ function validate(cfg) {
   return errors;
 }
 
-function lint(screen) {
+/* Stable anchors (see the screen contract in README.md): every screen, [data-section] and
+   [data-member] carries data-uh="screen.section.member". Opening tags with the marker but
+   no anchor are named, so the screen's author can find them. */
+function anchorLint(screen) {
   const warn = [];
+  const tags = screen.match(/<[a-z][^<>]*>/gi) || [];
+  const attr = (tag, name) => (tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i')) || []).slice(1).find((v) => v !== undefined);
+  const has = (tag, name) => new RegExp(`\\s${name}(?=[\\s=>/])`, 'i').test(tag);
+  for (const [mark, noun] of [['data-screen', 'screen'], ['data-section', 'section'], ['data-member', 'member']]) {
+    const bare = tags.filter((t) => has(t, mark) && !has(t, 'data-uh'));
+    if (!bare.length) continue;
+    const names = bare.map((t) => attr(t, mark)).filter(Boolean).slice(0, 3).map((v) => `"${v}"`);
+    warn.push(`${bare.length} ${noun}${bare.length > 1 ? 's' : ''} without a data-uh anchor${names.length ? ` (${names.join(', ')}${bare.length > names.length ? ', …' : ''})` : ''}: add data-uh="screen.section.member"`);
+  }
+  return warn;
+}
+
+function lint(screen) {
+  const warn = anchorLint(screen);
   const count = (re) => (screen.match(re) || []).length;
   const n = (re, msg) => { const c = count(re); if (c) warn.push(`${msg} (${c}×)`); };
   n(/\b\d*\.?\d+(d|s|l)?v(w|h|min|max|i|b)\b/g, 'Viewport units (vw/vh) size to the artifact window, not the screen: use cqw/cqh or %');

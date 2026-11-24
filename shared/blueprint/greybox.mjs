@@ -117,7 +117,25 @@ function navAttrs(target, opts = {}) {
   return ` data-nav="${esc(target)}"${opts.replace ? ' data-nav-replace' : ''}`;
 }
 
+/* The stable anchor of a member: screen.section.kind-n, n counting that kind in the section's
+   members array (rare ones included), so adding another kind never renames it. */
+function anchors(sec, screenId) {
+  const count = {}, map = new Map();
+  for (const m of sec.members) {
+    count[m.kind] = (count[m.kind] || 0) + 1;
+    map.set(m, `${screenId}.${slug(sec.name)}.${m.kind}-${count[m.kind]}`);
+  }
+  return map;
+}
+
+/* Marks a member's root element with its anchor and kind. */
 function member(m, ctx) {
+  const html = memberHtml(m, ctx);
+  const at = ctx.anchors.get(m);
+  return html.replace(/^<([a-z0-9]+)/, `<$1 data-uh="${esc(at)}" data-member="${esc(m.kind)}"`);
+}
+
+function memberHtml(m, ctx) {
   const em = m.emphasis ? ' bp-em' : '';
   const emAttr = m.emphasis ? ' data-emphasis' : '';
   switch (m.kind) {
@@ -179,6 +197,7 @@ function section(sec, ctx, extra = '') {
   const id = `${ctx.screen}-${slug(sec.name)}${extra ? `-${extra}` : ''}`;
   ctx.prefix = id;
   ctx.section = sec.name;
+  ctx.anchors = anchors(sec, ctx.screen);
   const frequent = sec.members.filter((m) => !m.rare);
   const rare = sec.members.filter((m) => m.rare);
   const more = rare.length
@@ -186,7 +205,7 @@ function section(sec, ctx, extra = '') {
     : '';
   const states = sec.states ? ` data-show-state="${esc(sec.states.join(' '))}"` : '';
   const cls = `bp-sec bp-${sec.role}${sec.place ? ` bp-at-${sec.place}` : ''}${extra ? ` bp-only-${extra}` : ''}`;
-  return `<section class="${cls}" id="${esc(id)}" data-section="${esc(sec.name)}" aria-labelledby="${esc(id)}-tag"${states}>
+  return `<section class="${cls}" id="${esc(id)}" data-uh="${esc(`${ctx.screen}.${slug(sec.name)}`)}" data-section="${esc(sec.name)}" aria-labelledby="${esc(id)}-tag"${states}>
       <p class="bp-tag" id="${esc(id)}-tag"><b>${esc(sec.name)}</b><span class="bp-job">${esc(sec.job)}</span></p>
       <div class="bp-members">${frequent.map((m) => member(m, ctx)).join('')}${more}</div>
     </section>`;
@@ -208,7 +227,7 @@ function screen(s) {
     bar('top', chrome('top'), top), side.length && 'data-side',
     bar('bottom', chrome('bottom'), bottom), secondary && 'data-split',
   ].filter(Boolean).join(' ');
-  return `<section data-screen="${esc(s.id)}" data-title="${esc(s.title)}" class="bp-screen"${flags ? ' ' + flags : ''}>
+  return `<section data-screen="${esc(s.id)}" data-uh="${esc(s.id)}" data-title="${esc(s.title)}" class="bp-screen"${flags ? ' ' + flags : ''}>
   ${top ? `<div class="bp-top">\n    ${top}\n  </div>` : ''}
   <div class="bp-body">
     ${side.length ? `<div class="bp-side">\n    ${render(side)}\n    </div>` : ''}

@@ -43,6 +43,7 @@ The page gives the viewer:
 | --- | --- |
 | `canvas.html` | The harness: styles, runtime, and three marked regions (`HEAD`, `CONFIG`, `SCREEN`) holding the demo. |
 | `build.mjs` | Puts a skill's config, presets and screen into those regions and writes one page. Node 18+, no dependencies. |
+| `build.test.mjs` | Tests for the build warnings. Run `node --test shared/canvas/build.test.mjs`. |
 
 ## How a skill uses it
 
@@ -162,6 +163,20 @@ window.ultrahandSetup = function (canvas) {
 ```
 
 Scripts inside the template don't run. Put behaviour in `window.ultrahandSetup`, which receives the canvas API once the screen is mounted.
+
+### Anchors
+
+Give every screen, section and member a stable `data-uh` anchor, so the design and the code share names:
+
+| Element | Marker | Anchor |
+| --- | --- | --- |
+| Screen | `data-screen` | `data-uh="inbox"` (the screen id) |
+| Section | `data-section="Message list"` | `data-uh="inbox.message-list"` (screen id, then the section name in lowercase with dashes) |
+| Member | `data-member="button"` (its kind) | `data-uh="inbox.message-list.button-1"` (then the kind and its count within the section) |
+
+Anchors are plain lowercase text, unique on a screen, and don't change when copy, styling or other members change. Number a member by counting its kind in the section's members, so adding a title doesn't rename a button. A section that is drawn twice for different sizes (a side rail that collapses to a bar) keeps the same anchor on both copies, and only one shows at a time. Anchors add no visible UI.
+
+`build.mjs` warns, and still builds, for each `data-screen`, `data-section` or `data-member` tag with no `data-uh`, naming the first few. A blueprint's greybox is generated with all of them.
 
 ### Layout
 
