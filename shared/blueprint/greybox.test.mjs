@@ -102,3 +102,44 @@ test('the CLI writes the screen and fails on a broken blueprint', () => {
   assert.equal(fail.status, 1);
   assert.match(fail.stderr, /screens must be a non-empty array/);
 });
+
+test('every screen, section and member carries a stable data-uh anchor', () => {
+  const bp = one([
+    { name: 'Top bar', job: 'Say where you are', role: 'chrome', place: 'top', members: [{ kind: 'title', text: 'Pantry' }] },
+    content([
+      { kind: 'text', text: 'Milk is low' },
+      { kind: 'button', text: 'Add milk' },
+      { kind: 'text', text: 'Eggs are low', rare: true },
+      { kind: 'button', text: 'Add eggs' },
+    ]),
+  ]);
+  const { html } = greybox(bp);
+  const anchors = [...html.matchAll(/data-uh="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(anchors, [
+    'home', 'home.top-bar', 'home.top-bar.title-1', 'home.main',
+    'home.main.text-1', 'home.main.button-1', 'home.main.button-2', 'home.main.text-2',
+  ]);
+  assert.match(html, /<section data-screen="home" data-uh="home"/);
+  assert.match(html, /<h1 data-uh="home\.top-bar\.title-1" data-member="title"/);
+  assert.equal(new Set(anchors).size, anchors.length, 'anchors are unique');
+});
+
+test('anchors do not move when a member of another kind is added', () => {
+  const base = [{ kind: 'text', text: 'Milk is low' }, { kind: 'button', text: 'Add milk' }];
+  const before = greybox(one([content(base)])).html;
+  const after = greybox(one([content([{ kind: 'title', text: 'Shopping' }, ...base])])).html;
+  for (const a of ['home.main.text-1', 'home.main.button-1']) {
+    assert.match(before, new RegExp(`data-uh="${a}"`));
+    assert.match(after, new RegExp(`data-uh="${a}"`));
+  }
+});
+
+test('the example has an anchor on every section and member', () => {
+  const { html } = greybox(readBlueprint(example), { file: example });
+  const tags = html.match(/<[a-z][^<>]*>/gi);
+  for (const mark of ['data-screen', 'data-section', 'data-member']) {
+    const marked = tags.filter((t) => t.includes(` ${mark}`));
+    assert.ok(marked.length, mark);
+    assert.ok(marked.every((t) => /\sdata-uh="/.test(t)), `${mark} without data-uh`);
+  }
+});

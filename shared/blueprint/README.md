@@ -269,6 +269,18 @@ These fields work on any kind:
 | `nav` | On a `button`, `image` or `stat`: the id of the screen it opens. List and nav items take `nav` too. |
 | `back` | `true` on a `button`, `image` or `stat`: goes back a screen, like a Back, Cancel or Done button. |
 
+### Anchors
+
+The greybox marks every element with a stable `data-uh` anchor, so the approved design and
+the code share names: the screen is `screen`, a section is `screen.section` (the section name
+in lowercase with dashes), and a member is `screen.section.kind-n`, where `n` counts that kind
+in the section's `members` array, "More" members included. For example `lists.your-lists.button-2`
+is the second button of "Your lists" on the `lists` screen. Members carry `data-member="<kind>"` too.
+Reordering members of a kind renumbers them, but adding or removing a member of another kind
+doesn't. A side section that collapses below 600px is rendered twice with the same anchor; only
+one shows at a time. Anchors are invisible. `build.mjs` warns about hand-written screens
+that lack them (see the screen contract in `shared/canvas/README.md`).
+
 ### How screens link
 
 `nav` pushes a screen, `back` pops one, and `nav` items (tabs) replace the current screen
