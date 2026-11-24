@@ -169,7 +169,9 @@ One `inspect` answers the checks that need numbers, at the size, zoom and scheme
 | `overlap` | Two texts, neither inside the other, drawn over each other. |
 | `tabindex`, `focus-up` | A positive tabindex, and a Tab step that jumps up the page: right when it starts a new column, wrong within one. |
 
-`focusOrder` is what Tab visits, `"n name @x,y"`, through shadow roots, with one stop per radio group. `counts` sums it up. `scale` appears when the page is zoomed by a transform, as a canvas frame is, so the boxes are in screen px and `target` sizes are in CSS px.
+`focusOrder` is what Tab visits, `"n name @x,y"`, through shadow roots, with one stop per radio group. `counts` sums it up.
+
+The saved `elements` list each text and each control: `el` (tag, id, classes, role and name), `uh` and `testid` (the nearest `data-uh` and `data-testid` on it or an ancestor, through shadow roots; left out when there is none), then its numbers: text, font, box and colours for a text, size and box for a control. A [handoff](../handoff/README.md) check matches elements to spec members by `uh`, and by their words only when there is none. `scale` appears when the page is zoomed by a transform, as a canvas frame is, so the boxes are in screen px and `target` sizes are in CSS px.
 
 What it can't tell you, so look or compute yourself:
 

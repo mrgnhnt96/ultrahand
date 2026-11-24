@@ -54,7 +54,8 @@ three, using the [field tables](#specjson):
 - A measuring pass over the built design with the driver in `shared/input`, at each
   preset, in light and dark: each anchor's words, computed colours and type, and its box.
   Today's [inspect](../input/README.md#inspect) step measures text colour, the colour
-  behind it, font size and weight, and boxes; the generator reads the rest it needs.
+  behind it, font size and weight, and boxes, and names the `data-uh` anchor (and
+  `data-testid`) each element sits in; the generator reads the rest it needs.
   Measured values map back to theme tokens; a value that matches no token is a warning,
   because the design itself used a raw value.
 
