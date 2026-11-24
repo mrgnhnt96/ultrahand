@@ -21,10 +21,11 @@ UnitTests than high level BroadStackTests running through a GUI", because "testi
 through the UI like this is slow" [FOWLER-PYRAMID]. So most checking is a fast diff per
 section, a little is screenshots, and one full review comes last.
 
-Status: the generator (`shared/handoff/spec.mjs`) is built, and the mobile, tablet and
-desktop skills run this stage as their handoff step. Still to come: the one-command check
-for a web build, and a check path for Flutter and other non-web stacks. Until a stack has
-its check, tier 1 there is done by hand (see [Other stacks](#other-stacks)).
+Status: the generator (`shared/handoff/spec.mjs`) and the tier 1 check for a web build
+(`shared/handoff/diff.mjs`, see [Check a web build](#check-a-web-build)) are built, and the
+mobile, tablet and desktop skills run this stage as their handoff step. Still to come: a
+check path for Flutter and other non-web stacks. Until a stack has its check, tier 1 there
+is done by hand (see [Other stacks](#other-stacks)).
 
 ## The handoff stage
 
@@ -104,8 +105,9 @@ whoever builds the design, with or without this plugin.
    section: its members in order, each with its anchor; fixed copy word for word (into the
    project's strings file if it has one); the named component and variant; the named
    tokens, never a raw value; the states it shows in; and its layout per size class.
-4. **Check the section** with tier 1 before starting the next one. Fix every miss, or
-   record it as a [departure](#departures). Commit.
+4. **Check the section** with tier 1 before starting the next one (on the web,
+   `diff.mjs --screen <section anchor>`: [Check a web build](#check-a-web-build)). Fix
+   every miss, or record it as a [departure](#departures). Commit.
 5. When a screen's sections all pass, run tier 2 for that screen. When the flow is done,
    run tier 3.
 
@@ -434,11 +436,47 @@ Tier 1 reports one line per miss, grouped by section:
 | `order` | Members of a section, or sections of a screen, in a different reading order. |
 | `copy` | Fixed copy that differs, or sample copy that is empty or doesn't fit its `pattern`. |
 | `token` | A colour or type style that matches no token named for it, in light or dark. |
-| `layout` | A `place`, `sticky`, `beside`, `columns`, `maxWidth` or `show` that differs at a size class. |
+| `layout` | A `place`, `sticky`, `beside`, `columns`, `maxWidth` or `show` that differs at a size class, or a section or member shown in a state the spec leaves it out of. |
 | `unreachable` | A state the check had no way into. |
 
 Each line names the anchor, the state, the preset and scheme, what the spec says and what
 the build has. An accepted departure is listed apart, with its reason.
+
+### Check a web build
+
+`diff.mjs` runs tier 1 against a running web build in one command. It drives the build with
+`shared/input/drive.mjs` (Chrome) at one preset per width class the spec's presets cover, in
+light and dark, in each state the checked sections show in, and reads every element that
+carries the anchor attribute:
+
+```sh
+node shared/handoff/diff.mjs --spec design/<flow>/spec.json \
+  --url 'http://localhost:5173/{screen}?state={state}' --screen lists.your-lists
+```
+
+- `--url` fills in `{screen}` and `{state}`; with one screen it can be a plain URL. A file
+  path works too. `--routes routes.json` gives a screen or state its own way in:
+  `{ "lists": "/", "lists.empty": { "url": "/?seed=none", "steps": [{ "click": "#clear" }] } }`,
+  where `steps` are drive.mjs steps. A state with neither is reported `unreachable`.
+- `--screen` takes screens, sections or members (an anchor or the start of one), so a
+  check after one section reads only that section. `--preset` and `--scheme` narrow the runs.
+- `--attr data-testid` reads that attribute instead of `data-uh`.
+- Tokens come from the spec's `theme.tokens` path, read from `--root` (default: the current
+  folder), or `--tokens <file>`. Without a token file the token check is skipped, with a
+  warning. Departures come from `accepted.json` beside the spec, or `--accepted <file>`.
+- `--keep <dir>` keeps the pass (inspect and anchor files); `--measured <dir>` diffs a kept
+  pass again without a browser. `--steps` prints the drive.mjs steps without running them.
+  `--json` prints the result as JSON.
+
+It exits 0 when the build matches, 1 on any miss and 2 when it couldn't check. `extra` and
+`unreachable` are warnings and don't fail it.
+
+Tolerances: a colour matches its token within 1 per channel at 8 bits (`--color-tol`); a
+type size within 0.5px, with the weight equal. Line height and font family aren't checked
+yet, because the inspect pass doesn't report them. `place` and `maxWidth` allow 2px
+(`--px-tol`), and list rows whose left edges are within 4px count as one column. `border`,
+`icon` and `radius` tokens aren't measured. Fixed copy is compared after collapsing white
+space; a field's or toggle's label only has to appear in its text or accessible name.
 
 ## Sources
 
