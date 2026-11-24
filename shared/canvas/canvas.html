@@ -162,6 +162,10 @@ button, input, select { font: inherit; color: inherit; }
   .uh-bar { column-gap: 16px; }
   .uh-class-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .uh-class-short { display: inline; }
+  /* If that's still too wide (a long preset name, the problems button), Frame size gives way
+     and the readout ellipsizes rather than running under Zoom. */
+  .uh-bar { grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto; }
+  .uh-class { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 .uh-flag { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
 .uh-flag:empty { display: none; }
@@ -195,8 +199,8 @@ button, input, select { font: inherit; color: inherit; }
 .uh-nav-pick { display: contents; }
 .uh-nav-pick[hidden] { display: none; }
 .uh-nav-pick > .uh-lbl { display: none; }
-#uh-nav-alt .uh-nav-pick:not([hidden]) { display: grid; gap: 4px; flex: 1 1 100%; }
-#uh-nav-alt .uh-nav-pick > .uh-lbl { display: inline; }
+#uh-nav-alt .uh-nav-pick:not([hidden]) { display: flex; flex: 1 1 100%; align-items: center; gap: 8px; }
+#uh-nav-alt .uh-nav-pick > .uh-lbl { display: inline; min-width: 6ch; }
 /* Fixed widths, so Previous and Next stay put as the Screen list changes with the area. */
 #uh-nav-group { width: 16ch; }
 #uh-nav { width: 18ch; }
@@ -906,12 +910,29 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-pop { right: 8px; max-width: calc(100% - 16px); }
   .uh-flag { left: 8px; }
   .uh-result { right: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
-  /* The problems button keeps just a warning sign and the count; its name stays "3 problems". */
+}
+/* From 640 to 759px the problems button leaves no room for W × H beside Zoom, so while it
+   shows, Frame size folds as it does below 640px. */
+@media (min-width: 640px) and (max-width: 759px) {
+  body[data-problems] .uh-g-frame { flex: none; }
+  body[data-problems] .uh-g-frame .uh-btn.uh-fold-btn { display: inline-flex; }
+  body[data-problems] .uh-g-frame .uh-fold { display: none; }
+  body[data-problems] .uh-g-frame[data-open] .uh-fold { display: grid; gap: 10px; justify-items: start; left: 8px; right: auto; width: 280px; }
+  body[data-problems] .uh-g-frame[data-open] .uh-presets { width: 100%; }
+  body[data-problems] .uh-g-frame[data-open] .uh-class { display: inline; }
+}
+/* Below 1140px the problems button keeps just a warning sign and the count, so it fits beside
+   the rest of the bar; its name stays "3 problems". */
+@media (max-width: 1139px) {
   .uh-problems-word { display: none; }
   .uh-problems::before { content: '\26A0\FE0E' / ''; margin-right: 4px; }
 }
-/* Under 600px the Go to pill drops its caret to make room. */
+/* The Go to pill drops its caret to make room: under 600px while the problems button shows,
+   under 500px always. */
 @media (max-width: 599px) {
+  body[data-problems] .uh-g-nav .uh-fold-btn .uh-caret { display: none; }
+}
+@media (max-width: 499px) {
   .uh-g-nav .uh-fold-btn .uh-caret { display: none; }
 }
 /* Under 450px the Go to pill no longer fits beside the rest, so Go to moves into the
