@@ -2544,7 +2544,8 @@ window.ultrahandSetup = function (canvas) {
     input.addEventListener('input', function () { dirty[input === el.w ? 'w' : 'h'] = true; });
     input.addEventListener('change', function () { applyInput(input); });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { e.preventDefault(); writeBack(); input.select(); }
+      /* With no edit to revert, Esc is left to the page, which moves focus out of the field. */
+      if (e.key === 'Escape' && input.value !== String(input === el.w ? st.w : st.h)) { e.preventDefault(); writeBack(); input.select(); }
     });
   });
   el.rotate.addEventListener('click', rotate);
@@ -3639,6 +3640,16 @@ window.ultrahandSetup = function (canvas) {
       setCommenting(false);
     } else if (e.key === 'Escape' && inScreen(path)) {
       leaveScreenIfUnused(e);
+    } else if (e.key === 'Escape' && editing && path.indexOf(nel.composer) < 0) {
+      /* The comment box is open but focus moved away (to the toolbar, say): Esc still
+         closes it, keeping the text, as the hint says. */
+      e.preventDefault();
+      closeComposer(true, true);
+    } else if (e.key === 'Escape' && typing && !editing && !inScreen(path)) {
+      /* A toolbar field or picker with nothing to undo: Esc leaves it for the stage, so C,
+         ? and the zoom keys work again, as they do after an Esc in the screen. */
+      e.preventDefault();
+      el.stage.focus({ preventScroll: true });
     }
   });
   /* An Escape the screen didn't use leaves it: focus goes to the stage, so C, ? and the zoom
