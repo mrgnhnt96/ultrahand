@@ -21,12 +21,11 @@ UnitTests than high level BroadStackTests running through a GUI", because "testi
 through the UI like this is slow" [FOWLER-PYRAMID]. So most checking is a fast diff per
 section, a little is screenshots, and one full review comes last.
 
-Status: this file sets the format and the rules; the tools that follow them aren't built
-yet. Still to come: the generator (`shared/handoff/spec.mjs`), anchors in the greybox and
-the canvas build's warning for a missing one, the handoff step in the mobile, tablet and
-desktop skills, the one-command check for a web build, and a check path for Flutter and
-other non-web stacks. Until the skills have the step, run this stage when the owner asks
-for a handoff. Until a stack has its check, tier 1 there is done by hand (see
+Status: the generator (`shared/handoff/spec.mjs`) is built; the other tools that follow
+these rules aren't yet. Still to come: the handoff step in the mobile, tablet and desktop
+skills, the one-command check for a web build, and a check path for Flutter and other
+non-web stacks. Until the skills have the step, run this stage when the owner asks for a
+handoff. Until a stack has its check, tier 1 there is done by hand (see
 [Other stacks](#other-stacks)).
 
 ## The handoff stage
@@ -44,20 +43,47 @@ before writing the spec.
 
 ### 2. Write spec.json
 
-Generate it from three inputs. Until the generator exists, write it by hand from the same
-three, using the [field tables](#specjson):
+Generate it with `shared/handoff/spec.mjs` from three inputs:
 
 - `blueprint/blueprint.json`: screens, section names and jobs, member order, emphasis,
   rare members, navigation and states.
 - `blueprint/parts.json`: the theme components and variants the design uses, and which
-  parts are new. Each member is matched to one of them.
+  parts are new. Each member is matched to the one part of its kind used on its screen
+  (`usedIn`), the `primary` variant for the emphasis. When that is ambiguous the generator
+  warns; name the part on the blueprint member with `"part": "<part id or name>"`.
 - A measuring pass over the built design with the driver in `shared/input`, at each
   preset, in light and dark: each anchor's words, computed colours and type, and its box.
   Today's [inspect](../input/README.md#inspect) step measures text colour, the colour
   behind it, font size and weight, and boxes, and names the `data-uh` anchor (and
-  `data-testid`) each element sits in; the generator reads the rest it needs.
+  `data-testid`) each element sits in. The generator reads font family and line height
+  too when an element has them (`family`, `lineHeight`), which inspect doesn't give yet.
   Measured values map back to theme tokens; a value that matches no token is a warning,
   because the design itself used a raw value.
+
+Run it in two steps. From the plugin folder, with paths into the project:
+
+```sh
+# 1. Print the measuring steps, then run them against the built design.
+node shared/handoff/spec.mjs --steps --blueprint <project>/blueprint/blueprint.json \
+  --presets skills/<skill>/references/presets.md > steps.json
+node shared/input/drive.mjs run <design url> steps.json --out <dir>
+
+# 2. Generate the spec from the blueprint, parts, theme and measurements.
+node shared/handoff/spec.mjs --blueprint <project>/blueprint/blueprint.json \
+  --presets skills/<skill>/references/presets.md \
+  --parts <project>/blueprint/parts.json --tokens <project>/design/theme.tokens.json \
+  --inspect <dir> --round <n> --approved <date> --artifact <url> \
+  --root <project> --out <project>/design/<flow>/spec.json
+```
+
+The steps measure each screen at one preset per width class, in light and dark, in the
+default state and in each state a section is limited to. Each result is
+`inspect-<screen>.<preset>[.<state>][.dark].json`. Elements are tied to members by their
+`uh` anchor when the inspect output has one, else by matching the member's words.
+`--root` is the project folder the spec's `theme` path is relative to. Add
+`--previous <old spec.json>` on a later round to keep each member's id through copy edits
+and record changed anchors in `renamed`. Warnings go to stderr: read each one, and fix the
+design or the blueprint, or accept it. Problems in the blueprint stop it.
 
 The full design is the source of truth where it departs from the blueprint, since that is
 what the owner approved. Write the spec to `design/<flow>/spec.json` in the project, where
