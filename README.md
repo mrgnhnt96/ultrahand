@@ -100,6 +100,7 @@ quick cases gate every release.
 | [shared/canvas](shared/canvas/README.md) | The resizable canvas every design renders into, and its toolbar |
 | [shared/theme](shared/theme/README.md) | The theme format, its rules and scripts |
 | [shared/blueprint](shared/blueprint/README.md) | The section map and greybox drawn before a full design |
+| [shared/handoff](shared/handoff/README.md) | The spec, anchors and checks for building an approved design |
 | [shared/explore](shared/explore/README.md) | Two or three divergent concepts for an open request |
 | [shared/composition](shared/composition/principles.md) | Composition rules for sections and screens, and their audit |
 | [shared/input](shared/input/README.md) | The real-input browser driver |
