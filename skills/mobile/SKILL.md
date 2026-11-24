@@ -126,6 +126,12 @@ Checks.
   Respond to size with `@container screen (width >= …)`, not `@media`. Text in `rem`; hit
   areas, icons and gutters in px, so 200% text grows the words, not the controls. Colours
   with `light-dark()`. Behaviour goes in `window.ultrahandSetup = function (canvas) { … }`.
+- **Screens per page:** keep a page to about 12 `[data-screen]` sections, so the owner can
+  review it in one sitting. A screen is a place a person goes. A variant of one (failed,
+  stopped, empty, 3 selected) is a state (`data-show-state`) or something the screen's own
+  controls open, not another screen. Split a whole-app redesign into one page per area.
+  When a page still has more than about 10 screens, give each a `data-group` (or titles
+  like "Goal · Waves"): Go to then shows an Area picker and a short Screen picker.
 - **Sticky parts:** stack everything pinned to the bottom (tab bar, FAB, snackbar) in one
   dock so nothing overlaps, and set `scroll-padding` on `[data-screen]` so focus scrolls
   clear of sticky bars [WCAG-2.4.11]. At compact height or 200% text, let the header go
