@@ -27,7 +27,7 @@ const page = (inner) => `<template id="uh-screen"><section ${inner}</section></t
 
 test('a screen with anchors on every screen, section and member builds without anchor warnings', () => {
   const r = build(page(`data-screen="home" data-uh="home" data-title="Home">
-    <div data-section="Main" data-uh="home.main"><button data-member="button" data-uh="home.main.button-1">Go</button></div>`));
+    <div data-section="Main" data-uh="home.main"><button data-member="button" data-uh="home.main.go">Go</button></div>`));
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /data-uh/);
 });
@@ -43,7 +43,7 @@ test('a screen, section and member without data-uh each get a warning that names
 
 test('a data-uh on another tag does not count for an unanchored section', () => {
   const r = build(page(`data-screen="home" data-uh="home" data-title="Home">
-    <div data-section="Main"><button data-uh="home.main.button-1">Go</button></div>`));
+    <div data-section="Main"><button data-uh="home.main.go">Go</button></div>`));
   assert.match(r.stderr, /1 section without a data-uh anchor/);
 });
 

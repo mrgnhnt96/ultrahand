@@ -264,6 +264,7 @@ These fields work on any kind:
 
 | Field | Meaning |
 | --- | --- |
+| `id` | Optional. Letters, digits and dashes, unique in the section: names the member's [anchor](#anchors) in place of its words. Give one when the words are likely to change. |
 | `emphasis` | `true` on **at most one** member per section: the thing most people come to do. An emphasised button is filled in solid; any other emphasised member gets a heavy outline. A second emphasis in a section is an error. |
 | `rare` | `true` puts the member behind a **More** menu at the end of the section. In a bar, More opens as a small menu. |
 | `nav` | On a `button`, `image` or `stat`: the id of the screen it opens. List and nav items take `nav` too. |
@@ -271,15 +272,20 @@ These fields work on any kind:
 
 ### Anchors
 
-The greybox marks every element with a stable `data-uh` anchor, so the approved design and
-the code share names: the screen is `screen`, a section is `screen.section` (the section name
-in lowercase with dashes), and a member is `screen.section.kind-n`, where `n` counts that kind
-in the section's `members` array, "More" members included. For example `lists.your-lists.button-2`
-is the second button of "Your lists" on the `lists` screen. Members carry `data-member="<kind>"` too.
-Reordering members of a kind renumbers them, but adding or removing a member of another kind
-doesn't. A side section that collapses below 600px is rendered twice with the same anchor; only
-one shows at a time. Anchors are invisible. `build.mjs` warns about hand-written screens
-that lack them (see the screen contract in `shared/canvas/README.md`).
+The greybox marks every screen, section and member with a `data-uh` anchor named by the
+[handoff anchor rule](../handoff/README.md#anchors), so the approved design, its spec and the
+code share names: the screen is a slug of its `id`, a section is `screen.section` (the section
+name in lowercase with dashes), and a member is `screen.section.member`, where `member` is its
+`id`, else a slug of its first five words (`label` first for a `field`, `toggle` or `stat`),
+else its kind. A second member with the same name in a section gets `-2`. For example
+`lists.your-lists.new-list` is the New list button of "Your lists" on the `lists` screen.
+Members carry `data-member="<kind>"` too. Nav items add the screen they open
+(`lists.tabs.nav.settings`) and list rows add `row` (`lists.your-lists.list.row`).
+Editing a member's words renames its anchor in the greybox; the spec keeps a published
+anchor through a copy edit, and an `id` keeps it in both. A side section that collapses below
+600px is rendered twice with the same anchor; only one shows at a time. Anchors are invisible.
+`build.mjs` warns about hand-written screens that lack them (see the screen contract in
+`shared/canvas/README.md`).
 
 ### How screens link
 

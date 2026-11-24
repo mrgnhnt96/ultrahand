@@ -103,35 +103,55 @@ test('the CLI writes the screen and fails on a broken blueprint', () => {
   assert.match(fail.stderr, /screens must be a non-empty array/);
 });
 
-test('every screen, section and member carries a stable data-uh anchor', () => {
+test('every screen, section and member carries a data-uh anchor named as in the handoff README', () => {
   const bp = one([
     { name: 'Top bar', job: 'Say where you are', role: 'chrome', place: 'top', members: [{ kind: 'title', text: 'Pantry' }] },
     content([
       { kind: 'text', text: 'Milk is low' },
       { kind: 'button', text: 'Add milk' },
       { kind: 'text', text: 'Eggs are low', rare: true },
-      { kind: 'button', text: 'Add eggs' },
+      { kind: 'button', text: 'Add milk' },
+      { kind: 'field', label: 'Quantity', text: '1 bag' },
+      { kind: 'button', id: 'save', text: 'Save for later' },
     ]),
   ]);
   const { html } = greybox(bp);
   const anchors = [...html.matchAll(/data-uh="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(anchors, [
-    'home', 'home.top-bar', 'home.top-bar.title-1', 'home.main',
-    'home.main.text-1', 'home.main.button-1', 'home.main.button-2', 'home.main.text-2',
+    'home', 'home.top-bar', 'home.top-bar.pantry', 'home.main',
+    'home.main.milk-is-low', 'home.main.add-milk', 'home.main.add-milk-2', 'home.main.quantity', 'home.main.save',
+    'home.main.eggs-are-low',
   ]);
   assert.match(html, /<section data-screen="home" data-uh="home"/);
-  assert.match(html, /<h1 data-uh="home\.top-bar\.title-1" data-member="title"/);
+  assert.match(html, /<h1 data-uh="home\.top-bar\.pantry" data-member="title"/);
   assert.equal(new Set(anchors).size, anchors.length, 'anchors are unique');
 });
 
-test('anchors do not move when a member of another kind is added', () => {
-  const base = [{ kind: 'text', text: 'Milk is low' }, { kind: 'button', text: 'Add milk' }];
-  const before = greybox(one([content(base)])).html;
-  const after = greybox(one([content([{ kind: 'title', text: 'Shopping' }, ...base])])).html;
-  for (const a of ['home.main.text-1', 'home.main.button-1']) {
-    assert.match(before, new RegExp(`data-uh="${a}"`));
-    assert.match(after, new RegExp(`data-uh="${a}"`));
-  }
+test('the screen anchor is a slug of its id; nav items and list rows get part anchors', () => {
+  const bp = {
+    title: 'Test',
+    screens: [
+      { id: 'Home-Screen', title: 'Home', sections: [
+        content([{ kind: 'list', items: ['Milk', { text: 'Eggs', nav: 'More--Info' }] }]),
+        { name: 'Tabs', job: 'Switch screens', role: 'chrome', place: 'bottom',
+          members: [{ kind: 'nav', items: [{ text: 'Home', nav: 'Home-Screen' }, { text: 'More', nav: 'More--Info' }] }] },
+      ] },
+      { id: 'More--Info', title: 'More', sections: [content([{ kind: 'text', text: 'Hello' }])] },
+    ],
+  };
+  const { html } = greybox(bp);
+  assert.match(html, /data-screen="Home-Screen" data-uh="home-screen"/);
+  assert.match(html, /data-uh="more-info"/);
+  assert.equal([...html.matchAll(/<li[^>]* data-uh="home-screen\.main\.list\.row"/g)].length, 2);
+  assert.match(html, /data-uh="home-screen\.tabs\.nav\.home-screen"/);
+  assert.match(html, /data-uh="home-screen\.tabs\.nav\.more-info"/);
+});
+
+test('a member id must be letters, digits and dashes, and unique in its section', () => {
+  const bad = check(one([content([{ kind: 'button', text: 'Go', id: 'go now' }])]));
+  assert.match(bad.errors.join('\n'), /member 1 \(button\): id is letters, digits and dashes/);
+  const twice = check(one([content([{ kind: 'button', text: 'Go', id: 'go' }, { kind: 'button', text: 'Stop', id: 'Go' }])]));
+  assert.match(twice.errors.join('\n'), /member 2 \(button\): another member of the section has the id "Go"/);
 });
 
 test('the example has an anchor on every section and member', () => {
