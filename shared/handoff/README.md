@@ -22,10 +22,10 @@ through the UI like this is slow" [FOWLER-PYRAMID]. So most checking is a fast d
 section, a little is screenshots, and one full review comes last.
 
 Status: the generator (`shared/handoff/spec.mjs`) is built; the other tools that follow
-these rules aren't yet. Still to come: inspect reporting each element's `data-uh` anchor,
-the handoff step in the mobile, tablet and desktop skills, the one-command check for a web
-build, and a check path for Flutter and other non-web stacks. Until the skills have the step, run this stage when the owner asks
-for a handoff. Until a stack has its check, tier 1 there is done by hand (see
+these rules aren't yet. Still to come: the handoff step in the mobile, tablet and desktop
+skills, the one-command check for a web build, and a check path for Flutter and other
+non-web stacks. Until the skills have the step, run this stage when the owner asks for a
+handoff. Until a stack has its check, tier 1 there is done by hand (see
 [Other stacks](#other-stacks)).
 
 ## The handoff stage
@@ -55,7 +55,8 @@ Generate it with `shared/handoff/spec.mjs` from three inputs:
   preset, in light and dark: each anchor's words, computed colours and type, and its box.
   Today's [inspect](../input/README.md#inspect) step measures text colour, the colour
   behind it, font size and weight, and boxes, and names the `data-uh` anchor (and
-  `data-testid`) each element sits in; the generator reads the rest it needs.
+  `data-testid`) each element sits in. The generator reads font family and line height
+  too when an element has them (`family`, `lineHeight`), which inspect doesn't give yet.
   Measured values map back to theme tokens; a value that matches no token is a warning,
   because the design itself used a raw value.
 
