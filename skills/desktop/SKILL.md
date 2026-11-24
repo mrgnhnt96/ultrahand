@@ -1,6 +1,6 @@
 ---
 name: desktop
-description: Use only when the user asks to design a desktop UI screen or flow (resizable windows, min/max sizes, pointer and keyboard), corrects one, says they left notes or comments on one, or states a lasting design preference for a desktop app. Do not use for mobile, tablet, or non-UI work.
+description: Use only when the user asks to design a desktop UI screen or flow (resizable windows, min/max sizes, pointer and keyboard), corrects one, says they left notes or comments on one, hands an approved one off to be built, or states a lasting design preference for a desktop app. Do not use for mobile, tablet, or non-UI work.
 ---
 
 # ultrahand: desktop
@@ -265,3 +265,29 @@ plugin report, and always log it in LESSONS.md. Afterwards run
 `node "${CLAUDE_PLUGIN_ROOT}/shared/learning/size.mjs" design`, and if it says
 `compact: yes`, offer to compact the records. All three are in
 [shared/learning/README.md](../../shared/learning/README.md).
+
+## 10. Hand off the approved design
+
+When the owner approves the full design for building, or asks for a handoff, run the
+handoff stage in [shared/handoff/README.md](../../shared/handoff/README.md), so the
+implementer builds from a spec, not a picture. Skip it while the design is still being
+explored or reviewed, and say so in one line.
+
+1. **Anchor the screen.** Give every `[data-screen]`, section (`data-section`) and member
+   (`data-member`) in `screen.html` a `data-uh` anchor by the README's
+   [anchor rule](../../shared/handoff/README.md#anchors), such as
+   `lists.your-lists.new-list`. Rebuild and fix every `without a data-uh anchor` warning.
+   Anchors change nothing visible, so they need no review round.
+2. **Generate the spec** with `shared/handoff/spec.mjs`, as the README's
+   [step 2](../../shared/handoff/README.md#2-write-specjson) says, with this skill's
+   `references/presets.md`: print the measuring steps, run them on the built design, then
+   write `design/<flow>/spec.json` from the blueprint, parts, theme and measurements. Fix
+   or note each warning. Its `shots` come out as `mac-half` and `desktop-qhd`.
+3. **Attach the brief.** Copy `"${CLAUDE_PLUGIN_ROOT}/shared/handoff/implement.md"` to
+   `design/<flow>/HANDOFF.md` beside the spec, and check both into the project.
+4. **Tell the implementer**, with the spec, the brief and the artifact link: put the same
+   anchors in code; build parts first, then the shell, then each content section in spec
+   order; check each section against the spec before starting the next (tier 1), take one
+   screenshot pair per screen at the `shots` presets (tier 2), and run one full review of
+   the flow at the end (tier 3). No full-screen screenshots to check each section. When
+   you build it yourself, follow the brief the same way.

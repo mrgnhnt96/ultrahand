@@ -21,25 +21,23 @@ UnitTests than high level BroadStackTests running through a GUI", because "testi
 through the UI like this is slow" [FOWLER-PYRAMID]. So most checking is a fast diff per
 section, a little is screenshots, and one full review comes last.
 
-Status: the generator (`shared/handoff/spec.mjs`) is built; the other tools that follow
-these rules aren't yet. Still to come: the handoff step in the mobile, tablet and desktop
-skills, the one-command check for a web build, and a check path for Flutter and other
-non-web stacks. Until the skills have the step, run this stage when the owner asks for a
-handoff. Until a stack has its check, tier 1 there is done by hand (see
-[Other stacks](#other-stacks)).
+Status: the generator (`shared/handoff/spec.mjs`) is built, and the mobile, tablet and
+desktop skills run this stage as their handoff step. Still to come: the one-command check
+for a web build, and a check path for Flutter and other non-web stacks. Until a stack has
+its check, tier 1 there is done by hand (see [Other stacks](#other-stacks)).
 
 ## The handoff stage
 
 It runs once the owner approves the full design and someone is going to build it. The
-mobile, tablet and desktop skills will run it as a step of their own. Skip it when the design is only being explored or reviewed,
-and say so in one line.
+mobile, tablet and desktop skills run it as their handoff step. Skip it when the design is
+only being explored or reviewed, and say so in one line.
 
 ### 1. Anchor the design
 
 Every screen, section and member in the approved `screen.html` carries a `data-uh` anchor
-([Anchors](#anchors)). Add them as you build the design. Once the greybox writes them and
-the canvas build warns on a missing one, start from the greybox's and fix every warning
-before writing the spec.
+([Anchors](#anchors)). Add them as you build the design. The greybox writes them, and the
+canvas build warns on a `data-screen`, `data-section` or `data-member` tag without one:
+start from the greybox's and fix every warning before writing the spec.
 
 ### 2. Write spec.json
 
@@ -89,6 +87,10 @@ The full design is the source of truth where it departs from the blueprint, sinc
 what the owner approved. Write the spec to `design/<flow>/spec.json` in the project, where
 `<flow>` is the design's name in lowercase with dashes. Check it into the repository with
 the code.
+
+Copy [implement.md](implement.md) beside it as `design/<flow>/HANDOFF.md`. It is the
+implementer's brief: steps 3 and 4 below, the anchors in code and departures, written for
+whoever builds the design, with or without this plugin.
 
 ### 3. Build section by section
 
