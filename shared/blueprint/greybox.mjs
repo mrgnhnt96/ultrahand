@@ -22,6 +22,36 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'section';
 const str = (v) => typeof v === 'string' && v.trim() !== '';
 
+/* ---------- Anchors (shared/handoff/README.md#anchors) ---------- */
+
+/* One anchor segment: lowercase letters, digits and single dashes. */
+export const segment = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/* A member named by its words takes the first five, so a paragraph doesn't become its anchor. */
+const WORDS = 5;
+const LABEL_FIRST = ['field', 'toggle', 'stat'];
+
+/* A member's own segment: its id, else a slug of its words (label first for a field, toggle or
+   stat, whose text is a value), else its kind. */
+export function memberSlug(m) {
+  if (str(m.id)) return segment(m.id) || m.kind;
+  const words = LABEL_FIRST.includes(m.kind) ? [m.label, m.text] : [m.text, m.label];
+  for (const w of words) if (str(w) && segment(w)) return segment(w).split('-').slice(0, WORDS).join('-');
+  return m.kind;
+}
+
+/* The segments of a section's members, in order: base(m, i) for each, with -2, -3… on a
+   segment already taken in the section. The spec passes a base that keeps earlier ids. */
+export function memberSegments(members, base = memberSlug) {
+  const ids = [];
+  members.forEach((m, i) => {
+    const b = base(m, i);
+    let id = b, n = 1;
+    while (ids.includes(id)) id = `${b}-${++n}`;
+    ids.push(id);
+  });
+  return ids;
+}
+
 /* The strings a member shows as content, so the checks can look for filler copy. Labels
    are left out: a one-word label such as "Item" is often the real one. */
 function strings(m) {
@@ -71,10 +101,16 @@ export function check(bp) {
       const members = Array.isArray(sec.members) ? sec.members : [];
       if (!members.length) errors.push(`${sat} needs a non-empty members array`);
       let em = 0;
+      const memberIdsSeen = new Set();
       members.forEach((m, mi) => {
         const mat = `${sat}, member ${mi + 1}${m && m.kind ? ` (${m.kind})` : ''}`;
         if (!m || typeof m !== 'object') return errors.push(`${mat} is not an object`);
         if (!KINDS.includes(m.kind)) return errors.push(`${mat}: kind must be one of ${KINDS.join(', ')}`);
+        if (m.id !== undefined) {
+          if (typeof m.id !== 'string' || !ID.test(m.id)) errors.push(`${mat}: id is letters, digits and dashes`);
+          else if (memberIdsSeen.has(segment(m.id))) errors.push(`${mat}: another member of the section has the id "${m.id}"`);
+          else memberIdsSeen.add(segment(m.id));
+        }
         if (m.emphasis) em++;
         const items = Array.isArray(m.items) ? m.items : null;
         if (m.kind === 'list' || m.kind === 'nav') {
@@ -117,22 +153,19 @@ function navAttrs(target, opts = {}) {
   return ` data-nav="${esc(target)}"${opts.replace ? ' data-nav-replace' : ''}`;
 }
 
-/* The stable anchor of a member: screen.section.kind-n, n counting that kind in the section's
-   members array (rare ones included), so adding another kind never renames it. */
-function anchors(sec, screenId) {
-  const count = {}, map = new Map();
-  for (const m of sec.members) {
-    count[m.kind] = (count[m.kind] || 0) + 1;
-    map.set(m, `${screenId}.${slug(sec.name)}.${m.kind}-${count[m.kind]}`);
-  }
-  return map;
+/* The anchor of each member of a section: screen.section.member, the member named by its id,
+   else its words, else its kind, the same as in the handoff spec. */
+function anchors(sec, screenAnchor) {
+  const ids = memberSegments(sec.members);
+  return new Map(sec.members.map((m, i) => [m, `${screenAnchor}.${slug(sec.name)}.${ids[i]}`]));
 }
 
-/* Marks a member's root element with its anchor and kind. */
+/* Marks a member's root element with its anchor and kind. Nav items and list rows get a
+   part anchor of their own inside it. */
 function member(m, ctx) {
+  ctx.at = ctx.anchors.get(m);
   const html = memberHtml(m, ctx);
-  const at = ctx.anchors.get(m);
-  return html.replace(/^<([a-z0-9]+)/, `<$1 data-uh="${esc(at)}" data-member="${esc(m.kind)}"`);
+  return html.replace(/^<([a-z0-9]+)/, `<$1 data-uh="${esc(ctx.at)}" data-member="${esc(m.kind)}"`);
 }
 
 function memberHtml(m, ctx) {
@@ -173,19 +206,20 @@ function memberHtml(m, ctx) {
         : `<div class="bp-image${em}"${emAttr}${style} role="img" aria-label="${esc(m.text)}">${body}</div>`;
     }
     case 'list': {
+      const row = ` data-uh="${esc(`${ctx.at}.row`)}"`;
       const rows = m.items.map((it) => {
         const o = typeof it === 'string' ? { text: it } : it;
         const inner = `<span class="bp-row-text">${esc(o.text)}</span>${str(o.meta) ? `<span class="bp-row-meta">${esc(o.meta)}</span>` : ''}`;
         return o.nav !== undefined
-          ? `<li><button type="button" class="bp-row bp-tap"${navAttrs(o.nav)}>${inner}<span class="bp-chev" aria-hidden="true">›</span></button></li>`
-          : `<li class="bp-row">${inner}</li>`;
+          ? `<li${row}><button type="button" class="bp-row bp-tap"${navAttrs(o.nav)}>${inner}<span class="bp-chev" aria-hidden="true">›</span></button></li>`
+          : `<li class="bp-row"${row}>${inner}</li>`;
       }).join('');
       return `<ul class="bp-list${em}"${emAttr}>${rows}</ul>`;
     }
     case 'nav': {
       const items = m.items.map((it) => {
         const current = it.nav === ctx.screen ? ' aria-current="page"' : '';
-        return `<button type="button" class="bp-navitem"${navAttrs(it.nav, { replace: true })}${current}>${esc(it.text)}</button>`;
+        return `<button type="button" class="bp-navitem" data-uh="${esc(`${ctx.at}.${segment(it.nav)}`)}"${navAttrs(it.nav, { replace: true })}${current}>${esc(it.text)}</button>`;
       }).join('');
       return `<nav class="bp-nav${em}"${emAttr} aria-label="${esc(ctx.section)}">${items}</nav>`;
     }
@@ -197,7 +231,7 @@ function section(sec, ctx, extra = '') {
   const id = `${ctx.screen}-${slug(sec.name)}${extra ? `-${extra}` : ''}`;
   ctx.prefix = id;
   ctx.section = sec.name;
-  ctx.anchors = anchors(sec, ctx.screen);
+  ctx.anchors = anchors(sec, ctx.anchor);
   const frequent = sec.members.filter((m) => !m.rare);
   const rare = sec.members.filter((m) => m.rare);
   const more = rare.length
@@ -205,14 +239,14 @@ function section(sec, ctx, extra = '') {
     : '';
   const states = sec.states ? ` data-show-state="${esc(sec.states.join(' '))}"` : '';
   const cls = `bp-sec bp-${sec.role}${sec.place ? ` bp-at-${sec.place}` : ''}${extra ? ` bp-only-${extra}` : ''}`;
-  return `<section class="${cls}" id="${esc(id)}" data-uh="${esc(`${ctx.screen}.${slug(sec.name)}`)}" data-section="${esc(sec.name)}" aria-labelledby="${esc(id)}-tag"${states}>
+  return `<section class="${cls}" id="${esc(id)}" data-uh="${esc(`${ctx.anchor}.${slug(sec.name)}`)}" data-section="${esc(sec.name)}" aria-labelledby="${esc(id)}-tag"${states}>
       <p class="bp-tag" id="${esc(id)}-tag"><b>${esc(sec.name)}</b><span class="bp-job">${esc(sec.job)}</span></p>
       <div class="bp-members">${frequent.map((m) => member(m, ctx)).join('')}${more}</div>
     </section>`;
 }
 
 function screen(s) {
-  const ctx = { screen: s.id, titles: 0, fields: 0 };
+  const ctx = { screen: s.id, anchor: segment(s.id), titles: 0, fields: 0 };
   const of = (fn) => s.sections.filter(fn);
   const chrome = (place) => of((x) => x.role === 'chrome' && x.place === place);
   const side = chrome('side');
@@ -227,7 +261,7 @@ function screen(s) {
     bar('top', chrome('top'), top), side.length && 'data-side',
     bar('bottom', chrome('bottom'), bottom), secondary && 'data-split',
   ].filter(Boolean).join(' ');
-  return `<section data-screen="${esc(s.id)}" data-uh="${esc(s.id)}" data-title="${esc(s.title)}" class="bp-screen"${flags ? ' ' + flags : ''}>
+  return `<section data-screen="${esc(s.id)}" data-uh="${esc(ctx.anchor)}" data-title="${esc(s.title)}" class="bp-screen"${flags ? ' ' + flags : ''}>
   ${top ? `<div class="bp-top">\n    ${top}\n  </div>` : ''}
   <div class="bp-body">
     ${side.length ? `<div class="bp-side">\n    ${render(side)}\n    </div>` : ''}

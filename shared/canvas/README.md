@@ -170,11 +170,11 @@ Give every screen, section and member a stable `data-uh` anchor, so the design a
 
 | Element | Marker | Anchor |
 | --- | --- | --- |
-| Screen | `data-screen` | `data-uh="inbox"` (the screen id) |
-| Section | `data-section="Message list"` | `data-uh="inbox.message-list"` (screen id, then the section name in lowercase with dashes) |
-| Member | `data-member="button"` (its kind) | `data-uh="inbox.message-list.button-1"` (then the kind and its count within the section) |
+| Screen | `data-screen` | `data-uh="inbox"` (the screen id in lowercase with dashes) |
+| Section | `data-section="Message list"` | `data-uh="inbox.message-list"` (screen, then the section name in lowercase with dashes) |
+| Member | `data-member="button"` (its kind) | `data-uh="inbox.message-list.archive-all"` (then the member's id, else its words, else its kind) |
 
-Anchors are plain lowercase text, unique on a screen, and don't change when copy, styling or other members change. Number a member by counting its kind in the section's members, so adding a title doesn't rename a button. A section that is drawn twice for different sizes (a side rail that collapses to a bar) keeps the same anchor on both copies, and only one shows at a time. Anchors add no visible UI.
+Anchors are plain lowercase text and unique on a screen. Name them by the [handoff anchor rule](../handoff/README.md#anchors), so the design matches its spec: a member is named by its blueprint `id`, else the first five words of its text (its label first for a field, toggle or stat), else its kind, with `-2` on a second of the same name in a section. Nav items and list rows take a part anchor (`inbox.tabs.nav.settings`, `inbox.message-list.list.row`). A section that is drawn twice for different sizes (a side rail that collapses to a bar) keeps the same anchor on both copies, and only one shows at a time. Anchors add no visible UI.
 
 `build.mjs` warns, and still builds, for each `data-screen`, `data-section` or `data-member` tag with no `data-uh`, naming the first few. A blueprint's greybox is generated with all of them.
 

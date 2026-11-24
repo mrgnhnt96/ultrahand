@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { buildIndex } from '../theme/tokens.mjs';
+import { greybox } from '../blueprint/greybox.mjs';
 import {
   generate, inspectSteps, readPresets, parseInspectName, readInspectDir, memberSlug, partsList, matchPart,
   tokenTable, matchColor, matchType, slug,
@@ -87,6 +88,23 @@ test('anchors follow the handoff README', () => {
   assert.ok(find(spec, 'list.still-to-get.oat-milk-2-litres'), 'a toggle is named by its label');
   assert.ok(find(spec, 'add.item.quantity'), 'a field is named by its label, not its value');
   assert.ok(find(spec, 'lists.no-lists-yet.make-a-list-for-your'), 'long text takes its first five words');
+});
+
+test('the greybox carries the same anchors as the spec', () => {
+  const bp = pantry();
+  bp.screens[0].sections[2].members[1].id = 'start-list';
+  const { spec } = generate({ blueprint: bp, presets });
+  const want = new Set();
+  for (const s of spec.screens) {
+    want.add(s.anchor);
+    for (const x of s.sections) {
+      want.add(x.anchor);
+      for (const m of x.members) { want.add(m.anchor); for (const it of m.items || []) want.add(it.anchor); }
+    }
+  }
+  const got = new Set([...greybox(bp).html.matchAll(/data-uh="([^"]+)"/g)].map((m) => m[1]));
+  assert.deepEqual([...got].sort(), [...want].sort());
+  assert.ok(got.has('lists.your-lists.start-list'), 'an explicit member id names the anchor');
 });
 
 test('memberSlug: id first, label first for fields, toggles and stats, else kind', () => {

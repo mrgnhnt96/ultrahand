@@ -15,7 +15,7 @@
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { check as checkBlueprint } from '../blueprint/greybox.mjs';
+import { check as checkBlueprint, memberSegments, memberSlug, segment as slug } from '../blueprint/greybox.mjs';
 import { readInventory } from '../blueprint/parts.mjs';
 import { buildIndex, resolve as resolveAlias, valueIn, parseColor, toHex, parseDimension } from '../theme/tokens.mjs';
 
@@ -32,24 +32,12 @@ export const DEFAULT_SIZE_CLASSES = {
 
 const str = (v) => typeof v === 'string' && v.trim() !== '';
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
-/* One anchor segment: lowercase letters, digits and single dashes. */
-export const slug = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/* Anchor segments and member names come from the greybox, so the design and the spec agree. */
+export { slug, memberSlug };
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-/* A member named by its words takes the first five, so a paragraph doesn't become its anchor. */
-const WORDS = 5;
-const LABEL_FIRST = ['field', 'toggle', 'stat'];
 const classOf = (list, px) => list.reduce((at, c) => (px >= c.min ? c.name : at), list[0].name);
 
 /* ---------- Anchors ---------- */
-
-/* A member's own segment: its id, else a slug of its words (label first for a field, toggle or
-   stat, whose text is a value), else its kind. */
-export function memberSlug(m) {
-  if (str(m.id)) return slug(m.id) || m.kind;
-  const words = LABEL_FIRST.includes(m.kind) ? [m.label, m.text] : [m.text, m.label];
-  for (const w of words) if (str(w) && slug(w)) return slug(w).split('-').slice(0, WORDS).join('-');
-  return m.kind;
-}
 
 /* The words that identify a member across rounds, for keeping its anchor through a copy edit. */
 const copyKey = (m) => [m.kind, m.text, m.label, m.placeholder,
@@ -59,7 +47,6 @@ const copyKey = (m) => [m.kind, m.text, m.label, m.placeholder,
 /* Gives each member of a section its segment, keeping the previous spec's ids where a member
    matches one there: first by its words, then by its place among members of its kind. */
 function memberIds(members, prev) {
-  const ids = new Array(members.length);
   const from = new Array(members.length);
   const taken = new Set();
   const prevMembers = prev ? prev.members || [] : [];
@@ -74,12 +61,8 @@ function memberIds(members, prev) {
     const hit = same[nth];
     if (hit && !taken.has(hit[1])) { taken.add(hit[1]); from[i] = hit[0]; }
   });
-  members.forEach((m, i) => {
-    const base = str(m.id) ? memberSlug(m) : from[i] && SEGMENT.test(from[i].id || '') ? from[i].id : memberSlug(m);
-    let id = base, n = 1;
-    while (ids.includes(id)) id = `${base}-${++n}`;
-    ids[i] = id;
-  });
+  const ids = memberSegments(members, (m, i) =>
+    (str(m.id) ? memberSlug(m) : from[i] && SEGMENT.test(from[i].id || '') ? from[i].id : memberSlug(m)));
   return { ids, from };
 }
 
