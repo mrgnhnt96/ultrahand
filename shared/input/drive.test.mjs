@@ -94,6 +94,38 @@ test('inspect measures contrast, targets, clipping and focus order', (t) => {
   assert.equal(line.elements, undefined, 'elements are only saved, unless all is set');
 });
 
+test('inspect names the nearest data-uh and data-testid each element sits in', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'uh-anchors-'));
+  writeFileSync(join(dir, 'page.html'), `<!doctype html><body style="font: 16px system-ui">
+<section data-uh="lists">
+  <h1>Lists</h1>
+  <div data-uh="lists.your-lists" data-testid="your-lists">
+    <p>Your lists</p>
+    <button data-uh="lists.your-lists.new-list"><span>New list</span></button>
+    <host-el data-uh="lists.your-lists.shadow"></host-el>
+  </div>
+</section>
+<p data-uh="">Loose</p>
+<script>customElements.define('host-el', class extends HTMLElement { constructor() { super();
+  this.attachShadow({ mode: 'open' }).innerHTML = '<button>Inside</button>'; } });</script>
+</body>`);
+  const run = spawnSync(process.execPath, [DRIVE, 'run', join(dir, 'page.html'), '[{"inspect":true,"name":"t"}]',
+    '--size', '800x600', '--port', '9389', '--out', dir], { encoding: 'utf8', timeout: 60000 });
+  if (/Chrome not found/.test(run.stderr + run.stdout)) return t.skip('Chrome not found');
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const { elements } = JSON.parse(readFileSync(join(dir, 'inspect-t.json'), 'utf8'));
+  const text = (words) => elements.find((e) => !e.control && e.text === words);
+  const control = (name) => elements.find((e) => e.control && e.el.includes(`"${name}"`));
+
+  assert.deepEqual([text('Lists').uh, text('Lists').testid], ['lists', undefined]);
+  assert.deepEqual([text('Your lists').uh, text('Your lists').testid], ['lists.your-lists', 'your-lists']);
+  assert.equal(text('New list').uh, 'lists.your-lists.new-list', 'text inside a member takes the member anchor');
+  assert.equal(control('New list').uh, 'lists.your-lists.new-list', 'a control carries its own anchor');
+  assert.equal(control('Inside').uh, 'lists.your-lists.shadow', 'the walk goes out through a shadow root');
+  assert.equal(control('Inside').testid, 'your-lists');
+  assert.ok(!('uh' in text('Loose')) && !('testid' in text('Loose')), 'no anchor, or an empty one, is left out');
+});
+
 test('--sections reaches a steps script', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'uh-sections-'));
   writeFileSync(join(dir, 'page.html'), '<!doctype html><title>Sections</title>');

@@ -30,7 +30,7 @@ const PORT_ENV = 'ULTRAHAND_DRIVE_PORT';
 // --chrome is refused, so the only program it starts is the Chrome found for it.
 const LOCK_FOLDER = 'ULTRAHAND_DRIVE_FOLDER';
 const AUDIT = fileURLToPath(new URL('../composition/audit.mjs', import.meta.url));
-const VERSION = 6;
+const VERSION = 7;
 const MAC = process.platform === 'darwin';
 // Mod is the platform's command key: Cmd on macOS, Ctrl elsewhere.
 const MODS = { Alt: 1, Option: 1, Ctrl: 2, Control: 2, Meta: 4, Cmd: 4, Shift: 8, Mod: MAC ? 4 : 2 };
@@ -748,6 +748,17 @@ const PAGE_HELPERS = `(() => {
     walk(document);
     return out;
   };
+  /* The anchors an element sits in: the nearest data-uh, and the nearest data-testid, on it
+     or an ancestor (through shadow roots), so a handoff check matches it to a spec member
+     by name instead of by its words. Left out when there is none. */
+  const nearest = (el, attr) => {
+    for (let p = el; p; p = parentOf(p)) { const v = p.getAttribute?.(attr); if (v) return v; }
+    return null;
+  };
+  const anchors = (el) => {
+    const uh = nearest(el, 'data-uh'), testid = nearest(el, 'data-testid');
+    return { ...(uh ? { uh } : {}), ...(testid ? { testid } : {}) };
+  };
   const inspect = (scope, min) => {
     const root = scope === true || scope == null ? null : resolve(scope);
     const inScope = (el) => !root || contains(root, el);
@@ -772,7 +783,7 @@ const PAGE_HELPERS = `(() => {
       const weight = Number(cs.fontWeight);
       const need = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
       const off = !!el.closest(':disabled') || el.closest('[aria-disabled=true]');
-      const item = { el: desc(el), text: text.slice(0, 50), font: Math.round(size * 10) / 10 + '/' + weight, box: boxOf(b) };
+      const item = { el: desc(el), ...anchors(el), text: text.slice(0, 50), font: Math.round(size * 10) / 10 + '/' + weight, box: boxOf(b) };
       const bg = behind(el);
       const fg = rgba(field ? field.color : cs.color);
       if (bg.image) {
@@ -875,7 +886,7 @@ const PAGE_HELPERS = `(() => {
       if (up) issues.push({ kind: 'focus-up', from: desc(order[i - 1]), to: desc(el) });
       return (i + 1) + ' ' + desc(el) + ' @' + Math.round(r.left) + ',' + Math.round(r.top);
     });
-    for (const t of live) elements.push({ el: desc(t.el), control: true, size: t.size, box: boxOf(t.r) });
+    for (const t of live) elements.push({ el: desc(t.el), ...anchors(t.el), control: true, size: t.size, box: boxOf(t.r) });
     const kinds = {};
     const capped = issues.filter((x) => (kinds[x.kind] = (kinds[x.kind] || 0) + 1) <= 20);
     for (const k in kinds) if (kinds[k] > 20) capped.push({ kind: k, more: kinds[k] - 20 });
