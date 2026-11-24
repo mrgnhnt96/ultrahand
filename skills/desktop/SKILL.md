@@ -133,6 +133,12 @@ user's canvas notes can reach you, only after the review in step 7.
   `@container screen (width >= …)`, not `@media`. Text in `rem`; hit areas, icons and
   gutters in px, so 200% text grows the words, not the controls. Colours with
   `light-dark()`. Behaviour goes in `window.ultrahandSetup = function (canvas) { … }`.
+- **Screens per page:** keep a page to about 12 `[data-screen]` sections, so the owner can
+  review it in one sitting. A screen is a place a person goes. A variant of one (failed,
+  stopped, empty, 3 selected) is a state (`data-show-state`) or something the screen's own
+  controls open, not another screen. Split a whole-app redesign into one page per area.
+  When a page still has more than about 10 screens, give each a `data-group` (or titles
+  like "Goal · Waves"): Go to then shows an Area picker and a short Screen picker.
 - **Built-in toggles:** light/dark, 200% text, state picker, and tap targets (24 px minimum
   for desktop). Call `canvas.refresh()` after opening a menu or popover so the target overlay
   sees it.

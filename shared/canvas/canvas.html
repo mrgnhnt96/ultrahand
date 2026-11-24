@@ -73,7 +73,7 @@ button, input, select { font: inherit; color: inherit; }
   --quiet: color-mix(in srgb, var(--ink) 11%, var(--surface));
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: "frame . zoom" "preview preview preview";
+  grid-template-areas: "frame . zoom" "row2 row2 row2";
   align-items: center;
   gap: 8px 32px;
   padding: 8px 16px;
@@ -90,7 +90,6 @@ button, input, select { font: inherit; color: inherit; }
 .uh-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .uh-g-frame { grid-area: frame; }
 .uh-g-zoom { grid-area: zoom; }
-.uh-g-preview { grid-area: preview; }
 /* A fold is its group's controls; on narrow screens it becomes a popover behind its button. */
 .uh-fold { display: contents; }
 .uh-btn.uh-fold-btn { display: none; }
@@ -163,6 +162,10 @@ button, input, select { font: inherit; color: inherit; }
   .uh-bar { column-gap: 16px; }
   .uh-class-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .uh-class-short { display: inline; }
+  /* If that's still too wide (a long preset name, the problems button), Frame size gives way
+     and the readout ellipsizes rather than running under Zoom. */
+  .uh-bar { grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto; }
+  .uh-class { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 }
 .uh-flag { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
 .uh-flag:empty { display: none; }
@@ -180,6 +183,40 @@ button, input, select { font: inherit; color: inherit; }
 /* A copy of the result under its toggle in the Preview menu (below 1024px only). */
 .uh-result-echo { display: none; }
 .uh-targets-row { display: contents; }
+/* Go to, a group of its own: an Area picker (on pages whose screens fall into areas), the
+   Screen picker, Previous and Next, and where this screen is in the whole set. Below
+   1024px the pickers fold behind a button that shows the position, and Previous and Next
+   stay in the bar, so stepping never needs a menu open. */
+/* The second row: Go to, then Preview, a group gap apart. */
+/* A 24px gap (not 32) keeps Go to and Preview on one row at 1024px wide. */
+.uh-row2 { grid-area: row2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; min-width: 0; }
+.uh-g-nav { position: relative; }
+.uh-g-nav > .uh-lbl { white-space: nowrap; }
+.uh-g-nav select { height: 32px; max-width: 20ch; padding: 0 8px; border: 1px solid var(--field-line); border-radius: 8px; background: var(--surface); color: var(--ink); text-overflow: ellipsis; }
+.uh-g-nav select:hover { border-color: var(--muted); }
+/* Each picker carries its own label, shown where the pickers sit in a menu (the Go to fold,
+   the Preview menu); in the bar the group's "Go to" label serves both. */
+.uh-nav-pick { display: contents; }
+.uh-nav-pick[hidden] { display: none; }
+.uh-nav-pick > .uh-lbl { display: none; }
+#uh-nav-alt .uh-nav-pick:not([hidden]) { display: flex; flex: 1 1 100%; align-items: center; gap: 8px; }
+#uh-nav-alt .uh-nav-pick > .uh-lbl { display: inline; min-width: 6ch; }
+/* Fixed widths, so Previous and Next stay put as the Screen list changes with the area. */
+#uh-nav-group { width: 16ch; }
+#uh-nav { width: 18ch; }
+/* From 1024 to 1439px the hit-target result hangs from the bar's lower edge, under its
+   toggle, as it does in narrower windows, so a long result can't push Preview onto a
+   third row. (The group ends 8px above the bar's border.) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .uh-g-preview { position: relative; }
+  .uh-result {
+    position: absolute; top: calc(100% + 9px); right: 0; z-index: 1;
+    padding: 3px 8px; border: 1px solid var(--line); border-top: 0; background: var(--surface);
+  }
+  .uh-result[hidden] { display: none; }
+}
+.uh-btn.uh-step { width: 32px; padding: 0; font-size: 16px; }
+.uh-navpos { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .uh-preview-btn { display: none; }
 .uh-preview-sum { overflow: hidden; text-overflow: ellipsis; }
 .uh-preview-menu { display: contents; }
@@ -786,7 +823,8 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
    button names the settings that differ from the defaults. Status that would add a row
    (the size limit, the hit-target result) hangs from the bar's lower edge instead. */
 @media (max-width: 1023px) {
-  .uh-bar { display: flex; gap: 16px; }
+  .uh-bar { display: flex; gap: 12px; }
+  .uh-row2 { display: contents; }
   .uh-g-frame { flex: 1 1 auto; }
   .uh-presets { flex: 1 1 auto; min-width: 9ch; }
   .uh-presets select { width: 100%; }
@@ -799,7 +837,27 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-result { right: 16px; }
   .uh-result[hidden] { display: none; }
   .uh-g-zoom { flex: none; }
-  .uh-g-preview { flex: 0 1 auto; }
+  /* The Preview group shrinks with the Size picker (its label ellipsizes), but never below
+     its button, which would then spill past the bar's edge. */
+  .uh-g-preview { flex: 0 1 auto; min-width: 6.5em; }
+  /* Comment shortens to its icon here, which makes room for the Go to pill. */
+  #uh-comment .uh-long { display: none; }
+  #uh-comment .uh-short { display: inline; }
+  #uh-comment { padding: 0 8px; }
+  .uh-g-nav { flex: none; gap: 0; }
+  .uh-g-nav > .uh-lbl, .uh-navpos { display: none; }
+  /* One pill: the position (opens the pickers), then Previous and Next. */
+  .uh-g-nav .uh-seg { gap: 0; }
+  .uh-g-nav .uh-btn.uh-fold-btn { border-radius: 8px 0 0 8px; padding: 0 8px; }
+  #uh-nav-prev { margin-left: -1px; border-radius: 0; }
+  #uh-nav-next { margin-left: -1px; border-radius: 0 8px 8px 0; }
+  .uh-g-nav .uh-btn:hover, .uh-g-nav .uh-btn:focus-visible { position: relative; z-index: 1; }
+  .uh-g-nav .uh-btn.uh-fold-btn { display: inline-flex; }
+  .uh-g-nav .uh-fold { display: none; }
+  .uh-g-nav[data-open] .uh-fold { display: grid; gap: 10px; justify-items: start; left: auto; right: 0; width: max-content; max-width: calc(100vw - 16px); }
+  .uh-g-nav[data-open] .uh-fold select { max-width: 100%; }
+  #uh-nav-fold .uh-nav-pick:not([hidden]) { display: grid; gap: 4px; }
+  #uh-nav-fold .uh-nav-pick > .uh-lbl { display: inline; }
   .uh-preview-btn { display: inline-flex; min-width: 6.5em; max-width: 26ch; }
   .uh-preview-menu { display: none; }
   .uh-preview-menu.uh-pop { width: 280px; overflow: auto; }
@@ -816,20 +874,29 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-dims { gap: 4px; }
 }
 .uh-short { display: none; }
-.uh-notes-alt { display: none; }
+.uh-notes-alt, .uh-nav-alt { display: none; }
 /* Narrower: the zoom controls fold behind a button that shows the zoom, and Comment
    shortens to an icon. */
-@media (max-width: 719px) {
+@media (max-width: 959px) {
   .uh-g-zoom .uh-long { display: none; }
   .uh-g-zoom .uh-short { display: inline; }
   #uh-comment { padding: 0 8px; }
   .uh-g-zoom .uh-btn.uh-fold-btn { display: inline-flex; }
   .uh-g-zoom .uh-fold { display: none; }
   .uh-zoomwrap[data-open] .uh-fold { display: flex; }
+  .uh-btn.uh-step { width: 28px; }
+}
+/* From 640 to 679px, and below 560px, Previous and Next move from the bar into the fold,
+   after the pickers (placeNav moves them). From 560 to 639px Frame size has folded, which
+   leaves room for them in the bar again, even with the problems button showing. */
+@media (min-width: 640px) and (max-width: 679px), (max-width: 559px) {
+  .uh-g-nav .uh-btn.uh-fold-btn { border-radius: 8px; }
+  #uh-nav-fold .uh-seg, #uh-nav-alt .uh-seg { gap: 4px; }
+  #uh-nav-fold #uh-nav-prev, #uh-nav-fold #uh-nav-next, #uh-nav-alt #uh-nav-prev, #uh-nav-alt #uh-nav-next { margin: 0; border-radius: 8px; width: 32px; }
 }
 /* Narrowest (to 320px, a 1280px window at 400% page zoom): one 44px row. The frame size
    folds behind a button that shows it; the hit-target result still hangs below the bar. */
-@media (max-width: 519px) {
+@media (max-width: 639px) {
   .uh-bar { gap: 6px; padding: 6px 8px; }
   .uh-g-frame { flex: none; }
   .uh-g-frame .uh-btn.uh-fold-btn { display: inline-flex; }
@@ -844,6 +911,37 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-flag { left: 8px; }
   .uh-result { right: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
 }
+/* From 640 to 759px the problems button leaves no room for W × H beside Zoom, so while it
+   shows, Frame size folds as it does below 640px. */
+@media (min-width: 640px) and (max-width: 759px) {
+  body[data-problems] .uh-g-frame { flex: none; }
+  body[data-problems] .uh-g-frame .uh-btn.uh-fold-btn { display: inline-flex; }
+  body[data-problems] .uh-g-frame .uh-fold { display: none; }
+  body[data-problems] .uh-g-frame[data-open] .uh-fold { display: grid; gap: 10px; justify-items: start; left: 8px; right: auto; width: 280px; }
+  body[data-problems] .uh-g-frame[data-open] .uh-presets { width: 100%; }
+  body[data-problems] .uh-g-frame[data-open] .uh-class { display: inline; }
+}
+/* Below 1140px the problems button keeps just a warning sign and the count, so it fits beside
+   the rest of the bar; its name stays "3 problems". */
+@media (max-width: 1139px) {
+  .uh-problems-word { display: none; }
+  .uh-problems::before { content: '\26A0\FE0E' / ''; margin-right: 4px; }
+}
+/* The Go to pill drops its caret to make room: under 600px while the problems button shows,
+   under 500px always. */
+@media (max-width: 599px) {
+  body[data-problems] .uh-g-nav .uh-fold-btn .uh-caret { display: none; }
+}
+@media (max-width: 499px) {
+  .uh-g-nav .uh-fold-btn .uh-caret { display: none; }
+}
+/* Under 450px the Go to pill no longer fits beside the rest, so Go to moves into the
+   Preview menu: placeNav moves its pickers and Previous and Next there. */
+@media (max-width: 449px) {
+  .uh-g-nav { display: none; }
+  .uh-g-preview[data-open] .uh-nav-alt:not([hidden]) { display: flex; flex-wrap: wrap; }
+  .uh-nav-alt .uh-navpos { display: inline; }
+}
 /* Narrowest of all (under 400px): Notes moves into the Preview menu; the Comment toggle
    stays in the bar, since it's the one used most. */
 @media (max-width: 399px) {
@@ -852,6 +950,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
   .uh-bar { gap: 4px; }
   .uh-group { gap: 4px; }
   .uh-preview-btn { min-width: 0; padding: 0 6px; }
+  .uh-g-preview { min-width: 0; }
   .uh-bar { padding: 6px; }
   .uh-bar .uh-fold-btn { padding: 0 6px; gap: 4px; }
   .uh-g-preview[data-open] .uh-notes-alt { display: inline-flex; }
@@ -894,6 +993,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
     </div>
     </div>
     <span class="uh-vh" id="uh-zoom-live" role="status"></span>
+    <span class="uh-vh" id="uh-nav-live" role="status"></span>
     <button class="uh-btn uh-problems" type="button" id="uh-problems" title="Show the canvas problems again"></button>
     <div class="uh-split" role="group" aria-label="Comments">
     <button class="uh-btn" type="button" id="uh-comment" aria-pressed="false" aria-label="Comment" title="Comment on the design (C): click or tap to drop a pin, drag or hold to mark an area; from the keyboard, ↑ ↓ and Enter"><span class="uh-long">Comment</span><svg class="uh-short" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 2.5h10a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3 2.5V11.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
@@ -927,8 +1027,9 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
           <dt>Grips</dt><dd><kbd>→</kbd> <kbd>↑</kbd> +1px, <kbd>←</kbd> <kbd>↓</kbd> −1px (<kbd>Shift</kbd> 10px), <kbd>PgUp</kbd> <kbd>PgDn</kbd> ±100px, <kbd>Home</kbd> <kbd>End</kbd> to the limits</dd>
           <dt>Drag, pan</dt><dd><kbd>Esc</kbd> cancels</dd>
           <dt>W, H</dt><dd><kbd>Enter</kbd> applies, <kbd>Esc</kbd> reverts</dd>
-          <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Light and Dark, text size)</dd>
+          <dt>Button groups</dt><dd><kbd>←</kbd> <kbd>→</kbd> move between buttons (zoom, Previous and Next screen, Light and Dark, text size)</dd>
           <dt>Screen</dt><dd><kbd>Esc</kbd> moves focus out of the screen, so <kbd>C</kbd>, <kbd>?</kbd> and the zoom keys work. If the screen used the Esc (to close a menu or dialog, or clear a field), press it again</dd>
+          <dt>Screens</dt><dd><kbd>[</kbd> and <kbd>]</kbd> go to the previous and next screen</dd>
           <dt>Comment</dt><dd><kbd>C</kbd> turns it on or off and puts focus on the screen. Click drops a pin, drag marks an area, <kbd>Esc</kbd> stops. On touch: tap for a pin, hold then drag for an area, swipe to scroll</dd>
           <dt>Comment, keys</dt><dd><kbd>↑</kbd> <kbd>↓</kbd> pick an element, <kbd>←</kbd> the one holding it, <kbd>→</kbd> back in, <kbd>Home</kbd> <kbd>End</kbd> first and last. <kbd>Enter</kbd> pins it, <kbd>Shift</kbd> <kbd>Enter</kbd> marks an area round it</dd>
           <dt>Comment box</dt><dd><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels</dd>
@@ -941,10 +1042,23 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
       </div>
     </div>
   </div>
+  <div class="uh-row2">
+  <div class="uh-group uh-g-nav" id="uh-nav-wrap" role="group" aria-labelledby="uh-nav-label" hidden>
+    <span class="uh-lbl" id="uh-nav-label">Go to</span>
+    <button class="uh-btn uh-fold-btn" type="button" id="uh-nav-btn" aria-expanded="false" aria-controls="uh-nav-fold" title="Go to a screen"><span id="uh-nav-sum"></span><span class="uh-caret" aria-hidden="true">▾</span></button>
+    <div class="uh-fold uh-pop" id="uh-nav-fold">
+      <label class="uh-nav-pick" hidden><span class="uh-lbl" aria-hidden="true">Area</span><select id="uh-nav-group" aria-label="Area"></select></label><label class="uh-nav-pick"><span class="uh-lbl" aria-hidden="true">Screen</span><select id="uh-nav" aria-label="Screen"></select></label>
+    </div>
+    <span class="uh-seg" role="group" aria-label="Step through screens">
+      <button class="uh-btn uh-step" type="button" id="uh-nav-prev" aria-label="Previous screen" title="Previous screen ([)">‹</button>
+      <button class="uh-btn uh-step" type="button" id="uh-nav-next" aria-label="Next screen" title="Next screen (])">›</button>
+    </span>
+    <span class="uh-navpos" id="uh-nav-pos"></span>
+  </div>
   <div class="uh-group uh-g-preview" id="uh-g-preview">
     <button class="uh-btn uh-preview-btn" type="button" id="uh-preview-btn" aria-expanded="false" aria-controls="uh-preview-menu" title="The screen's state, colour scheme, text size and hit targets"><span class="uh-preview-sum" id="uh-preview-sum">Preview</span><span class="uh-caret" aria-hidden="true">▾</span></button>
     <div class="uh-preview-menu uh-pop" id="uh-preview-menu" role="group" aria-label="Preview">
-      <label class="uh-field" id="uh-nav-wrap" for="uh-nav" hidden><span class="uh-lbl">Go to</span><select id="uh-nav"></select></label>
+      <span class="uh-field uh-nav-alt" id="uh-nav-alt" role="group" aria-labelledby="uh-nav-alt-label" hidden><span class="uh-lbl" id="uh-nav-alt-label">Go to</span><span class="uh-navpos" id="uh-nav-alt-pos"></span></span>
       <label class="uh-field" id="uh-state-wrap" for="uh-state" hidden><span class="uh-lbl">State</span><select id="uh-state"></select></label>
       <button class="uh-btn" type="button" id="uh-rotate" title="Swap width and height">Rotate</button>
       <span class="uh-seg" role="group" aria-label="Screen colour scheme">
@@ -962,6 +1076,7 @@ body.uh-space .uh-notes, body.uh-panning .uh-notes, body.uh-dragging .uh-notes {
       <button class="uh-btn uh-notes-alt" type="button" id="uh-notes-alt" aria-controls="uh-notes-pop">Notes</button>
     </div>
     <span class="uh-result" id="uh-targets-result" role="status" hidden></span>
+  </div>
   </div>
 </header>
 <div class="uh-concepts" id="uh-concepts" hidden>
@@ -1324,7 +1439,8 @@ window.ultrahandSetup = function (canvas) {
   var el = {
     error: byId('uh-error'), title: byId('uh-title'), platform: byId('uh-platform'), presets: byId('uh-presets'), presetsWrap: byId('uh-presets-wrap'),
     w: byId('uh-w'), h: byId('uh-h'), cls: byId('uh-class'), clsLong: byId('uh-class-long'), clsShort: byId('uh-class-short'), flag: byId('uh-flag'),
-    navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), rotate: byId('uh-rotate'),
+    navWrap: byId('uh-nav-wrap'), nav: byId('uh-nav'), navGroup: byId('uh-nav-group'), navPrev: byId('uh-nav-prev'),
+    navNext: byId('uh-nav-next'), navPos: byId('uh-nav-pos'), navBtn: byId('uh-nav-btn'), navSum: byId('uh-nav-sum'), navLive: byId('uh-nav-live'), rotate: byId('uh-rotate'),
     zoom: byId('uh-zoom'), stage: byId('uh-stage'), scaler: byId('uh-scaler'), rig: byId('uh-rig'), frame: byId('uh-frame'),
     titlebar: byId('uh-titlebar'), wintitle: byId('uh-wintitle'), area: byId('uh-area'), host: byId('uh-host'),
     divider: byId('uh-divider'), other: byId('uh-other'), statusbar: byId('uh-statusbar'), homebar: byId('uh-homebar'), wincaps: byId('uh-wincaps'),
@@ -1347,7 +1463,13 @@ window.ultrahandSetup = function (canvas) {
     var head = document.createElement('strong');
     head.textContent = errors.length === 1 ? 'Canvas problem' : 'Canvas problems (' + errors.length + ')';
     el.errorText.append(head, '\n' + errors.join('\n'));
-    el.problems.textContent = problemCount();
+    /* The count and the word are apart, so a narrow bar can show just "⚠ 3". */
+    var count = document.createElement('span'), word = document.createElement('span');
+    count.textContent = errors.length;
+    word.className = 'uh-problems-word';
+    word.textContent = errors.length === 1 ? ' problem' : ' problems';
+    el.problems.replaceChildren(count, word);
+    el.problems.setAttribute('aria-label', problemCount());
     showProblems(true);
   }
   function showProblems(open) {
@@ -1512,7 +1634,7 @@ window.ultrahandSetup = function (canvas) {
     next.hidden = false;
     next.scrollTop = scrolls[id] || 0;
     currentScreen = next;
-    if (act === sel) el.nav.value = id;
+    if (act === sel) syncNav(false, true);
     return true;
   }
   function emitNav(from) {
@@ -1533,18 +1655,124 @@ window.ultrahandSetup = function (canvas) {
     var prev = stack.pop();
     if (prev && show(prev)) emitNav(from);
   }
-  /* The Go to picker lists the selected concept's screens. */
+  /* The Go to picker lists the selected concept's screens. A page with many screens splits
+     them into areas: each screen's data-group, or else its title up to the first " · "
+     ("Goal · Waves" is in Goal), with a bare title joining the area it names ("Goals" joins
+     Goal). Screens alone in their area go under Other. An Area picker then leads to a short
+     Screen picker, and Previous and Next step through every screen, area by area, so a long
+     set can be reviewed in order without opening a list at all. */
+  var NAV_GROUP_MIN = 10;
+  var navSet = { order: [], groups: [], groupOf: {} };
+  function screenTitle(s) { return s.dataset.title || s.dataset.screen; }
+  function navGroups() {
+    var keyOf = {}, members = {}, order = [];
+    function add(k, s) {
+      if (!members[k]) { members[k] = []; order.push(k); }
+      members[k].push(s);
+      keyOf[s.dataset.screen] = k;
+    }
+    var explicit = screens.some(function (s) { return s.dataset.group; });
+    var prefix = function (s) {
+      if (s.dataset.group) return s.dataset.group;
+      var t = screenTitle(s), i = t.indexOf(' · ');
+      return i > 0 ? t.slice(0, i) : null;
+    };
+    var named = {};
+    screens.forEach(function (s) { var k = prefix(s); if (k) named[k] = true; });
+    function home(s) {
+      var k = prefix(s);
+      if (k) return k;
+      if (explicit) return null;
+      var t = screenTitle(s);
+      if (named[t]) return t;
+      if (named[t.replace(/s$/, '')]) return t.replace(/s$/, '');
+      if (named[t + 's']) return t + 's';
+      return null;
+    }
+    var lone = [];
+    screens.forEach(function (s) { var k = home(s); if (k) add(k, s); else lone.push(s); });
+    var groups = [], other = lone.slice();
+    order.forEach(function (k) {
+      if (members[k].length > 1 || explicit) groups.push({ key: k, label: k, screens: members[k] });
+      else other.push(members[k][0]);
+    });
+    if (other.length) {
+      other.sort(function (a, b) { return screens.indexOf(a) - screens.indexOf(b); });
+      groups.push({ key: '\u0000other', label: 'Other', screens: other });
+    }
+    var useGroups = groups.length > 1 && (explicit || (screens.length > NAV_GROUP_MIN && groups.length < screens.length / 2));
+    return useGroups ? groups : [{ key: '', label: '', screens: screens.slice() }];
+  }
+  function screenOptionLabel(s, g) {
+    var t = screenTitle(s);
+    if (g.key && t.indexOf(g.key + ' · ') === 0) t = t.slice(g.key.length + 3);
+    return (exploring ? sel.key + ' · ' : '') + t;
+  }
   function buildNav() {
+    navSet.groups = navGroups();
+    navSet.order = []; navSet.groupOf = {};
+    navSet.groups.forEach(function (g, gi) {
+      g.screens.forEach(function (s) { navSet.groupOf[s.dataset.screen] = gi; });
+    });
+    /* Previous and Next keep the order the screens are written in, so a dialog stays next
+       to the screen it opens over even when it sits under Other. */
+    navSet.order = screens.map(function (s) { return s.dataset.screen; });
+    var grouped = navSet.groups.length > 1;
+    el.navGroup.replaceChildren();
+    navSet.groups.forEach(function (g, gi) {
+      var opt = document.createElement('option');
+      opt.value = String(gi);
+      opt.textContent = g.label + ' (' + g.screens.length + ')';
+      el.navGroup.append(opt);
+    });
+    el.navGroup.parentNode.hidden = !grouped;
+    el.navWrap.hidden = screens.length < 2;
+    if (navAlt) placeNav();
+    syncNav(true);
+  }
+  function fillScreens(gi) {
+    var g = navSet.groups[gi];
     el.nav.replaceChildren();
-    screens.forEach(function (s) {
+    g.screens.forEach(function (s) {
       var opt = document.createElement('option');
       opt.value = s.dataset.screen;
-      /* On an explore page the options name the concept they belong to. */
-      opt.textContent = (exploring ? sel.key + ' · ' : '') + (s.dataset.title || s.dataset.screen);
+      opt.textContent = screenOptionLabel(s, g);
       el.nav.append(opt);
     });
-    el.navWrap.hidden = screens.length < 2;
-    if (currentScreen) el.nav.value = currentScreen.dataset.screen;
+    el.nav.dataset.group = String(gi);
+  }
+  function setStep(b, on) {
+    if (on) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
+  }
+  function syncNav(rebuild, announce) {
+    if (!currentScreen || !navSet.order.length) return;
+    var id = currentScreen.dataset.screen;
+    var gi = navSet.groupOf[id] || 0;
+    if (rebuild || el.nav.dataset.group !== String(gi)) fillScreens(gi);
+    el.navGroup.value = String(gi);
+    el.nav.value = id;
+    var i = navSet.order.indexOf(id);
+    setStep(el.navPrev, i > 0);
+    setStep(el.navNext, i < navSet.order.length - 1);
+    var g = navSet.groups[gi];
+    el.navPos.textContent = (i + 1) + ' of ' + navSet.order.length;
+    el.navSum.textContent = (i + 1) + '/' + navSet.order.length;
+    var altPos = byId('uh-nav-alt-pos');
+    if (altPos) altPos.textContent = (i + 1) + ' of ' + navSet.order.length;
+    /* The pill's accessible name starts with what it shows [WCAG 2.5.3]. */
+    el.navBtn.setAttribute('aria-label', el.navSum.textContent + ', Go to: ' + screenTitle(currentScreen));
+    if (announce) el.navLive.textContent = screenTitle(currentScreen) + ', ' + (i + 1) + ' of ' + navSet.order.length;
+    if (typeof rovingTabs === 'function') rovingTabs();
+    el.navPos.title = navSet.groups.length > 1
+      ? g.label + ': screen ' + (g.screens.indexOf(currentScreen) + 1) + ' of ' + g.screens.length + '. All screens: ' + (i + 1) + ' of ' + navSet.order.length
+      : 'Screen ' + (i + 1) + ' of ' + navSet.order.length;
+  }
+  function stepScreen(d) {
+    if (!currentScreen) return false;
+    var i = navSet.order.indexOf(currentScreen.dataset.screen) + d;
+    if (i < 0 || i >= navSet.order.length) return false;
+    navigate(navSet.order[i]);
+    return true;
   }
   concepts.forEach(function (c) {
     withConcept(c, function () {
@@ -1552,7 +1780,48 @@ window.ultrahandSetup = function (canvas) {
     });
   });
   buildNav();
-  el.nav.addEventListener('change', function () { navigate(el.nav.value); });
+  /* A screen may move focus to its heading when it opens; a Go to control keeps it, so
+     Next can be pressed again and again. */
+  var keepingFocus = false;
+  function keepFocus(ctl, fn) {
+    keepingFocus = true;
+    try { fn(); } finally { keepingFocus = false; }
+    if (document.activeElement !== ctl) ctl.focus({ preventScroll: true });
+  }
+  el.nav.addEventListener('change', function () { keepFocus(el.nav, function () { navigate(el.nav.value); }); });
+  el.navGroup.addEventListener('change', function () {
+    var g = navSet.groups[+el.navGroup.value];
+    if (g && g.screens.length) keepFocus(el.navGroup, function () { navigate(g.screens[0].dataset.screen); });
+  });
+  /* Below 450px the Go to group leaves the bar and its pickers move into the Preview menu.
+     From 640 to 679px and below 560px Previous and Next join the pickers. */
+  var navAlt = byId('uh-nav-alt'), navFold = byId('uh-nav-fold'), navSeg = el.navPrev.parentNode, navPos = el.navPos;
+  var navNarrow = window.matchMedia('(max-width: 449px)'), navStepIn = window.matchMedia('(min-width: 640px) and (max-width: 679px), (max-width: 559px)');
+  var previewTitle = el.previewBtn.title;
+  function placeNav() {
+    /* Moving a control drops its focus; it gets it back where it shows, or its stand-in does. */
+    var had = document.activeElement;
+    if (!had || had === document.body) had = barFocus;
+    var into = navNarrow.matches ? navAlt : navFold;
+    if (el.navGroup.parentNode.parentNode !== into) into.append(el.navGroup.parentNode, el.nav.parentNode);
+    var segIn = navStepIn.matches ? into : el.navWrap;
+    if (navSeg.parentNode !== segIn) {
+      if (segIn === el.navWrap) el.navWrap.insertBefore(navSeg, navPos); else segIn.append(navSeg);
+    }
+    navAlt.hidden = el.navWrap.hidden;
+    el.previewBtn.title = navNarrow.matches && !el.navWrap.hidden
+      ? 'Go to a screen, and the screen’s state, colour scheme, text size and hit targets' : previewTitle;
+    if (!had || !(el.navWrap.contains(had) || navAlt.contains(had)) || document.activeElement === had) return;
+    var now = document.activeElement;
+    if (now && now !== document.body && onShow(now)) return;
+    if (had.getAttribute('aria-expanded') === 'true' && !onShow(had)) had.click();
+    var to = onShow(had) ? had : standIn(had, []) || (onShow(el.previewBtn) ? el.previewBtn : null);
+    if (to) to.focus({ preventScroll: true });
+  }
+  [navNarrow, navStepIn].forEach(function (m) { if (m.addEventListener) m.addEventListener('change', placeNav); });
+  placeNav();
+  el.navPrev.addEventListener('click', function () { keepFocus(el.navPrev, function () { stepScreen(-1); }); });
+  el.navNext.addEventListener('click', function () { keepFocus(el.navNext, function () { stepScreen(1); }); });
 
   function screenClick(e) {
     var nav = e.target.closest('[data-nav], [data-nav-back]');
@@ -2395,7 +2664,8 @@ window.ultrahandSetup = function (canvas) {
     Array.prototype.forEach.call(document.querySelectorAll('.uh-seg'), function (g) {
       var bs = Array.prototype.filter.call(g.querySelectorAll('.uh-btn'), function (b) { return !b.disabled && !b.hidden; });
       var cur = bs.filter(function (b) { return b === document.activeElement; })[0] ||
-        bs.filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; })[0] || bs[0];
+        bs.filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; })[0] ||
+        bs.filter(function (b) { return b.getAttribute('aria-disabled') !== 'true'; })[0] || bs[0];
       bs.forEach(function (b) { b.tabIndex = b === cur ? 0 : -1; });
     });
   }
@@ -2436,12 +2706,15 @@ window.ultrahandSetup = function (canvas) {
     });
     document.addEventListener('pointerdown', function (e) { if (!wrap.contains(e.target)) close(false); });
     wrap.addEventListener('focusout', function (e) {
+      /* A Go to control's screen change can pull focus into the screen for a moment;
+         keepFocus brings it back, so the menu stays open. */
+      if (keepingFocus) return;
       if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(false);
     });
     return { open: function () { if (!isOpen()) btn.click(); }, close: close };
   }
   /* The Preview menu (below 1024px) and the frame-size and zoom folds (narrowest windows). */
-  [[el.preview, el.previewBtn], [el.gFrame, el.sizeBtn], [el.zoomWrap, el.zoomBtn]].forEach(function (d) {
+  [[el.preview, el.previewBtn], [el.gFrame, el.sizeBtn], [el.zoomWrap, el.zoomBtn], [el.navWrap, el.navBtn]].forEach(function (d) {
     var wrap = d[0];
     disclosure(wrap, d[1],
       function () { return wrap.hasAttribute('data-open'); },
@@ -2495,7 +2768,7 @@ window.ultrahandSetup = function (canvas) {
     var to = standIn(a, []);
     if (to) to.focus({ preventScroll: true });
   }
-  ['(max-width: 1023px)', '(max-width: 719px)', '(max-width: 519px)', '(max-width: 399px)'].forEach(function (q) {
+  ['(max-width: 1023px)', '(max-width: 959px)', '(max-width: 639px)', '(max-width: 449px)', '(max-width: 399px)'].forEach(function (q) {
     var m = window.matchMedia(q);
     if (m.addEventListener) m.addEventListener('change', keepBarFocus);
   });
@@ -2510,6 +2783,24 @@ window.ultrahandSetup = function (canvas) {
     e.preventDefault();
     help.open();
     el.helpBtn.focus();
+  });
+
+  /* [ and ] step to the previous and next screen, on the same terms as "?": never while
+     typing or in the screen, whose keys are its own (WCAG 2.1.4). Focus stays where it
+     was, even when the screen that opens moves it to its heading, so the key repeats. */
+  document.addEventListener('keydown', function (e) {
+    /* Alt (macOS Option) or Ctrl+Alt (AltGr) types [ and ] on many layouts; Ctrl or Cmd
+       alone is someone else's shortcut. */
+    if ((e.key !== '[' && e.key !== ']') || e.metaKey || (e.ctrlKey && !e.altKey) || drag || el.navWrap.hidden) return;
+    var path = e.composedPath ? e.composedPath() : [];
+    if (inScreen(path)) return;
+    var t = path[0] || e.target;
+    /* The Go to pickers lose nothing: no option starts with [ or ]. */
+    var navPicker = t === el.nav || t === el.navGroup;
+    if (!navPicker && t && t.closest && t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+    e.preventDefault();
+    var from = document.activeElement || document.body;
+    keepFocus(from === document.body ? el.stage : from, function () { stepScreen(e.key === ']' ? 1 : -1); });
   });
 
   /* ---------- Canvas theme ---------- */

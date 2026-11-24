@@ -46,6 +46,7 @@ can't be the plugin under test once the CLI has been built.
 | `lessons-compacted` | quality | Over-limit LESSONS.md and THEME.md are compacted: superseded and closed items archived, overlapping lessons merged, a theme value promoted, the old changelog moved out, and no rule lost. |
 | `theme-extract` | quality | Extraction from drifting CSS keeps the brand, snaps to the grid, passes `check.mjs` and records its decisions. |
 | `audit-passes-out` | quality | A requested composition audit runs `audit.mjs` through `drive.mjs do` with `--out`, which its blurred screenshot needs, so the audit doesn't stop at `shot needs --out`. |
+| `screens-per-page` | quality | A whole-app desktop redesign is split into pages of at most about a dozen screens, task variants become states rather than screens, and a page with more than 10 screens groups them with `data-group` or "Area · Screen" titles. |
 | `sheet-fits-screen` | quality | A bottom sheet that keeps its height between views caps that height at the screen, so it still fits, and its list still scrolls, after the frame gets shorter. |
 | `theme-review-drift` | quality | A theme review finds a raw colour, off-grid spacing and a rebuilt button, and fixes them with the existing theme. |
 
