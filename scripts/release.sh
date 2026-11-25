@@ -6,18 +6,16 @@
 #
 # 1. Checks the checkout: on main, clean, level with origin/main, the tag unused and
 #    the version newer than the current one.
-# 2. Runs the smoke evals (scripts/eval.sh --tag smoke): skill routing and the lessons
-#    loop. Each case must pass 2 of its 3 runs (scripts/eval-gate.mjs), or the release
-#    stops before anything is changed. SKIP_EVALS=1 skips them (say why in the release notes).
-# 3. Runs the release-binaries workflow on this commit and waits: the Node tests, and
+#    It doesn't run the evals: run them by hand when a change needs them (evals/README.md).
+# 2. Runs the release-binaries workflow on this commit and waits: the Node tests, and
 #    cargo test and a build for each target, into a draft release with a checksums.txt. A failure stops the
 #    release before anything is changed. A leftover draft is replaced by the next try.
-# 4. Sets the version in .claude-plugin/plugin.json and writes the draft's checksums to
+# 3. Sets the version in .claude-plugin/plugin.json and writes the draft's checksums to
 #    shared/review/checksums.txt, commits both as "chore(release): v<version>", tags
 #    v<version> and pushes both in one atomic push.
-# 5. Publishes the draft. On a failure the tag is out and the draft isn't: it reports the
+# 4. Publishes the draft. On a failure the tag is out and the draft isn't: it reports the
 #    command that finishes the release, leaves the installed plugin alone and exits 1.
-# 6. Updates the installed plugin on this machine, when the `claude` CLI is here:
+# 5. Updates the installed plugin on this machine, when the `claude` CLI is here:
 #    refreshes the marketplace, updates the plugin (reinstalling if the update doesn't
 #    take) and checks the installed version. It comes after the publish so an installed
 #    plugin never points at a missing asset. GitHub is fetched over HTTPS for these
@@ -26,7 +24,7 @@
 #
 # Environment: RELEASE_REMOTE (default origin), RELEASE_REPO (default mrgnhnt96/ultrahand),
 # ULTRAHAND_MARKETPLACE (default mrgnhnt96), SKIP_LOCAL_PLUGIN=1 to leave the installed
-# plugin alone, SKIP_EVALS=1 to skip the smoke evals.
+# plugin alone.
 set -euo pipefail
 
 remote="${RELEASE_REMOTE:-origin}"
@@ -70,23 +68,7 @@ node -e '
   process.exit(a[3] === b[3] ? 1 : !a[3] ? 0 : !b[3] ? 1 : a[3] > b[3] ? 0 : 1);
 ' "$version" "$current" || die "$version isn't newer than the current $current"
 
-# 2. Smoke evals.
-if [ "${SKIP_EVALS:-}" = 1 ]; then
-  say "SKIP_EVALS=1: skipped the smoke evals"
-elif ! command -v claude >/dev/null; then
-  die "needs the claude CLI for the smoke evals (or SKIP_EVALS=1)"
-else
-  say "running the smoke evals (a few minutes)"
-  # --threshold 0: the CLI's threshold is on each case's mean score, which can't say "2 of 3
-  # runs". eval-gate.mjs counts the passing runs instead. A cost-ceiling stop still exits 2.
-  results="evals/results/release-$tag-$(date -u +%Y-%m-%dT%H-%M-%SZ)"
-  scripts/eval.sh --tag smoke --ablation none --threshold 0 -j 4 --max-cost-usd 20 \
-    --output-dir "$results" || die "the smoke evals didn't finish: see $results (nothing was changed)"
-  node scripts/eval-gate.mjs "$results/aggregate-result.json" ||
-    die "smoke evals failed: see $results/report.html (nothing was changed)"
-fi
-
-# 3. Build the binaries into a draft release.
+# 2. Build the binaries into a draft release.
 head="$(git rev-parse HEAD)"
 request="$tag-$(date +%s)-$$"
 say "building the binaries on $head (several minutes)"
@@ -112,7 +94,7 @@ gh release download "$tag" --pattern checksums.txt --dir "$drafted" ||
   [ "$(wc -l <"$drafted/checksums.txt")" -eq "$target_count" ] ||
   die "the $tag draft's checksums.txt doesn't list $target_count binaries (nothing was changed)"
 
-# 4. Bump, commit, tag, push.
+# 3. Bump, commit, tag, push.
 node -e '
   const fs = require("fs");
   const [file, version] = process.argv.slice(1);
@@ -128,7 +110,7 @@ git tag -a "$tag" -m "ultrahand $tag"
 git push --quiet --atomic "$remote" main "$tag"
 say "pushed $tag ($current -> $version)"
 
-# 5. Publish the draft.
+# 4. Publish the draft.
 publish=(gh release edit "$tag" --repo "$GH_REPO" --draft=false --verify-tag)
 case "$version" in
   *-*) publish+=(--prerelease --latest=false) ;;
@@ -142,7 +124,7 @@ if ! "${publish[@]}" >/dev/null; then
 fi
 say "published the $tag binaries"
 
-# 6. Update the installed plugin on this machine.
+# 5. Update the installed plugin on this machine.
 if [ "${SKIP_LOCAL_PLUGIN:-}" = 1 ]; then
   say "SKIP_LOCAL_PLUGIN=1: left the installed plugin alone"
   exit 0
