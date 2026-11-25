@@ -1,12 +1,9 @@
-# Runs the Node tests (shared/**/*.test.mjs, scripts/*.test.mjs) on every pull request and
-# push to main. release-binaries.yml calls it too, so a release never ships a commit whose
-# Node tests fail. Node 22 is the oldest Node the README supports.
+# Runs the Node tests (shared/**/*.test.mjs, scripts/*.test.mjs). Only release-binaries.yml
+# calls it, so a release never ships a commit whose Node tests fail; nothing runs on pull
+# requests or pushes. Node 22 is the oldest Node the README supports.
 name: Tests
 
 on:
-  pull_request:
-  push:
-    branches: [main]
   workflow_call:
     inputs:
       sha:

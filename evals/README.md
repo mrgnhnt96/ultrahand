@@ -6,7 +6,7 @@ worse before it ships. The format is documented at
 https://code.claude.com/docs/en/plugin-evals.
 
 ```sh
-scripts/eval.sh --tag smoke                 # the release gate: routing and lessons
+scripts/eval.sh --tag smoke                 # the quick routing and lessons cases
 scripts/eval.sh --tag quality               # the slower theme cases
 scripts/eval.sh                             # everything, with and without the plugin
 scripts/eval.sh --case theme-extract --runs 1 --ablation none   # one quick try
@@ -66,5 +66,5 @@ or `prompt.md` and a `graders/` folder:
   pattern can't judge, and write it as PASS/FAIL conditions.
 - Files the case needs go in a `scaffold.sh`. It runs in the empty workspace, and `$0`
   is its own path, so `"$(dirname "$0")/../.."` is the plugin root.
-- Tag it `smoke` only if it's quick (a few turns) and should block a release; otherwise
-  tag it `quality`.
+- Tag it `smoke` only if it's quick (a few turns) and checks routing or the lessons loop;
+  otherwise tag it `quality`.

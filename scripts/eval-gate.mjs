@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The release gate for the smoke evals: every case must pass at least two thirds of its
+// The pass bar for a smoke eval run: every case must pass at least two thirds of its
 // runs (2 of 3), counting a run as passed only when all its scored graders pass.
 // `claude plugin eval --threshold` can't say this: it compares each case's mean score,
 // so a case with 1 passing run of 3 and two at 0.75 (mean 0.83) would get through 0.66.
